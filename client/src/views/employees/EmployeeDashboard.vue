@@ -1,9 +1,9 @@
-<script setup lang="ts">
-
+<script setup>
+import EmployeeLayout from '../../layouts/EmployeeLayout.vue'
 </script>
 
 <template>
-    <main>
-        Welcome to Employee Dashboard
-    </main>
+    <EmployeeLayout>
+        Employee Dashboard page
+    </EmployeeLayout>
 </template>

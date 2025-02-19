@@ -3,7 +3,8 @@ import path from 'path'
 import cors from 'cors'
 import { corsOptions } from './config/cors.js'
 import connectDb from './config/db.js'
-import api from './routes/index.js'
+import adminRoutes from './routes/adminRoutes.js';
+import employeeRoutes from './routes/employeeRoutes.js';
 
 const PORT = process.env.PORT || 3001;
 
@@ -18,7 +19,8 @@ app.use(express.urlencoded({ extended: true }));
 // CORS
 app.use(cors(corsOptions));
 
-app.use('/api', api);
+app.use('/api/admin', adminRoutes);
+app.use('/api/employee', employeeRoutes);
 app.use(express.static('public'));
 
 // GET Route for homepage
