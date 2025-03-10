@@ -92,7 +92,7 @@ onBeforeUnmount(() => {
                             <DropdownLink :href="'/admin/settings'">
                                 Settings
                             </DropdownLink>
-                            <DropdownLink :href="'/employee/login'" @click.prevent="logout" as="button">
+                            <DropdownLink :href="'/admin/login'" @click.prevent="logout" as="button">
                                 Logout
                             </DropdownLink>
                         </template>
