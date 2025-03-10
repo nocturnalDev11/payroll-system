@@ -75,6 +75,14 @@ const adminRoutes: Array<RouteRecordRaw> = [
                 meta: {
                     title: 'Holiday Selection'
                 }
+            },
+            {
+                path: 'admin-settings',
+                name: 'admin-holiday-selection',
+                component: () => import('../views/admins/settings/AdminSettings.vue'),
+                meta: {
+                    title: 'Admin Settings'
+                }
             }
         ],
     }
