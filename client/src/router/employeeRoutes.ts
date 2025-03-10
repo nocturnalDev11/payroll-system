@@ -63,7 +63,15 @@ const employeeRoutes: Array<RouteRecordRaw> = [
                 meta: {
                     title: 'Holiday Selection'
                 }
-            }
+            },
+            {
+                path: 'settings',
+                name: 'employee-settings',
+                component: () => import('../views/employees/settings/EmployeeSettings.vue'),
+                meta: {
+                    title: 'Employee Settings'
+                }
+            },
         ],
     }
 ];

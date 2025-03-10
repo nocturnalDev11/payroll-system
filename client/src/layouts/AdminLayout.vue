@@ -3,12 +3,10 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store.ts';
 
-// Access Pinia auth store and Vue Router
 const authStore = useAuthStore();
 const router = useRouter();
 const route = useRoute();
 
-// Reactive state
 const currentDateTime = ref('2025-03-03 05:34:37');
 const navigationLinks = ref([
     { path: '/admin/dashboard', name: 'Dashboard' },

@@ -47,9 +47,18 @@ const refreshAttendance = async () => {
 };
 
 const exportAttendance = () => {
+    // Outputs "03/20/2025"
+    const currentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+
     const csvContent = [
-        ['Employee ID', 'Name', 'Position', 'Sign In Time', 'Sign Out Time', 'Status'],
+        // Header
+        ['Date', 'Employee ID', 'Name', 'Position', 'Sign In Time', 'Sign Out Time', 'Status'],
         ...attendanceStore.attendanceRecords.map(record => [
+            currentDate,
             record.employeeId?.employeeIdNumber || 'N/A',
             `${record.employeeId?.firstName} ${record.employeeId?.lastName}`,
             record.employeeId?.position || 'N/A',
@@ -188,7 +197,7 @@ onMounted(() => {
                     :disabled="isLoading">
                     <span v-if="isLoading" class="animate-spin material-icons">refresh</span>
                     <span v-else class="material-icons">refresh</span>
-                    <span>Refresh Data</span>
+                    <span class="">Refresh Data</span>
                 </button>
                 <button @click="exportAttendance"
                     class="flex items-center space-x-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors cursor-pointer"
