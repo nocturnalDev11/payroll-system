@@ -61,7 +61,7 @@ const menuItems = [
                                     <p class="text-xs sm:text-sm font-medium">{{ employee?.username }}</p>
                                     <p class="text-xs text-blue-100">{{ employee?.firstName }} {{ employee?.lastName }}</p>
                                 </div>
-                            </div>
+                            </div> 
                         </template>
 
                         <template #content>

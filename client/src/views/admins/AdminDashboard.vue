@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue'; // Added computed
 import { useRouter } from 'vue-router';
 import { useAttendanceStore } from '@/stores/attendance.store.ts';
 import { BASE_API_URL } from '@/utils/constants.ts';
@@ -10,9 +10,9 @@ const attendanceStore = useAttendanceStore();
 const totalEmployees = ref(0);
 const isLoading = ref(false);
 const isProcessingPayroll = ref(false);
-// Use an object to track modal state for each record
 const showModals = ref({});
 
+// Fetch total employees
 const fetchTotalEmployees = async () => {
     try {
         const response = await fetch(`${BASE_API_URL}/api/employees/total`, {
@@ -27,6 +27,7 @@ const fetchTotalEmployees = async () => {
     }
 };
 
+// Format time
 const formatTime = (time) => {
     if (!time) return '--';
     const [hours, minutes] = time.split(':');
@@ -35,6 +36,7 @@ const formatTime = (time) => {
     return `${displayHours}:${minutes} ${period}`;
 };
 
+// Refresh attendance
 const refreshAttendance = async () => {
     isLoading.value = true;
     try {
@@ -46,8 +48,8 @@ const refreshAttendance = async () => {
     }
 };
 
+// Export attendance
 const exportAttendance = () => {
-    // Outputs "03/20/2025"
     const currentDate = new Date().toLocaleDateString('en-US', {
         year: 'numeric',
         month: '2-digit',
@@ -55,7 +57,6 @@ const exportAttendance = () => {
     });
 
     const csvContent = [
-        // Header
         ['Date', 'Employee ID', 'Name', 'Position', 'Sign In Time', 'Sign Out Time', 'Status'],
         ...attendanceStore.attendanceRecords.map(record => [
             currentDate,
@@ -79,10 +80,10 @@ const exportAttendance = () => {
     document.body.removeChild(link);
 };
 
+// Process payroll
 const processPayroll = async () => {
     isProcessingPayroll.value = true;
     try {
-        // Placeholder for payroll processing logic
         console.log('Processing payroll...');
         await new Promise(resolve => setTimeout(resolve, 1000));
     } finally {
@@ -90,6 +91,7 @@ const processPayroll = async () => {
     }
 };
 
+// Delete attendance
 const deleteAttendance = async (id) => {
     if (confirm('Are you sure you want to delete this attendance record?')) {
         try {
@@ -105,12 +107,14 @@ const deleteAttendance = async (id) => {
     }
 };
 
+// Logout
 const logout = () => {
     localStorage.removeItem('userId');
     localStorage.removeItem('userRole');
     router.push('/login');
 };
 
+// Modal controls
 const openModal = (recordId) => {
     showModals.value[recordId] = true;
 };
@@ -118,6 +122,24 @@ const openModal = (recordId) => {
 const closeModal = (recordId) => {
     showModals.value[recordId] = false;
 };
+
+// Computed property to dynamically determine absent count
+const absentCount = computed(() => {
+    const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const CUTOFF_TIME = "13:00:00";
+
+    if (currentTime > CUTOFF_TIME) {
+        // After cutoff, count employees without time-in as absent
+        const presentEmployeeIds = attendanceStore.attendanceRecords
+            .filter(record => record.timeIn && record.status !== "Absent")
+            .map(record => record.employeeId._id.toString());
+        const totalIds = attendanceStore.attendanceRecords.map(record => record.employeeId._id.toString());
+        const uniqueAbsentIds = [...new Set(totalIds.filter(id => !presentEmployeeIds.includes(id)))];
+
+        return uniqueAbsentIds.length;
+    }
+    return attendanceStore.attendanceRecords.filter(r => r.status === "Absent").length;
+});
 
 onMounted(() => {
     fetchTotalEmployees();
@@ -128,7 +150,7 @@ onMounted(() => {
 <template>
     <div class="min-h-screen bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Stats Overview (unchanged) -->
+            <!-- Stats Overview -->
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 <div
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
@@ -178,13 +200,14 @@ onMounted(() => {
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="p-6">
                         <div class="flex items-center">
-                            <div class="rounded-full bg-blue-100 p-3">
-                                <span class="material-icons text-blue-600">attach_money</span>
+                            <div class="rounded-full bg-red-100 p-3">
+                                <span class="material-icons text-red-600">cancel</span>
                             </div>
                             <div class="ml-5">
-                                <p class="text-sm font-medium text-gray-600">Eligible for Salary</p>
-                                <h3 class="text-2xl font-bold text-gray-900">{{ attendanceStore.attendanceRecords.length
-                                    }}</h3>
+                                <p class="text-sm font-medium text-gray-600">Absent Today</p>
+                                <h3 class="text-2xl font-bold text-gray-900">
+                                    {{ absentCount }}
+                                </h3>
                             </div>
                         </div>
                     </div>
@@ -197,7 +220,7 @@ onMounted(() => {
                     :disabled="isLoading">
                     <span v-if="isLoading" class="animate-spin material-icons">refresh</span>
                     <span v-else class="material-icons">refresh</span>
-                    <span class="">Refresh Data</span>
+                    <span>Refresh Data</span>
                 </button>
                 <button @click="exportAttendance"
                     class="flex items-center space-x-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors cursor-pointer"
@@ -296,12 +319,12 @@ onMounted(() => {
                                         'text-red-500': record.status === 'Absent',
                                         'text-green-500': record.status === 'On Time',
                                         'text-yellow-500': record.status === 'Late',
+                                        'text-orange-500': record.status === 'Early Departure',
                                     }">
                                         {{ record.status || 'N/A' }}
                                     </td>
                                     <td class="px-6 py-4 text-sm">
                                         <div class="flex space-x-2">
-                                            <!-- Replace the visibility button with EmployeeAttendanceDetails -->
                                             <EmployeeAttendanceDetails :show="showModals[record._id] || false"
                                                 :employee="record" @open="openModal(record._id)"
                                                 @close="closeModal(record._id)" />
