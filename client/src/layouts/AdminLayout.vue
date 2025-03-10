@@ -73,16 +73,30 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div class="flex items-center space-x-2 sm:space-x-4">
-                    <div class="flex items-center bg-white/5 rounded-lg p-1 sm:p-2 hover:bg-white/10 transition-all">
-                        <div
-                            class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center shadow-inner">
-                            <span class="text-base sm:text-lg font-semibold">{{ adminInitial }}</span>
-                        </div>
-                        <div class="ml-2 sm:ml-3 hidden sm:block">
-                            <p class="text-xs sm:text-sm font-medium">{{ username }}</p>
-                            <p class="text-xs text-blue-100">Administrator</p>
-                        </div>
-                    </div>
+                    <Dropdown align="right" width="56">
+                        <template #trigger>
+                            <div
+                                class="flex items-center bg-white/5 rounded-lg p-1 sm:p-2 hover:bg-white/10 transition-all">
+                                <div
+                                    class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center shadow-inner">
+                                    <span class="text-base sm:text-lg font-semibold">{{ adminInitial }}</span>
+                                </div>
+                                <div class="ml-2 sm:ml-3 hidden sm:block">
+                                    <p class="text-xs sm:text-sm font-medium">{{ username }}</p>
+                                    <p class="text-xs text-blue-100">Administrator</p>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template #content>
+                            <DropdownLink :href="'/admin/settings'">
+                                Settings
+                            </DropdownLink>
+                            <DropdownLink :href="'/employee/login'" @click.prevent="logout" as="button">
+                                Logout
+                            </DropdownLink>
+                        </template>
+                    </Dropdown>
 
                     <button @click="logout" class="flex items-center px-2 py-1 sm:px-4 sm:py-2 rounded-lg bg-white/10 hover:bg-white/20 
                          transition-all duration-200 focus:outline-none focus:ring-2 
