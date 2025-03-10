@@ -1,15 +1,9 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
-    type: {
-        type: String,
-        default: 'text'
-    },
-    modelValue: {
-        type: String,
-        required: true
-    },
+    type: { type: String, default: 'text' },
+    modelValue: { type: String, required: true },
     id: String,
     required: Boolean,
     autocomplete: String,
@@ -17,8 +11,11 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue']);
-
 const input = ref(null);
+
+watch(() => props.type, (newType) => {
+    console.log('TextInput type changed to:', newType);
+});
 
 onMounted(() => {
     if (input.value && input.value.hasAttribute('autofocus')) {
@@ -26,9 +23,6 @@ onMounted(() => {
     }
 });
 
-defineExpose({ focus: () => input.value?.focus() });
-
-// Update the parent via v-model
 const updateValue = (event) => {
     emit('update:modelValue', event.target.value);
 };

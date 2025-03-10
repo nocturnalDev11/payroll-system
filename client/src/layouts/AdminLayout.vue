@@ -66,20 +66,17 @@ onBeforeUnmount(() => {
         <header
             class="sticky top-0 z-[1000] backdrop-blur-sm bg-gradient-to-r from-blue-700/95 to-indigo-700/95 text-white shadow-lg">
             <div class="mx-auto px-2 sm:px-14 py-2 sm:py-3 flex justify-between items-center">
-                <router-link :to="{ name: 'admin-dashboard' }">
-                    <div class="flex items-center">
-                        <div class="bg-white rounded-lg p-1 sm:p-2 cursor-pointer">
-                            <img src="@/assets/pic1.png" alt="right-jobs-logo"
-                                class="h-10 sm:h-12 w-auto object-contain" />
-                        </div>
+                <div class="flex items-center">
+                    <div class="bg-white rounded-lg p-1 sm:p-2">
+                        <img src="@/assets/pic1.png" alt="right-jobs-logo" class="h-10 sm:h-12 w-auto object-contain" />
                     </div>
-                </router-link>
+                </div>
 
                 <div class="flex items-center space-x-2 sm:space-x-4">
                     <Dropdown align="right" width="56">
                         <template #trigger>
                             <div
-                                class="flex items-center bg-white/5 rounded-lg p-1 sm:p-2 hover:bg-white/10 transition-all cursor-pointer">
+                                class="flex items-center bg-white/5 rounded-lg p-1 sm:p-2 hover:bg-white/10 transition-all">
                                 <div
                                     class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center shadow-inner">
                                     <span class="text-base sm:text-lg font-semibold">{{ adminInitial }}</span>
@@ -95,7 +92,7 @@ onBeforeUnmount(() => {
                             <DropdownLink :href="'/admin/settings'">
                                 Settings
                             </DropdownLink>
-                            <DropdownLink :href="'/admin/login'" @click.prevent="logout" as="button">
+                            <DropdownLink :href="'/employee/login'" @click.prevent="logout" as="button">
                                 Logout
                             </DropdownLink>
                         </template>

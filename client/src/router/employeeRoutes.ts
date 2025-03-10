@@ -65,9 +65,10 @@ const employeeRoutes: Array<RouteRecordRaw> = [
                 }
             },
             {
-                path: 'settings',
+                path: 'settings/:id',
                 name: 'employee-settings',
                 component: () => import('../views/employees/settings/EmployeeSettings.vue'),
+                props: true,
                 meta: {
                     title: 'Employee Settings'
                 }

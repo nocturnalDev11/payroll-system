@@ -1,11 +1,16 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { BASE_API_URL } from '@/utils/constants';
+import { useAuthStore } from '@/stores/auth.store';
+import TextInput from '@/components/TextInput.vue';
 import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
-import TextInput from '@/components/TextInput.vue';
 
-// Define reactive references
+const route = useRoute();
+const authStore = useAuthStore();
+const employeeId = computed(() => authStore.employee?.value?.id || route.params.id);
+
 const newRequest = ref({ password: '' });
 const confirmPassword = ref('');
 const showPassword = ref(false);
@@ -14,8 +19,26 @@ const passwordError = ref('');
 const isSubmitting = ref(false);
 const updateMessage = ref('');
 const signupMessage = ref('');
+const isLoading = ref(false);
 
-// Reset form
+onMounted(async () => {
+    if (!employeeId.value && route.params.id) {
+        isLoading.value = true;
+        try {
+            await authStore.fetchEmployeeDetails(route.params.id);
+            if (!authStore.employee?.value?.id) {
+                updateMessage.value = 'Employee ID could not be retrieved after fetch.';
+            }
+        } catch (error) {
+            updateMessage.value = `Failed to load employee details: ${error.message}`;
+        } finally {
+            isLoading.value = false;
+        }
+    } else if (!employeeId.value) {
+        updateMessage.value = 'No employee ID provided in route or auth store.';
+    }
+});
+
 const resetForm = () => {
     newRequest.value = { password: '' };
     confirmPassword.value = '';
@@ -26,7 +49,6 @@ const resetForm = () => {
     signupMessage.value = '';
 };
 
-// Validate password
 const validatePassword = () => {
     const password = newRequest.value.password;
     if (!password) {
@@ -40,7 +62,6 @@ const validatePassword = () => {
     }
 };
 
-// Toggle password visibility
 const togglePasswordVisibility = () => {
     showPassword.value = !showPassword.value;
 };
@@ -49,7 +70,6 @@ const toggleConfirmPasswordVisibility = () => {
     showConfirmPassword.value = !showConfirmPassword.value;
 };
 
-// Password strength computation
 const passwordStrength = computed(() => {
     const password = newRequest.value.password;
     if (!password) return 'Weak';
@@ -72,17 +92,14 @@ const passwordStrengthClass = computed(() => {
     };
 });
 
-// Password match check
 const passwordsMatch = computed(() => {
     return newRequest.value.password === confirmPassword.value;
 });
 
-// Submit button disable condition
 const isSubmitDisabled = computed(() => {
-    return isSubmitting.value || !passwordsMatch.value || !!passwordError.value;
+    return isSubmitting.value || !passwordsMatch.value || !!passwordError.value || isLoading.value;
 });
 
-// Submit request
 const submitRequest = async () => {
     if (!passwordsMatch.value) {
         updateMessage.value = 'Passwords do not match.';
@@ -94,26 +111,39 @@ const submitRequest = async () => {
         return;
     }
 
+    if (!employeeId.value) {
+        updateMessage.value = 'Employee ID is missing.';
+        return;
+    }
+
     isSubmitting.value = true;
     updateMessage.value = '';
 
     try {
         const payload = { password: newRequest.value.password };
-
-        const response = await fetch(`${BASE_API_URL}/api/employees/update/:id`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        const response = await fetch(`${BASE_API_URL}/api/employees/update/${employeeId.value}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authStore.accessToken}`
+            },
             body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Registration failed');
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Update failed');
+            } else {
+                const text = await response.text();
+                throw new Error(`Update failed with status ${response.status}: ${text}`);
+            }
         }
 
         const data = await response.json();
-        signupMessage.value = 'Your account request has been submitted and is awaiting admin approval.';
-        resetForm(); // Reset form on success
+        signupMessage.value = 'Your password has been updated successfully.';
+        resetForm();
     } catch (error) {
         console.error('Error during password update:', error);
         updateMessage.value = `Update password failed: ${error.message}`;
@@ -136,11 +166,14 @@ const submitRequest = async () => {
         </header>
 
         <form @submit.prevent="submitRequest" class="mt-6 space-y-6">
+            <!-- Loading State -->
+            <div v-if="isLoading" class="text-center text-gray-600">Loading employee details...</div>
+
             <!-- Password Input -->
             <div>
                 <InputLabel for="password" value="New Password" />
                 <div class="relative">
-                    <TextInput id="password" type="password" class="mt-1 block w-full" v-model="newRequest.password"
+                    <TextInput id="password" class="mt-1 block w-full" v-model="newRequest.password"
                         :type="showPassword ? 'text' : 'password'" required autocomplete="new-password"
                         @input="validatePassword" />
                     <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5"
@@ -160,7 +193,7 @@ const submitRequest = async () => {
             <div>
                 <InputLabel for="confirm_password" value="Confirm Password" />
                 <div class="relative">
-                    <TextInput id="confirm_password" type="password" class="mt-1 block w-full" v-model="confirmPassword"
+                    <TextInput id="confirm_password" class="mt-1 block w-full" v-model="confirmPassword"
                         :type="showConfirmPassword ? 'text' : 'password'" required autocomplete="new-password" />
                     <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5"
                         @click="toggleConfirmPasswordVisibility">

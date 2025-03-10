@@ -22,7 +22,7 @@ router.post('/register', registerEmployee);
 router.get('/:id/salary', verifyEmployeeToken, getEmployeeSalarySlip);
 router.get('/profile', verifyEmployeeToken, getProfile);
 router.get('/:id', getEmployeeById);
-router.put('/update/:id', updateEmployeeDetails);
+router.put('/update/:id', verifyEmployeeToken, updateEmployeeDetails);
 router.delete('/:id', deleteEmployee);
 
 export default router;

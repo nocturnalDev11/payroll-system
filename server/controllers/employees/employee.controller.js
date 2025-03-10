@@ -1,4 +1,5 @@
-import asyncHandler from 'express-async-handler'
+import asyncHandler from 'express-async-handler';
+import bcrypt from 'bcrypt'; // Add this import
 import { Employee } from '../../models/employee.model.js';
 import {
     calculateSSSContribution,

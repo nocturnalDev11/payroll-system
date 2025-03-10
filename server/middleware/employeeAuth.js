@@ -14,7 +14,7 @@ export const verifyEmployeeToken = async (req, res, next) => {
             return res.status(401).json({ error: 'Invalid token' });
         }
 
-        console.log('Decoded token:', decoded); // Debug log
+        console.log('Decoded token:', decoded);
         const employee = await Employee.findById(decoded.employeeId);
         if (!employee) {
             return res.status(403).json({ error: 'Employee access required' });

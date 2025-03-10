@@ -1,6 +1,8 @@
 <script setup>
 import { defineProps, defineEmits } from 'vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
+
+const props = defineProps(['id']);
 </script>
 
 <template>
@@ -10,7 +12,7 @@ import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
         </h2>
 
         <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
-            <UpdatePasswordForm class="max-w-xl" />
+            <UpdatePasswordForm :employee-id="id" class="max-w-xl" />
         </div>
     </div>
 </template>

@@ -19,6 +19,10 @@ const logout = () => {
     router.push('/employee/login');
 };
 
+const settingsRoute = computed(() => {
+    return employee.value?.id ? `/employee/settings/${employee.value.id}` : '/employee/login';
+});
+
 const iconMap = {
     dashboard: IconDashboard,
     attendance: IconCalendar,
@@ -50,7 +54,8 @@ const menuItems = [
                 <div class="flex items-center space-x-2 sm:space-x-4">
                     <Dropdown align="right" width="56">
                         <template #trigger>
-                            <div class="flex items-center bg-white/5 rounded-lg p-1 sm:p-2 hover:bg-white/10 transition-all cursor-pointer">
+                            <div
+                                class="flex items-center bg-white/5 rounded-lg p-1 sm:p-2 hover:bg-white/10 transition-all cursor-pointer">
                                 <div
                                     class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-teal-600 flex items-center justify-center shadow-inner">
                                     <span class="text-base sm:text-lg font-semibold">
@@ -59,13 +64,14 @@ const menuItems = [
                                 </div>
                                 <div class="ml-2 sm:ml-3 hidden sm:block">
                                     <p class="text-xs sm:text-sm font-medium">{{ employee?.username }}</p>
-                                    <p class="text-xs text-blue-100">{{ employee?.firstName }} {{ employee?.lastName }}</p>
+                                    <p class="text-xs text-blue-100">{{ employee?.firstName }} {{ employee?.lastName }}
+                                    </p>
                                 </div>
-                            </div> 
+                            </div>
                         </template>
 
                         <template #content>
-                            <DropdownLink :href="'/employee/settings'">
+                            <DropdownLink :href="settingsRoute">
                                 Settings
                             </DropdownLink>
                             <DropdownLink :href="'/employee/login'" @click.prevent="logout" as="button">
@@ -73,7 +79,7 @@ const menuItems = [
                             </DropdownLink>
                         </template>
                     </Dropdown>
-                    
+
                     <button @click="logout"
                         class="flex items-center px-2 py-1 sm:px-4 sm:py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 whitespace-nowrap">
                         <span class="material-icons text-sm">logout</span>
