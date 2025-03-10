@@ -14,7 +14,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const employee = computed(() => authStore.employee);
 
-const logout = () => {
+const logout = () => { 
     authStore.logout();
     router.push('/employee/login');
 };
