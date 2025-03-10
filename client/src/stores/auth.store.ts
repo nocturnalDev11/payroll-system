@@ -44,11 +44,13 @@ export const useAuthStore = defineStore('auth', () => {
             });
             if (!response.ok) throw new Error('Failed to fetch employee details');
             const employeeData = await response.json();
+            console.log('Fetched employee data:', employeeData); // Debug log
             employee.value = { ...employee.value, ...employeeData };
+            console.log('Updated employee value:', employee.value); // Debug log
             saveEmployee();
         } catch (error) {
             console.error('Error fetching employee details:', error);
-            throw error; // Re-throw to catch in submitRequest
+            throw error;
         }
     }
 

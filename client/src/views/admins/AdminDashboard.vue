@@ -57,6 +57,7 @@ const exportAttendance = () => {
     });
 
     const csvContent = [
+        // Header
         ['Date', 'Employee ID', 'Name', 'Position', 'Sign In Time', 'Sign Out Time', 'Status'],
         ...attendanceStore.attendanceRecords.map(record => [
             currentDate,

@@ -59,7 +59,7 @@ watch(() => props.employee, (newEmployee) => {
             },
             hireDate: newEmployee.hireDate || new Date().toISOString().slice(0, 10),
         };
-        confirmPassword.value = ''; // Reset confirm password
+        confirmPassword.value = '';
     }
 }, { immediate: true });
 
@@ -77,7 +77,7 @@ const validatePhoneNumber = () => {
 const validatePassword = () => {
     const password = form.value.password;
     if (!password) {
-        passwordError.value = ''; // No validation if password is empty (not required for editing)
+        passwordError.value = '';
     } else if (password.length < 8) {
         passwordError.value = 'Password must be at least 8 characters long.';
     } else if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {

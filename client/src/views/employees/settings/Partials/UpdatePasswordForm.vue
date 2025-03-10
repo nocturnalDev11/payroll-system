@@ -166,10 +166,7 @@ const submitRequest = async () => {
         </header>
 
         <form @submit.prevent="submitRequest" class="mt-6 space-y-6">
-            <!-- Loading State -->
             <div v-if="isLoading" class="text-center text-gray-600">Loading employee details...</div>
-
-            <!-- Password Input -->
             <div>
                 <InputLabel for="password" value="New Password" />
                 <div class="relative">
