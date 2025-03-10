@@ -38,6 +38,7 @@ export const getTotalEmployees = asyncHandler(async (req, res) => {
     }
 });
 
+// Get user details
 export const getProfile = asyncHandler(async (req, res) => {
     console.log('req.employeeId:', req.employeeId); // Debug log
     const employee = await Employee.findById(req.employeeId).select('-password');

@@ -1,11 +1,17 @@
 <script setup>
 import { defineProps, defineEmits } from 'vue';
+import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 </script>
 
 <template>
-    <div class="p-6">
-        <h1 class="text-2xl font-bold mb-4">Settings</h1>
-        <p class="text-gray-600">Edit your profile settings here.</p>
+    <div class="py-5">
+        <h2 class="pb-5 text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
+            Settings
+        </h2>
+
+        <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
+            <UpdatePasswordForm class="max-w-xl" />
+        </div>
     </div>
 </template>
 
