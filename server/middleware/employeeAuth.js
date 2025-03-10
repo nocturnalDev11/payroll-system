@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { Employee } from '../models/employee.model';
+import { Employee } from '../models/employee.model.js';
 
 export const verifyEmployeeToken = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -14,6 +14,7 @@ export const verifyEmployeeToken = async (req, res, next) => {
             return res.status(401).json({ error: 'Invalid token' });
         }
 
+        console.log('Decoded token:', decoded); // Debug log
         const employee = await Employee.findById(decoded.employeeId);
         if (!employee) {
             return res.status(403).json({ error: 'Employee access required' });

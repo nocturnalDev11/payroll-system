@@ -1,4 +1,4 @@
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
 const { Schema, model } = mongoose;
 
 const USERNAME_INVALID_CHARACTERS = ' ?;:,.`\'"(){}[]|\\/';
@@ -13,10 +13,9 @@ function usernameValidator(value) {
 }
 
 const employeeSchema = new Schema({
-    name: {
-        type: String,
-        required: true,
-    },
+    firstName: { type: String, required: true },
+    middleName: { type: String, default: '' },
+    lastName: { type: String, required: true },
     username: {
         type: String,
         required: true,
@@ -38,45 +37,46 @@ const employeeSchema = new Schema({
         required: true,
         minLength: [8, 'Password must be at least 8 characters long'],
     },
-    birthday: {
-        type: Date,
-        required: false,
-        default: null,
-    },
-    hireDate: {
-        type: Date,
-        required: false,
-        default: null,
-    },
-    contactInfo: {
+    employeeIdNumber: {
         type: String,
-        required: false,
-        default: null,
+        required: [true, 'Employee ID is required'],
+        unique: true
     },
-    civilStatus: {
-        type: String,
-        required: false,
-        default: null,
+    birthday: { 
+        type: Date, 
+        required: false, 
+        default: null 
     },
-    sss: {
-        type: String,
-        required: false,
-        default: null,
+    hireDate: { type: Date, required: false, default: null },
+    contactInfo: { type: String, required: false, default: null },
+    civilStatus: { type: String, required: false, default: null },
+    position: { type: String, required: false, default: null },
+    salary: { type: Number, required: true, min: 0 },
+    hourlyRate: { type: Number, default: 0 },
+    sss: { type: String, default: '' },
+    philHealth: { type: String, default: '' },
+    pagIbig: { type: String, default: '' },
+    tin: { type: String, default: '' },
+    earnings: {
+        travelExpenses: { type: Number, default: 0 },
+        otherEarnings: { type: Number, default: 0 }
     },
-    philHealth: {
-        type: String,
-        required: false,
-        default: null,
-    },
-    hdmf: {
-        type: String,
-        required: false,
-        default: null,
-    },
-    role: {
-        type: String,
-        default: 'employee',
-    },
+    payHeads: [
+        { 
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'PayHead'
+        }
+    ],
+    role: { type: String, default: 'employee' },
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+}, { timestamps: true });
+
+// Pre-save hook to calculate hourlyRate
+employeeSchema.pre('save', function(next) {
+    if (this.salary && !this.hourlyRate) {
+        this.hourlyRate = this.salary / (8 * 22); 
+    }
+    next();
 });
 
 export const Employee = model('Employee', employeeSchema);
