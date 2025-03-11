@@ -26,11 +26,8 @@ const calculateNetSalary = (employee) => {
     </button>
 
     <Modal :show="showViewModal" @close="closeViewModal">
-        <div class="p-6 border-b-gray-500 border-b flex justify-between items-center">
+        <div class="p-6 border-gray-300 border-b flex items-center">
             <h2 class="text-2xl font-bold text-gray-800">Employee Details</h2>
-            <button @click="showViewModal = false" class="text-gray-500 hover:text-gray-700">
-                <span class="material-icons-outlined">close</span>
-            </button>
         </div>
 
         <div class="p-6">
@@ -98,12 +95,8 @@ const calculateNetSalary = (employee) => {
             </div>
         </div>
 
-        <div class="p-6 border-t bg-gray-50">
+        <div class="p-6 border-t border-gray-300  bg-gray-50">
             <div class="flex justify-end gap-3">
-                <button
-                    class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition duration-200">
-                    Edit Details
-                </button>
                 <button @click="showViewModal = false"
                     class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition duration-200">
                     Close
