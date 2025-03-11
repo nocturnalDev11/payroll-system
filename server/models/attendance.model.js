@@ -7,19 +7,26 @@ const attendanceSchema = new Schema({
         ref: 'Employee',
         required: true
     },
+    // Format: YYYY-MM-DD
     date: { 
-        type: Date, 
-        required: true,
-        default: Date.now 
-    },
-    timeIn: {
-        type: String,
-        match: /^([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/, 
+        type: String, 
         required: true 
     },
-    timeOut: {
-        type: String,
-        match: /^([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/ 
+    // Format: HH:mm (e.g., "08:00")
+    morningTimeIn: { 
+        type: String 
+    },
+    // Format: HH:mm (e.g., "12:00")
+    morningTimeOut: { 
+        type: String 
+    },
+    // Format: HH:mm (e.g., "13:00")
+    afternoonTimeIn: { 
+        type: String 
+    },
+    // Format: HH:mm (e.g., "17:00")
+    afternoonTimeOut: { 
+        type: String 
     },
     status: { 
         type: String, 
