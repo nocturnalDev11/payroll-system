@@ -145,7 +145,7 @@ const calculateNetSalary = (employee) => {
 </script>
 
 <template>
-    <button @click="showEditModal = true" class="text-yellow-600 hover:text-yellow-800 transition duration-200">
+    <button @click="showEditModal = true" class="text-yellow-600 hover:text-yellow-800 transition duration-200 cursor-pointer">
         Edit
     </button>
 

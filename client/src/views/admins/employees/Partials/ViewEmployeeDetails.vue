@@ -1,12 +1,19 @@
 <script setup>
 import { ref } from 'vue';
 import Modal from '@/components/Modal.vue';
+import EditEmployee from './EditEmployee.vue';
 
 defineProps(['employee']);
 const showViewModal = ref(false);
 
 const closeViewModal = () => {
     showViewModal.value = false;
+};
+
+// Handle employee updates
+const handleEmployeeUpdated = (updatedEmployee) => {
+    const index = employees.value.findIndex(emp => emp._id === updatedEmployee._id);
+    if (index !== -1) employees.value[index] = updatedEmployee;
 };
 
 const calculateNetSalary = (employee) => {
@@ -97,6 +104,9 @@ const calculateNetSalary = (employee) => {
 
         <div class="p-6 border-t border-gray-300  bg-gray-50">
             <div class="flex justify-end gap-3">
+                <EditEmployee :employee="employee" @employee-updated="handleEmployeeUpdated">
+                    Edit
+                </EditEmployee>
                 <button @click="showViewModal = false"
                     class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition duration-200">
                     Close
