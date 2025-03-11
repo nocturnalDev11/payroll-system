@@ -77,21 +77,50 @@ export const getEmployeeById = asyncHandler(async (req, res) => {
     res.status(200).json(employee);
 });
 
+export const uploadProfilePicture = asyncHandler(async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        const employee = await Employee.findById(req.employeeId);
+        if (!employee) {
+            return res.status(404).json({ message: 'Employee not found' });
+        }
+
+        const profilePicturePath = `/uploads/profile-pictures/${req.file.filename}`;
+        
+        employee.profilePicture = profilePicturePath;
+        await employee.save();
+
+        res.status(200).json({
+            message: 'Profile picture uploaded successfully',
+            profilePicture: profilePicturePath
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            message: 'Error uploading profile picture', 
+            error: error.message 
+        });
+    }
+});
+
 export const updateEmployeeDetails = asyncHandler(async (req, res) => {
     try {
         const { id } = req.params;
         const { position, password, ...otherDetails } = req.body;
-
-        console.log('Received req.body:', req.body); // Debug
-        console.log('Updating employee with ID:', id); // Debug
 
         const updateData = {
             ...otherDetails,
             position,
             ...(req.body.deductions && { deductions: req.body.deductions }),
             ...(req.body.earnings && { earnings: req.body.earnings }),
-            ...(req.body.payheads && { payheads: req.body.payheads }) // Ensure payheads is included
+            ...(req.body.payheads && { payheads: req.body.payheads })
         };
+
+        if (req.file) {
+            updateData.profilePicture = `/uploads/profile-pictures/${req.file.filename}`;
+        }
 
         if (req.body.salary) {
             updateData.salary = Number(req.body.salary);
@@ -115,7 +144,6 @@ export const updateEmployeeDetails = asyncHandler(async (req, res) => {
         const employeeObj = updatedEmployee.toObject();
         delete employeeObj.password;
 
-        console.log('Updated employee:', employeeObj);
         res.status(200).json({ 
             message: 'Employee details updated successfully', 
             updatedEmployee: employeeObj 

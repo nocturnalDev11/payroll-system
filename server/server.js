@@ -26,6 +26,7 @@ app.use('/api/leaves', leaveRequestRoutes);
 app.use('/api/payslips', paySlipRoutes);
 console.log('paySlipRoutes routes:', paySlipRoutes.stack.map(r => `${r.route.method} ${r.route.path}`));
 app.use('/api/payheads', payHeadRoutes);
+app.use('/uploads', express.static('public/uploads'));
 
 app.use(express.static('public'));
 

@@ -47,6 +47,8 @@ const employeeSchema = new Schema({
         required: false, 
         default: null 
     },
+    profilePicture: { type: String },
+    profilePictureAlt: { type: String },
     hireDate: { type: Date, required: false, default: null },
     contactInfo: { type: String, required: false, default: null },
     civilStatus: { type: String, required: false, default: null },
