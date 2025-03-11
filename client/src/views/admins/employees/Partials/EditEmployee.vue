@@ -112,7 +112,6 @@ const updateEmployee = async () => {
     try {
         const payload = {
             ...form.value,
-            // Only send password if it's provided (optional for editing)
             password: form.value.password || undefined,
         };
         console.log('Sending payload:', payload);
@@ -150,14 +149,14 @@ const calculateNetSalary = (employee) => {
         Edit
     </button>
 
-    <Modal :show="showEditModal" @close="closeEditModal" max-width="7xl" max-height="80vh" class="w-full">
+    <Modal :show="showEditModal" @close="closeEditModal" max-width="7xl" max-height="90vh" class="w-full">
         <div class="bg-white p-8 rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto">
             <h2 class="text-2xl font-bold mb-6 text-gray-900">Edit Employee</h2>
             <form @submit.prevent="updateEmployee" class="space-y-6">
                 <!-- Basic Information -->
                 <div>
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">Basic Information</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="space-y-2">
                             <label for="firstName" class="text-sm font-medium text-gray-700">First Name</label>
                             <input v-model="form.firstName" type="text" id="firstName"
@@ -225,7 +224,7 @@ const calculateNetSalary = (employee) => {
                 <!-- Financial Information -->
                 <div>
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">Financial Information</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="space-y-2">
                             <label for="salary" class="text-sm font-medium text-gray-700">Monthly Salary</label>
                             <input v-model.number="form.salary" type="number" id="salary"
@@ -275,7 +274,7 @@ const calculateNetSalary = (employee) => {
                                 class="block w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150"
                                 min="0" />
                         </div>
-                        <div class="space-y-2 md:col-span-2">
+                        <div class="space-y-2 md:col-span-3">
                             <div class="p-3 bg-gray-50 rounded-lg shadow-sm">
                                 <div class="flex justify-between items-center">
                                     <span class="text-sm font-medium text-gray-700">Net Salary Preview:</span>
@@ -290,7 +289,7 @@ const calculateNetSalary = (employee) => {
                 <!-- Login Credentials -->
                 <div>
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">Login Credentials</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="space-y-2">
                             <label for="username" class="text-sm font-medium text-gray-700">Username</label>
                             <input v-model="form.username" type="text" id="username"
