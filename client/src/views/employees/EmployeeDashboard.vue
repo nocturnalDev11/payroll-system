@@ -287,9 +287,9 @@ const handleImageError = () => {
         <div class="p-4">
             <div class="mb-6 bg-white rounded-xl border-l-4 border-l-green-600 shadow-sm p-6" v-if="employee">
                 <div class="flex items-center space-x-4">
-                    <div class="h-12 w-12">
+                    <div class="h-12 w-12 flex items-center justify-center overflow-hidden">
                         <img v-if="employee.profilePicture" :src="`${BASE_API_URL}${employee.profilePicture}`"
-                            :alt="employee.firstName" class="h-full w-full object-contain rounded-full"
+                            :alt="employee.firstName" class="h-full w-full object-cover rounded-full"
                             @error="handleImageError">
                         <div v-else class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
                             <span class="text-blue-600 font-semibold text-lg">{{ employeeInitials }}</span>

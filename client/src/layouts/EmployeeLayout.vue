@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth.store.ts';
+import { BASE_API_URL } from '@/utils/constants';
 import Dropdown from '../components/Dropdown.vue';
 import DropdownLink from '../components/DropdownLink.vue';
 import IconLeave from '../components/icons/IconLeave.vue';
@@ -37,6 +38,10 @@ const menuItems = [
     { name: 'Leave Management', path: '/employee/leave/request', icon: 'leave' },
     { name: 'Holidays', path: '/employee/holidays', icon: 'holidays' },
 ];
+
+const handleImageError = () => {
+    console.error('Failed to load profile picture:', employee.value?.profilePicture);
+};
 </script>
 
 <template>
@@ -56,11 +61,23 @@ const menuItems = [
                         <template #trigger>
                             <div
                                 class="flex items-center bg-white/5 rounded-lg p-1 sm:p-2 hover:bg-white/10 transition-all cursor-pointer">
-                                <div
+                                <!-- <div
                                     class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-teal-600 flex items-center justify-center shadow-inner">
                                     <span class="text-base sm:text-lg font-semibold">
                                         {{ employee?.username?.[0]?.toUpperCase() }}
                                     </span>
+                                </div> -->
+
+                                <div class="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center overflow-hidden">
+                                    <img v-if="employee.profilePicture"
+                                        :src="`${BASE_API_URL}${employee.profilePicture}`" :alt="employee.firstName"
+                                        class="h-full w-full object-cover rounded-full" @error="handleImageError">
+                                    <div v-else
+                                        class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-teal-600 flex items-center justify-center">
+                                        <span class="text-white font-semibold text-lg">
+                                            {{ employee?.username?.[0]?.toUpperCase() }}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="ml-2 sm:ml-3 hidden sm:block">
                                     <p class="text-xs sm:text-sm font-medium">{{ employee?.username }}</p>
