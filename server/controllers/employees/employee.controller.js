@@ -110,14 +110,15 @@ export const uploadProfilePicture = asyncHandler(async (req, res) => {
 export const updateEmployeeDetails = asyncHandler(async (req, res) => {
     try {
         const { id } = req.params;
-        const { position, password, ...otherDetails } = req.body;
+        const { position, password, hireDate, ...otherDetails } = req.body;
 
         const updateData = {
             ...otherDetails,
             position,
             ...(req.body.deductions && { deductions: req.body.deductions }),
             ...(req.body.earnings && { earnings: req.body.earnings }),
-            ...(req.body.payheads && { payheads: req.body.payheads })
+            ...(req.body.payheads && { payheads: req.body.payheads }),
+            ...(hireDate && { hireDate: new Date(hireDate) }), // Convert to Date if needed
         };
 
         if (req.file) {

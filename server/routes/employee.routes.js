@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyEmployeeToken } from '../middleware/employeeAuth.js';
+import { verifyAuthToken, verifyAdminOnly } from '../middleware/authMiddleware.js';
 import { loginEmployee, registerEmployee } from '../controllers/employees/auth/employeeAuth.controller.js';
 import { 
     getEmployeeById, 
@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
     },
     filename: function (req, file, cb) {
         const fileExtension = path.extname(file.originalname);
-        const fileName = `${req.employeeId}-${Date.now()}${fileExtension}`;
+        const fileName = `${req.employeeId || req.adminId}-${Date.now()}${fileExtension}`; // Use adminId if available
         cb(null, fileName);
     }
 });
@@ -45,14 +45,15 @@ const router = express.Router();
 
 router.get('/total', getTotalEmployees);
 router.get('/', getAllEmployees);
-router.get('/pending', getPendingEmployees);
 router.post('/login', loginEmployee);
 router.post('/register', registerEmployee);
-router.get('/:id/salary', verifyEmployeeToken, getEmployeeSalarySlip);
-router.get('/profile', verifyEmployeeToken, getProfile);
+
+router.get('/pending', verifyAuthToken, getPendingEmployees); 
+router.get('/:id/salary', verifyAuthToken, getEmployeeSalarySlip);
+router.get('/profile', verifyAuthToken, getProfile);
 router.get('/:id', getEmployeeById);
-router.put('/update/:id', verifyEmployeeToken, updateEmployeeDetails);
-router.post('/profile-picture', verifyEmployeeToken, upload.single('profilePicture'), uploadProfilePicture);
-router.delete('/:id', deleteEmployee);
+router.put('/update/:id', verifyAuthToken, updateEmployeeDetails);
+router.post('/profile-picture', verifyAuthToken, upload.single('profilePicture'), uploadProfilePicture); // Accessible by employees
+router.delete('/:id', verifyAdminOnly, deleteEmployee);
 
 export default router;

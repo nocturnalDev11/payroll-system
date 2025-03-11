@@ -32,7 +32,7 @@ const deleteEmployee = async () => {
 
 <template>
     <button @click="showDeleteModal = true" class="text-red-600 hover:text-red-800 transition duration-200" title="Delete employee">
-        delete
+        <span class="material-icons">delete</span>
     </button>
 
     <Modal :show="showDeleteModal" @close="closeDeleteModal">
