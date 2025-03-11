@@ -41,7 +41,7 @@ export const getTotalEmployees = asyncHandler(async (req, res) => {
 
 // Get user details
 export const getProfile = asyncHandler(async (req, res) => {
-    console.log('req.employeeId:', req.employeeId); // Debug log
+    console.log('req.employeeId:', req.employeeId);
     const employee = await Employee.findById(req.employeeId).select('-password');
     if (!employee) {
         return res.status(404).json({ error: 'Employee not found' });
@@ -56,6 +56,7 @@ export const getProfile = asyncHandler(async (req, res) => {
         email: employeeObj.email,
         employeeIdNumber: employeeObj.employeeIdNumber,
         birthday: employeeObj.birthday,
+        profilePicture: employeeObj.profilePicture,
         hireDate: employeeObj.hireDate,
         contactInfo: employeeObj.contactInfo,
         civilStatus: employeeObj.civilStatus,
@@ -78,6 +79,7 @@ export const getEmployeeById = asyncHandler(async (req, res) => {
 });
 
 export const uploadProfilePicture = asyncHandler(async (req, res) => {
+    console.log('Request employeeId:', req.employeeId);
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded' });

@@ -12,12 +12,11 @@ const isTimedIn = ref(false);
 const isLoading = ref(false);
 const currentPayPeriod = ref('Feb 16 - Feb 28, 2025');
 
-// Office hours constants
 const OFFICE_START = '08:00:00';
 const OFFICE_END = '17:00:00';
 const EARLY_TIME_IN_THRESHOLD = '06:00:00';
 const EARLY_TIME_OUT_THRESHOLD = '11:30:00';
-const LUNCH_END = '13:00:00'; // 1:00 PM, start of afternoon session
+const LUNCH_END = '13:00:00';
 
 onMounted(async () => {
     if (!token) {
@@ -50,6 +49,7 @@ async function getEmployeeProfile() {
             const employeeData = await response.json();
             employee.value = employeeData;
             authStore.employee = { ...employeeData, _id: employeeData.id };
+            console.log('Fetched employee profile:', employeeData); // Debug log
         } else {
             throw new Error(await response.text());
         }
@@ -113,7 +113,6 @@ async function fetchAttendanceRecords() {
 async function checkTimedInStatus() {
     const today = new Date().toISOString().split('T')[0];
     const todayRecords = attendanceRecords.value.filter(record => record.date.split('T')[0] === today);
-    // Check if the latest record has no timeOut (i.e., currently timed in)
     const latestRecord = todayRecords[todayRecords.length - 1];
     isTimedIn.value = latestRecord && latestRecord.timeIn && !latestRecord.timeOut;
     console.log('Checked Timed In Status:', { today, todayRecords, latestRecord, isTimedIn: isTimedIn.value });
@@ -136,7 +135,6 @@ async function timeIn() {
         alert('Time In is only allowed after 6:00 AM.');
         return;
     }
-
     isLoading.value = true;
     try {
         if (!authStore.employee || !authStore.employee._id) {
@@ -144,7 +142,6 @@ async function timeIn() {
             alert('Please log in again to refresh your profile');
             return;
         }
-
         const payload = { employeeId: authStore.employee._id };
         const response = await fetch(`${BASE_API_URL}/api/attendance/time-in`, {
             method: 'POST',
@@ -177,7 +174,6 @@ async function timeOut() {
         alert('Time Out is only allowed after 11:30 AM.');
         return;
     }
-
     isLoading.value = true;
     try {
         if (!authStore.employee || !authStore.employee._id) {
@@ -185,7 +181,6 @@ async function timeOut() {
             alert('Please log in again to refresh your profile');
             return;
         }
-
         const payload = { employeeId: authStore.employee._id };
         const response = await fetch(`${BASE_API_URL}/api/attendance/time-out`, {
             method: 'POST',
@@ -217,12 +212,10 @@ async function timeOut() {
     }
 }
 
-// Formatting function
 const formatNumber = (value) => {
     return Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-// Computed properties for detailed breakdown
 const earningsBreakdown = computed(() => {
     return employee.value?.earnings?.map(e => ({
         name: e.name,
@@ -280,9 +273,13 @@ function getStatusClass(status) {
         'Late': 'text-yellow-600',
         'Absent': 'text-red-600',
         'Early Departure': 'text-orange-600',
-        'Lunch Break': 'text-purple-600', // New status for clarity
+        'Lunch Break': 'text-purple-600',
     }[status] || 'text-gray-600';
 }
+
+const handleImageError = () => {
+    console.error('Failed to load profile picture:', employee.value?.profilePicture);
+};
 </script>
 
 <template>
@@ -290,8 +287,13 @@ function getStatusClass(status) {
         <div class="p-4">
             <div class="mb-6 bg-white rounded-xl border-l-4 border-l-green-600 shadow-sm p-6" v-if="employee">
                 <div class="flex items-center space-x-4">
-                    <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                        <span class="text-blue-600 font-semibold text-lg">{{ employeeInitials }}</span>
+                    <div class="h-12 w-12">
+                        <img v-if="employee.profilePicture" :src="`${BASE_API_URL}${employee.profilePicture}`"
+                            :alt="employee.firstName" class="h-full w-full object-contain rounded-full"
+                            @error="handleImageError">
+                        <div v-else class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span class="text-blue-600 font-semibold text-lg">{{ employeeInitials }}</span>
+                        </div>
                     </div>
                     <div>
                         <h1 class="text-xl font-bold text-gray-800">{{ `${employee.firstName} ${employee.lastName}` }}
@@ -328,7 +330,6 @@ function getStatusClass(status) {
                         </div>
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
-                                <!-- ... (keeping your existing table structure) -->
                                 <thead class="bg-gray-50">
                                     <tr>
                                         <th
@@ -347,12 +348,12 @@ function getStatusClass(status) {
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <tr v-for="record in attendanceRecords" :key="record._id" class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{
-                                            formatDate(record.date) }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{
-                                            formatTime(record.timeIn) }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{
-                                            formatTime(record.timeOut) }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ formatDate(record.date) }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ formatTime(record.timeIn) }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ formatTime(record.timeOut) }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm"><span
                                                 :class="getStatusClass(record.status)">{{ record.status }}</span></td>
                                     </tr>
@@ -415,21 +416,3 @@ function getStatusClass(status) {
         </div>
     </div>
 </template>
-
-<style scoped>
-.min-h-screen {
-    min-height: 100vh;
-}
-
-.shadow-sm {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-}
-
-.rounded-xl {
-    border-radius: 0.75rem;
-}
-
-.transition-colors {
-    transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
-}
-</style>

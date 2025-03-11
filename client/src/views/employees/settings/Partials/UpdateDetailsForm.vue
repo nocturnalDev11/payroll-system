@@ -261,7 +261,7 @@ const updateEmployee = async () => {
                 <div>
                     <InputLabel for="position" value="Position" />
                     <select v-model="form.position" id="position"
-                        class="mt-1 block w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
                         <option value="" :selected="!props.employee?.position">Select a position</option>
                         <option v-for="position in employeePositions" :key="position" :value="position"
                             :selected="position === props.employee?.position">
@@ -274,7 +274,7 @@ const updateEmployee = async () => {
                 <div>
                     <InputLabel for="civilStatus" value="Civil Status" />
                     <select v-model="form.civilStatus" id="civilStatus"
-                        class="mt-1 block w-full p-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
                         <option value="" :selected="!props.employee?.civilStatus">Select civil status</option>
                         <option v-for="status in civilStatusOptions" :key="status" :value="status"
                             :selected="status === props.employee?.civilStatus">

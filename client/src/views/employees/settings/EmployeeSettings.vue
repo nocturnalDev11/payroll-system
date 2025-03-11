@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
 import UpdateDetailsForm from './Partials/UpdateDetailsForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
+import UploadProfilePicture from './Partials/UploadProfilePicture.vue';
 
 const route = useRoute();
 const authStore = useAuthStore();
@@ -51,7 +52,10 @@ const handleEmployeeUpdated = (updatedEmployee) => {
         <div v-else-if="error" class="text-red-600 text-center">
             {{ error }}
         </div>
-        <div v-else-if="employee">
+        <div v-else-if="employee" class="space-y-3">
+            <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
+                <UploadProfilePicture :employee="employee" @employee-updated="handleEmployeeUpdated" class="max-w-3xl" />
+            </div>
             <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
                 <UpdateDetailsForm :employee="employee" @employee-updated="handleEmployeeUpdated" class="max-w-3xl" />
             </div>

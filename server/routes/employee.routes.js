@@ -12,6 +12,8 @@ import {
     getEmployeeSalarySlip,
     uploadProfilePicture
 } from '../controllers/employees/employee.controller.js';
+import multer from 'multer';
+import path from 'path';
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -36,7 +38,7 @@ const upload = multer({
         }
         cb(new Error('Only JPEG/JPG/PNG images are allowed'));
     },
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+    limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 const router = express.Router();

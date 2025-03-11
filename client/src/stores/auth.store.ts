@@ -20,12 +20,13 @@ export interface Employee {
     pagIbig: string | null;
     role: string;
     salary?: number;
+    profilePicture?: string;
 }
 
 export interface Admin {
-    id: string,
-    username: string,
-    email: string,
+    id: string;
+    username: string;
+    email: string;
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -44,9 +45,9 @@ export const useAuthStore = defineStore('auth', () => {
             });
             if (!response.ok) throw new Error('Failed to fetch employee details');
             const employeeData = await response.json();
-            console.log('Fetched employee data:', employeeData); // Debug log
+            console.log('Fetched employee data:', employeeData);
             employee.value = { ...employee.value, ...employeeData };
-            console.log('Updated employee value:', employee.value); // Debug log
+            console.log('Updated employee value:', employee.value);
             saveEmployee();
         } catch (error) {
             console.error('Error fetching employee details:', error);
@@ -61,13 +62,13 @@ export const useAuthStore = defineStore('auth', () => {
 
     function saveEmployee() {
         if (employee.value) {
-        localStorage.setItem('employee', JSON.stringify(employee.value));
+            localStorage.setItem('employee', JSON.stringify(employee.value));
         }
     }
 
     function saveAccessToken() {
         if (accessToken.value) {
-        localStorage.setItem('token', accessToken.value);
+            localStorage.setItem('token', accessToken.value);
         }
     }
 
@@ -87,7 +88,6 @@ export const useAuthStore = defineStore('auth', () => {
         saveAccessToken();
     }
 
-    // Optional: Add a logout function
     function logout(): void {
         admin.value = null;
         employee.value = null;
@@ -106,6 +106,8 @@ export const useAuthStore = defineStore('auth', () => {
         logout, 
         fetchEmployeeDetails,
         setAdmin,
-        saveAdmin
+        saveAdmin,
+        saveEmployee,
+        saveAccessToken
     }
 });
