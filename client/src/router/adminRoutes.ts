@@ -83,6 +83,14 @@ const adminRoutes: Array<RouteRecordRaw> = [
                 meta: {
                     title: 'Admin Settings'
                 }
+            },
+            {
+                path: 'trash',
+                name: 'employee-trash',
+                component: () => import('../views/admins/employees/Trash.vue'),
+                meta: {
+                    title: 'Trash'
+                }
             }
         ],
     }

@@ -6,7 +6,8 @@ import {
     getAllAttendance,
     getAttendanceByEmployeeId,
     deleteAttendance,
-    checkAbsent
+    checkAbsent,
+    updateAttendance
 } from '../controllers/employees/attendance.controller.js';
 
 const router = express.Router();
@@ -17,6 +18,7 @@ router.post('/', createAttendance);
 router.get('/', getAllAttendance);
 router.get('/:employeeId', getAttendanceByEmployeeId);
 router.delete('/:id', deleteAttendance);
+router.put('/:id', updateAttendance);
 router.get('/check-absent', checkAbsent);
 
 export default router;
