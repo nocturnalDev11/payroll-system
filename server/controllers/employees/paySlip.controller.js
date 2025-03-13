@@ -13,7 +13,14 @@ import {
 } from '../../utils/payrollCalculations.js';
 
 export const generatePayslip = async (req, res) => {
-    const { employeeId, salaryMonth } = req.body;
+    console.log('Received request to generate payslip:', req.body);
+    const { 
+        employeeId, 
+        employeeIdNumber, 
+        payslipData, 
+        salaryMonth, 
+        paydayType 
+    } = req.body;
 
     try {
         const employee = await Employee.findById(employeeId).populate('payHeads');
@@ -80,20 +87,26 @@ export const generatePayslip = async (req, res) => {
             }
         };
 
-        // Save payslip to database
         const payslip = new Payslip({
-            employeeId: employee._id,
-            payslipData: {
-                baseSalary,
-                earnings: payslipData.earnings,
-                deductions: payslipData.deductions,
-                netSalary
-            },
-            salaryMonth
+            employeeId,
+            empNo: employeeIdNumber,
+            payslipData: payslipData,
+            salaryMonth,
+            paydayType,
         });
         await payslip.save();
 
-        res.status(200).json(payslipData);
+        res.status(200).json({
+            message: 'Payslip generated successfully',
+            payslip: {
+                id: payslip._id,
+                employeeId,
+                empNo: employeeIdNumber,
+                payslipData: payslip.payslipData,
+                salaryMonth,
+                paydayType,
+            },
+        });
     } catch (error) {
         console.error('Error generating payslip:', error);
         res.status(500).json({ message: 'Failed to generate payslip', error: error.message });
@@ -132,5 +145,19 @@ export const sendPayslipEmail = async (req, res) => {
     } catch (error) {
         console.error('Error sending payslip email:', error);
         res.status(500).json({ message: 'Failed to send payslip email', error: error.message });
+    }
+};
+
+export const getPayslipsByEmployeeId = async (req, res) => {
+    const { employeeId } = req.params;
+    try {
+        const payslips = await Payslip.find({ employeeId });
+        if (!payslips || payslips.length === 0) {
+            return res.status(404).json({ message: 'No payslips found for this employee' });
+        }
+        res.status(200).json(payslips);
+    } catch (error) {
+        console.error('Error fetching payslips:', error);
+        res.status(500).json({ message: 'Failed to fetch payslips', error: error.message });
     }
 };

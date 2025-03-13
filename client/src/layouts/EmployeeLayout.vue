@@ -61,13 +61,6 @@ const handleImageError = () => {
                         <template #trigger>
                             <div
                                 class="flex items-center bg-white/5 rounded-lg p-1 sm:p-2 hover:bg-white/10 transition-all cursor-pointer">
-                                <!-- <div
-                                    class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-teal-600 flex items-center justify-center shadow-inner">
-                                    <span class="text-base sm:text-lg font-semibold">
-                                        {{ employee?.username?.[0]?.toUpperCase() }}
-                                    </span>
-                                </div> -->
-
                                 <div class="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center overflow-hidden">
                                     <img v-if="employee.profilePicture"
                                         :src="`${BASE_API_URL}${employee.profilePicture}`" :alt="employee.firstName"

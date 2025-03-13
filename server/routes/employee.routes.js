@@ -10,7 +10,10 @@ import {
     deleteEmployee, 
     getPendingEmployees,
     getEmployeeSalarySlip,
-    uploadProfilePicture
+    uploadProfilePicture,
+    restoreEmployee,
+    trashEmployee,
+    getTrashedEmployees
 } from '../controllers/employees/employee.controller.js';
 import multer from 'multer';
 import path from 'path';
@@ -49,11 +52,15 @@ router.post('/login', loginEmployee);
 router.post('/register', registerEmployee);
 
 router.get('/pending', verifyAuthToken, getPendingEmployees); 
+router.get('/trashed', verifyAdminOnly, getTrashedEmployees);
 router.get('/:id/salary', verifyAuthToken, getEmployeeSalarySlip);
 router.get('/profile', verifyAuthToken, getProfile);
 router.get('/:id', getEmployeeById);
 router.put('/update/:id', verifyAuthToken, updateEmployeeDetails);
 router.post('/profile-picture', verifyAuthToken, upload.single('profilePicture'), uploadProfilePicture); // Accessible by employees
+router.delete('/:id', verifyAdminOnly, deleteEmployee);
+router.put('/trash/:id', verifyAdminOnly, trashEmployee); // New route to move to trash
+router.put('/restore/:id', verifyAdminOnly, restoreEmployee); // New route to restore
 router.delete('/:id', verifyAdminOnly, deleteEmployee);
 
 export default router;

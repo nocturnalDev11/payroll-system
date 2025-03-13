@@ -1,5 +1,5 @@
 import asyncHandler from 'express-async-handler';
-import bcrypt from 'bcrypt'; // Add this import
+import bcrypt from 'bcrypt';
 import { Employee } from '../../models/employee.model.js';
 import {
     calculateSSSContribution,
@@ -11,8 +11,7 @@ import {
 // Get all employees
 export const getAllEmployees = asyncHandler(async (req, res) => {
     try {
-        const employees = await Employee.find().select('-password');
-        console.log('Fetched employees:', employees);
+        const employees = await Employee.find({ status: { $ne: 'trashed' } }).select('-password');
         res.status(200).json(employees);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching employees', error: error.message });
@@ -118,7 +117,7 @@ export const updateEmployeeDetails = asyncHandler(async (req, res) => {
             ...(req.body.deductions && { deductions: req.body.deductions }),
             ...(req.body.earnings && { earnings: req.body.earnings }),
             ...(req.body.payheads && { payheads: req.body.payheads }),
-            ...(hireDate && { hireDate: new Date(hireDate) }), // Convert to Date if needed
+            ...(hireDate && { hireDate: new Date(hireDate) }),
         };
 
         if (req.file) {
@@ -184,7 +183,7 @@ export const getEmployeeSalarySlip = asyncHandler(async (req, res) => {
         const hourlyRate = baseSalary / (8 * 22);
 
         const salarySlip = {
-            id: employee._id, // Use MongoDB _id for consistency with frontend
+            id: employee._id,
             employeeIdNumber: employee.employeeIdNumber,
             name: `${employee.firstName} ${employee.middleName} ${employee.lastName}`.trim(),
             hourlyRate,
@@ -193,10 +192,10 @@ export const getEmployeeSalarySlip = asyncHandler(async (req, res) => {
             hireDate: employee.hireDate ? employee.hireDate.toISOString().split('T')[0] : 'N/A',
             civilStatus: employee.civilStatus || 'SINGLE',
             dependents: employee.dependents || 0,
-            sss: employee.sss || 'N/A', // Match model field
+            sss: employee.sss || 'N/A',
             tin: employee.tin || 'N/A',
-            philHeath: employee.philHealth || 'N/A', // Match model field
-            pagIbig: employee.pagIbig || 'N/A', // Match model field
+            philHeath: employee.philHealth || 'N/A',
+            pagIbig: employee.pagIbig || 'N/A',
             position: employee.position || 'N/A',
             earnings: earnings.map(p => ({ name: p.name, amount: p.amount })),
             deductions: {
@@ -221,9 +220,144 @@ export const getEmployeeSalarySlip = asyncHandler(async (req, res) => {
 
 export const deleteEmployee = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const employee = await Employee.findByIdAndDelete(id);
+
+    const employee = await Employee.findById(id);
     if (!employee) {
         return res.status(404).json({ message: 'Employee not found' });
     }
-    res.status(200).json({ message: 'Employee deleted successfully' });
+    
+    if (employee.status !== 'trashed') {
+        return res.status(400).json({ message: 'Employee must be in trash before permanent deletion' });
+    }
+
+    const session = await Employee.startSession();
+    session.startTransaction();
+
+    try {
+        await Employee.findByIdAndDelete(id).session(session);
+        await LeaveRequest.deleteMany({ employeeId: id }).session(session);
+        await PayHead.deleteMany({ employeeId: id }).session(session);
+        await Payslip.deleteMany({ employeeId: id }).session(session);
+        await Attendance.deleteMany({ employeeId: id }).session(session);
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(200).json({ message: 'Employee permanently deleted from trash' });
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        res.status(500).json({ message: 'Error permanently deleting employee', error: error.message });
+    }
 });
+
+export const trashEmployee = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+        console.log(`Trashing employee: ${id}`);
+        
+        const employee = await Employee.findById(id);
+        if (!employee) {
+            console.log(`Employee not found: ${id}`);
+            return res.status(404).json({ message: 'Employee not found' });
+        }
+
+        if (employee.status === 'trashed') {
+            return res.status(400).json({ message: 'Employee is already in trash' });
+        }
+
+        const updatedEmployee = await Employee.findByIdAndUpdate(
+            id,
+            { 
+                status: 'trashed',
+                trashedAt: new Date()
+            },
+            { new: true }
+        );
+
+        console.log('Employee trashed successfully:', updatedEmployee._id);
+        res.status(200).json({ 
+            message: 'Employee moved to trash successfully',
+            employee: updatedEmployee 
+        });
+    } catch (error) {
+        console.error('Trash employee error:', {
+            message: error.message,
+            stack: error.stack
+        });
+        res.status(500).json({ 
+            message: 'Failed to move employee to trash',
+            error: error.message 
+        });
+    }
+});
+
+export const restoreEmployee = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+        const employee = await Employee.findByIdAndUpdate(
+            id,
+            { 
+                status: 'approved',
+                trashedAt: null
+            },
+            { new: true }
+        );
+        
+        if (!employee) {
+            return res.status(404).json({ message: 'Employee not found' });
+        }
+        
+        res.status(200).json({ 
+            message: 'Employee restored successfully',
+            employee 
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            message: 'Error restoring employee', 
+            error: error.message 
+        });
+    }
+});
+
+export const getTrashedEmployees = asyncHandler(async (req, res) => {
+    try {
+        const trashedEmployees = await Employee.find({ status: 'trashed' }).select('-password');
+        res.status(200).json(trashedEmployees);
+    } catch (error) {
+        res.status(500).json({ 
+            message: 'Error fetching trashed employees', 
+            error: error.message 
+        });
+    }
+});
+
+
+
+// Alternative Without Transactions (For Standalone MongoDB)
+
+// export const deleteEmployee = asyncHandler(async (req, res) => {
+//     const { id } = req.params;
+
+//     try {
+//         Find and delete the employee
+//         const employee = await Employee.findByIdAndDelete(id);
+//         if (!employee) {
+//             return res.status(404).json({ message: 'Employee not found' });
+//         }
+//         Delete related data from other collections
+//         await LeaveRequest.deleteMany({ employeeId: id });
+//         await PayHead.deleteMany({ employeeId: id });
+//         await Payslip.deleteMany({ employeeId: id });
+//         await Attendance.deleteMany({ employeeId: id });
+
+//         res.status(200).json({ message: 'Employee and all related data deleted successfully' });
+//     } catch (error) {
+//         res.status(500).json({ 
+//             message: 'Error deleting employee and related data', 
+//             error: error.message 
+//         });
+//     }
+// });

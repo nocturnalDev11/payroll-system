@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'; // Added computed
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAttendanceStore } from '@/stores/attendance.store.ts';
 import { BASE_API_URL } from '@/utils/constants.ts';
-import EmployeeAttendanceDetails from './employees/Partials/EmployeeAttendanceDetails.vue';
+import AttendanceEditModal from '../admins/attendance/Partials/AttendanceEditModal.vue';
 
 const router = useRouter();
 const attendanceStore = useAttendanceStore();
@@ -12,7 +12,6 @@ const isLoading = ref(false);
 const isProcessingPayroll = ref(false);
 const showModals = ref({});
 
-// Fetch total employees
 const fetchTotalEmployees = async () => {
     try {
         const response = await fetch(`${BASE_API_URL}/api/employees/total`, {
@@ -24,19 +23,18 @@ const fetchTotalEmployees = async () => {
         totalEmployees.value = data.total;
     } catch (error) {
         console.error('Failed to fetch total employees:', error);
+        totalEmployees.value = 0; // Fallback
     }
 };
 
-// Format time
 const formatTime = (time) => {
     if (!time) return '--';
     const [hours, minutes] = time.split(':');
-    const period = hours >= 12 ? 'PM' : 'AM';
-    const displayHours = hours % 12 || 12;
+    const period = +hours >= 12 ? 'PM' : 'AM';
+    const displayHours = +hours % 12 || 12;
     return `${displayHours}:${minutes} ${period}`;
 };
 
-// Refresh attendance
 const refreshAttendance = async () => {
     isLoading.value = true;
     try {
@@ -48,29 +46,20 @@ const refreshAttendance = async () => {
     }
 };
 
-// Export attendance
 const exportAttendance = () => {
-    const currentDate = new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    });
-
+    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
     const csvContent = [
-        // Header
         ['Date', 'Employee ID', 'Name', 'Position', 'Sign In Time', 'Sign Out Time', 'Status'],
         ...attendanceStore.attendanceRecords.map(record => [
             currentDate,
             record.employeeId?.employeeIdNumber || 'N/A',
             `${record.employeeId?.firstName} ${record.employeeId?.lastName}`,
             record.employeeId?.position || 'N/A',
-            formatTime(record.timeIn),
-            formatTime(record.timeOut),
+            formatTime(record.morningTimeIn),
+            formatTime(record.afternoonTimeOut),
             record.status || 'N/A',
         ]),
-    ]
-        .map(row => row.join(','))
-        .join('\n');
+    ].map(row => row.join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -81,18 +70,16 @@ const exportAttendance = () => {
     document.body.removeChild(link);
 };
 
-// Process payroll
 const processPayroll = async () => {
     isProcessingPayroll.value = true;
     try {
-        console.log('Processing payroll...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Placeholder
+        console.log('Payroll processed');
     } finally {
         isProcessingPayroll.value = false;
     }
 };
 
-// Delete attendance
 const deleteAttendance = async (id) => {
     if (confirm('Are you sure you want to delete this attendance record?')) {
         try {
@@ -108,14 +95,12 @@ const deleteAttendance = async (id) => {
     }
 };
 
-// Logout
 const logout = () => {
     localStorage.removeItem('userId');
     localStorage.removeItem('userRole');
     router.push('/login');
 };
 
-// Modal controls
 const openModal = (recordId) => {
     showModals.value[recordId] = true;
 };
@@ -124,27 +109,29 @@ const closeModal = (recordId) => {
     showModals.value[recordId] = false;
 };
 
-// Computed property to dynamically determine absent count
+const updateAttendanceRecord = (updatedRecord) => {
+    attendanceStore.attendanceRecords = attendanceStore.attendanceRecords.map(record =>
+        record._id === updatedRecord._id ? updatedRecord : record
+    );
+};
+
 const absentCount = computed(() => {
     const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false });
     const CUTOFF_TIME = "13:00:00";
-
     if (currentTime > CUTOFF_TIME) {
-        // After cutoff, count employees without time-in as absent
         const presentEmployeeIds = attendanceStore.attendanceRecords
-            .filter(record => record.timeIn && record.status !== "Absent")
+            .filter(record => record.morningTimeIn && record.status !== 'Absent')
             .map(record => record.employeeId._id.toString());
         const totalIds = attendanceStore.attendanceRecords.map(record => record.employeeId._id.toString());
         const uniqueAbsentIds = [...new Set(totalIds.filter(id => !presentEmployeeIds.includes(id)))];
-
         return uniqueAbsentIds.length;
     }
-    return attendanceStore.attendanceRecords.filter(r => r.status === "Absent").length;
+    return attendanceStore.attendanceRecords.filter(r => r.status === 'Absent').length;
 });
 
 onMounted(() => {
     fetchTotalEmployees();
-    attendanceStore.fetchAttendance();
+    refreshAttendance();
 });
 </script>
 
@@ -176,7 +163,7 @@ onMounted(() => {
                         <div>
                             <p class="text-sm font-medium text-gray-600">Present Today</p>
                             <h3 class="text-2xl font-bold text-gray-900">
-                                {{attendanceStore.attendanceRecords.filter(r => r.status === 'On Time').length}}
+                                {{attendanceStore.attendanceRecords.filter(r => r.status === 'Present').length}}
                             </h3>
                         </div>
                     </div>
@@ -206,9 +193,7 @@ onMounted(() => {
                             </div>
                             <div class="ml-5">
                                 <p class="text-sm font-medium text-gray-600">Absent Today</p>
-                                <h3 class="text-2xl font-bold text-gray-900">
-                                    {{ absentCount }}
-                                </h3>
+                                <h3 class="text-2xl font-bold text-gray-900">{{ absentCount }}</h3>
                             </div>
                         </div>
                     </div>
@@ -251,42 +236,42 @@ onMounted(() => {
                             <tr>
                                 <th
                                     class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 justify-center">
                                         <span class="material-icons text-gray-400">badge</span>
                                         <span>Employee</span>
                                     </div>
                                 </th>
                                 <th
                                     class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 justify-center">
                                         <span class="material-icons text-gray-400">work</span>
                                         <span>Position</span>
                                     </div>
                                 </th>
                                 <th
                                     class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 justify-center">
                                         <span class="material-icons text-gray-400">login</span>
                                         <span>Sign In</span>
                                     </div>
                                 </th>
                                 <th
                                     class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 justify-center">
                                         <span class="material-icons text-gray-400">logout</span>
                                         <span>Sign Out</span>
                                     </div>
                                 </th>
                                 <th
                                     class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 justify-center">
                                         <span class="material-icons text-gray-400">info</span>
                                         <span>Status</span>
                                     </div>
                                 </th>
                                 <th
                                     class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 justify-center">
                                         <span class="material-icons text-gray-400">settings</span>
                                         <span>Actions</span>
                                     </div>
@@ -304,36 +289,40 @@ onMounted(() => {
                             <template v-else>
                                 <tr v-for="record in attendanceStore.attendanceRecords" :key="record._id"
                                     class="hover:bg-gray-50">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                                         {{ record.employeeId?.firstName }} {{ record.employeeId?.lastName }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                                         {{ record.employeeId?.position || 'N/A' }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ formatTime(record.timeIn) }}
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                        {{ formatTime(record.morningTimeIn) }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ formatTime(record.timeOut) }}
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                        {{ formatTime(record.afternoonTimeOut) }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium" :class="{
+                                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium" :class="{
                                         'text-red-500': record.status === 'Absent',
-                                        'text-green-500': record.status === 'On Time',
+                                        'text-green-500': record.status === 'Present',
                                         'text-yellow-500': record.status === 'Late',
-                                        'text-orange-500': record.status === 'Early Departure',
                                     }">
                                         {{ record.status || 'N/A' }}
                                     </td>
-                                    <td class="px-6 py-4 text-sm">
-                                        <div class="flex space-x-2">
-                                            <EmployeeAttendanceDetails :show="showModals[record._id] || false"
-                                                :employee="record" @open="openModal(record._id)"
-                                                @close="closeModal(record._id)" />
+                                    <td class="px-6 py-4 text-sm text-center">
+                                        <div class="flex space-x-2 justify-center">
+                                            <button @click.stop="openModal(record._id)"
+                                                class="text-blue-600 hover:text-blue-800 transition cursor-pointer"
+                                                title="Edit Record">
+                                                <span class="material-icons">edit</span>
+                                            </button>
                                             <button @click.stop="deleteAttendance(record._id)"
                                                 class="text-red-600 hover:text-red-800 transition cursor-pointer"
                                                 title="Delete Record">
                                                 <span class="material-icons">delete</span>
                                             </button>
+                                            <AttendanceEditModal :show="showModals[record._id] || false"
+                                                :record="record" @close="closeModal(record._id)"
+                                                @update="updateAttendanceRecord" />
                                         </div>
                                     </td>
                                 </tr>

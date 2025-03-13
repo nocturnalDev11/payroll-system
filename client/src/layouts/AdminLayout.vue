@@ -18,6 +18,7 @@ const navigationLinks = ref([
     { path: '/admin/employee/manage-pay-heads', name: 'Manage Pay Heads' },
     { path: '/admin/employee/leave-management', name: 'Leave Management' },
     { path: '/admin/employee/records', name: 'Employee Records' },
+    { path: '/admin/trash', name: 'Trash' },
 ]);
 
 // Computed properties
@@ -42,7 +43,8 @@ const getLinkIcon = (name) => {
         'Manage Employees': 'people',
         'Salary Slips': 'receipt',
         'Manage Pay Heads': 'attach_money',
-        'Leave Management': 'event_available'
+        'Leave Management': 'event_available',
+        'Trash': 'delete'
     }[name] || 'widgets';
 };
 
