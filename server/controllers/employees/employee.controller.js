@@ -11,8 +11,7 @@ import {
 // Get all employees
 export const getAllEmployees = asyncHandler(async (req, res) => {
     try {
-        const employees = await Employee.find().select('-password');
-        console.log('Fetched employees:', employees);
+        const employees = await Employee.find({ status: { $ne: 'trashed' } }).select('-password');
         res.status(200).json(employees);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching employees', error: error.message });
