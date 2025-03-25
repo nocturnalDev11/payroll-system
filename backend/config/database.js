@@ -1,18 +1,15 @@
 const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 
-const MONGO_URI = process.env.USE_ATLAS === 'true' 
-    ? process.env.MONGO_URI_ATLAS 
-    : process.env.MONGO_URI_COMPASS;
-
-console.log('USE_ATLAS:', process.env.USE_ATLAS);
-console.log('MONGO_URI:', MONGO_URI);
+dotenv.config();
 
 const connectDB = async () => {
     try {
-        await mongoose.connect(MONGO_URI);
-        console.log(`MongoDB connected successfully to ${MONGO_URI.includes('mongodb+srv') ? 'Atlas' : 'Compass'}`);
+        const conn = await mongoose.connect(process.env.MONGO_URI);
+
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
     } catch (error) {
-        console.error('MongoDB connection error:', error);
+        console.error(`Error: ${error.message}`);
         process.exit(1);
     }
 };

@@ -43,7 +43,7 @@ console.log('Environment Variables:');
 console.log('PORT:', process.env.PORT || 7777);
 console.log('EMAIL_USER:', process.env.EMAIL_USER);
 console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Set' : 'Not set');
-console.log('USE_ATLAS:', process.env.USE_ATLAS ? 'Set' : 'Not set');
+console.log('MONGO_URI:', process.env.MONGO_URI ? 'Set' : 'Not set');
 
 // Routes
 app.use('/api/admin', adminRoutes);
