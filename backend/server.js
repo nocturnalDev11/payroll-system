@@ -16,9 +16,9 @@ const employeeRecordRoutes = require('./routes/employeeRecords.routes.js');
 const pendingRequestRoutes = require('./routes/pendingRequests.routes.js');
 const positionHistoryRoutes = require('./routes/position.routes.js');
 
-const PORT = process.env.PORT || 7777;
 const app = express();
 
+// Connect to the database
 connectDB();
 
 const transporter = nodemailer.createTransport({
@@ -79,6 +79,5 @@ app.get('/', (req, res) => {
   res.status(200).json({ message: 'Welcome to the Payroll System API' });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-});
+// Export the app for Vercel
+module.exports = app;
