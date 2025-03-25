@@ -151,7 +151,8 @@ import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import moment from 'moment';
-import { useAuthStore } from '@/stores/auth.store.js'; // Assuming you have an auth store
+import { BASE_API_URL } from '@/utils/constants.js';
+import { useAuthStore } from '@/stores/auth.store.js';
 
 jsPDF.prototype.autoTable = autoTable.default;
 
@@ -161,7 +162,7 @@ export default {
         return {
             employee: null,
             payslipHistory: [],
-            selectedMonth: new Date().toISOString().slice(0, 7), // Default to current month
+            selectedMonth: new Date().toISOString().slice(0, 7),
             selectedPayslip: null,
             payslipGenerationStatus: {},
             isLoading: false,
@@ -201,7 +202,7 @@ export default {
                 }
 
                 // Fetch employee data
-                const employeeResponse = await axios.get(`http://localhost:7777/api/employees/${userId}/salary`, {
+                const employeeResponse = await axios.get(`${BASE_API_URL}/api/employees/${userId}/salary`, {
                     params: { month: this.selectedMonth },
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -212,7 +213,7 @@ export default {
                 this.employee = employeeResponse.data;
 
                 // Fetch payslip history
-                const payslipResponse = await axios.get(`http://localhost:7777/api/payslips/${userId}`, {
+                const payslipResponse = await axios.get(`${BASE_API_URL}/api/payslips/${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'user-role': 'employee',
@@ -266,14 +267,14 @@ export default {
                 const payload = {
                     employeeId: Number(employee._id),
                     empNo: String(employee.empNo),
-                    payslipData: base64Data.split(',')[1], // Remove "data:application/pdf;base64," prefix
+                    payslipData: base64Data.split(',')[1],
                     salaryMonth: payslip.salaryMonth,
                     paydayType: payslip.paydayType,
                     position: payslip.position,
                     salary: Number(payslip.salary),
                 };
 
-                const response = await axios.post('http://localhost:7777/api/payslips/generate', payload, {
+                const response = await axios.post(`${BASE_API_URL}/api/payslips/generate`, payload, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`,
                         'user-role': 'employee',

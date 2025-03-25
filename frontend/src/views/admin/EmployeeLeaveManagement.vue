@@ -278,6 +278,7 @@
 <script>
 import axios from 'axios';
 import moment from 'moment';
+import { BASE_API_URL } from '@/utils/constants.js';
 
 export default {
     name: 'AdminLeaveManagement',
@@ -350,7 +351,7 @@ export default {
         async fetchLeaveRequests() {
             try {
                 this.isLoading = true;
-                const response = await axios.get('http://localhost:7777/api/leaves/all');
+                const response = await axios.get(`${BASE_API_URL}/api/leaves/all`);
                 this.leaveRequests = response.data.map(leave => ({
                     ...leave,
                     startDate: moment(leave.startDate).format('YYYY-MM-DD'),
@@ -377,7 +378,7 @@ export default {
         },
         async approveLeave(id) {
             try {
-                const response = await axios.put(`http://localhost:7777/api/leaves/${id}/approve`);
+                const response = await axios.put(`${BASE_API_URL}/api/leaves/${id}/approve`);
                 if (response.status === 200) {
                     this.leaveRequests = this.leaveRequests.map(leave =>
                         leave.id === id ? { ...leave, status: 'Approved' } : leave
@@ -394,7 +395,7 @@ export default {
         },
         async disapproveLeave(id) {
             try {
-                const response = await axios.put(`http://localhost:7777/api/leaves/${id}/disapprove`);
+                const response = await axios.put(`${BASE_API_URL}/api/leaves/${id}/disapprove`);
                 if (response.status === 200) {
                     this.leaveRequests = this.leaveRequests.map(leave =>
                         leave.id === id ? { ...leave, status: 'Disapproved' } : leave

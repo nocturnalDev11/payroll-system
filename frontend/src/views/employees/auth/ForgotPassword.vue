@@ -79,6 +79,7 @@
 
 <script>
 import axios from 'axios';
+import { BASE_API_URL } from '@/utils/constants.js';
 
 export default {
     name: 'ForgotPassword',
@@ -99,7 +100,7 @@ export default {
             this.isProcessing = true;
             this.error = '';
             try {
-                const response = await axios.post('http://localhost:7777/api/employees/forgot-password', {
+                const response = await axios.post(`${BASE_API_URL}/api/employees/forgot-password`, {
                     email: this.email
                 });
                 this.resetToken = response.data.resetToken;
@@ -114,7 +115,7 @@ export default {
             this.isProcessing = true;
             this.error = '';
             try {
-                await axios.post('http://localhost:7777/api/employees/reset-password', {
+                await axios.post(`${BASE_API_URL}/api/employees/reset-password`, {
                     email: this.email,
                     resetToken: this.resetToken,
                     verificationCode: this.verificationCode,

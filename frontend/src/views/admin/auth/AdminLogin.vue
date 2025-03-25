@@ -1,5 +1,6 @@
 <script>
 import axios from 'axios';
+import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
 
 export default {
@@ -31,7 +32,7 @@ export default {
 
             try {
                 const response = await axios.post(
-                    'http://localhost:7777/api/admin/login',
+                    `${BASE_API_URL}/api/admin/login`,
                     { username: this.username.trim(), password: this.password.trim() },
                     { headers: { 'Content-Type': 'application/json' } }
                 );

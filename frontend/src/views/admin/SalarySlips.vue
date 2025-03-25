@@ -423,6 +423,7 @@ import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import moment from 'moment';
+import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
 
 jsPDF.prototype.autoTable = autoTable.default;
@@ -572,7 +573,7 @@ sortedNewPayslips() {
             try {
                 const token = this.authStore.accessToken || localStorage.getItem('token');
                 if (!token) throw new Error('No authentication token found');
-                const response = await axios.get('http://localhost:7777/api/config', {
+                const response = await axios.get(`${BASE_API_URL}/api/config`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'user-role': 'admin',
@@ -602,7 +603,7 @@ sortedNewPayslips() {
                     const token = this.authStore.accessToken || localStorage.getItem('token') || '';
                     if (!token) throw new Error('No authentication token found');
                     console.log('Fetching positions with:', { userId, token: token.slice(0, 20) + '...' });
-                    const response = await axios.get('http://localhost:7777/api/positions', {
+                    const response = await axios.get(`${BASE_API_URL}/api/positions`, {
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'user-role': 'admin',
@@ -644,7 +645,7 @@ sortedNewPayslips() {
             console.log('Fetching employees with:', { userId, token: token.slice(0, 20) + '...' });
             try {
                 if (!token) throw new Error('No authentication token found');
-                const response = await axios.get('http://localhost:7777/api/employees', {
+                const response = await axios.get(`${BASE_API_URL}/api/employees`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'user-role': 'admin',
@@ -724,7 +725,7 @@ sortedNewPayslips() {
             const hireDate = moment(this.selectedEmployee.hireDate || this.currentDate);
             let backendPayslips = [];
             try {
-                const response = await axios.get(`http://localhost:7777/api/payslips/${this.selectedEmployee.id}`, {
+                const response = await axios.get(`${BASE_API_URL}/api/payslips/${this.selectedEmployee.id}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'user-role': 'admin',
@@ -846,7 +847,7 @@ sortedNewPayslips() {
                     throw new Error('No authentication token available. Please log in.');
                 }
 
-                const response = await axios.post('http://localhost:7777/api/payslips/generate', payload, {
+                const response = await axios.post(`${BASE_API_URL}/api/payslips/generate`, payload, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'user-role': 'admin'
@@ -1006,7 +1007,7 @@ sortedNewPayslips() {
                     throw new Error('No authentication token available. Please log in.');
                 }
 
-                const response = await axios.post('http://localhost:7777/api/payslips/generate', payload, {
+                const response = await axios.post(`${BASE_API_URL}/api/payslips/generate`, payload, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'user-role': 'admin'
@@ -1073,7 +1074,7 @@ sortedNewPayslips() {
                     endDate: null
                 });
 
-                const response = await axios.put(`http://localhost:7777/api/employees/${employee.id}`, {
+                const response = await axios.put(`${BASE_API_URL}/api/employees/${employee.id}`, {
                     ...employee,
                     position: newPositionData.name,
                     salary: newPositionData.salary,
