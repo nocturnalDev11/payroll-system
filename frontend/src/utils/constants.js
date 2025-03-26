@@ -1,1 +1,1 @@
-export const BASE_API_URL = 'http://localhost:7777';
+export const BASE_API_URL = process.env.VITE_APP_API_URL || 'http://localhost:7777';
