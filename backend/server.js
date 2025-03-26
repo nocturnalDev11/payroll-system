@@ -24,6 +24,18 @@ app.use(express.json());
 app.use(cors(corsOptions));
 app.use(express.urlencoded({ extended: true }));
 
+// Connect to MongoDB and start the app
+const initializeApp = async () => {
+    try {
+        await connectDB();
+        console.log('Database initialization complete');
+    } catch (error) {
+        console.error('Failed to initialize database:', error);
+    }
+};
+
+initializeApp();
+
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
