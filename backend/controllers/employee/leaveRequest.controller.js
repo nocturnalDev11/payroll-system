@@ -3,10 +3,6 @@ const LeaveRequest = require('../../models/leaveRequest.model.js');
 const Employee = require('../../models/employee.model.js');
 const moment = require('moment');
 
-// Debug model initialization
-console.log('LeaveRequest Model:', LeaveRequest);
-console.log('Employee Model:', Employee);
-
 // Get all leave requests
 exports.getAllLeaveRequests = asyncHandler(async (req, res) => {
     if (!LeaveRequest) throw new Error('LeaveRequest model is not initialized');
