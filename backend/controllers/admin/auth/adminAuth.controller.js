@@ -24,6 +24,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
 
     const token = generateAdminToken(admin._id);
 
+    res.setHeader('Content-Type', 'application/json');
     res.status(200).json({
         id: admin._id,
         username: admin.username,
@@ -33,4 +34,3 @@ const loginAdmin = asyncHandler(async (req, res) => {
 });
 
 module.exports = { loginAdmin };
-

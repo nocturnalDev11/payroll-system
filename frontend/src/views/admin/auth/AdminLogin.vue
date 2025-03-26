@@ -34,9 +34,8 @@ export default {
                 const response = await axios.post(
                     `${BASE_API_URL}/api/admin/login`,
                     { username: this.username.trim(), password: this.password.trim() },
-                    { 
-                        headers: { 'Content-Type': 'application/json' },
-                        withCredentials: true
+                    {
+                        headers: { 'Content-Type': 'application/json' }
                     }
                 );
                 console.log(response.data);
