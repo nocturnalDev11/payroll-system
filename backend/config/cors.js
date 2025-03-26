@@ -1,6 +1,7 @@
 const corsOptions = {
     origin: [
         'https://payroll-system-frontend-pied.vercel.app',
+        'https://payroll-system-api-topaz.vercel.app',
         'http://localhost:5173'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
@@ -8,4 +9,3 @@ const corsOptions = {
     credentials: true,
     optionsSuccessStatus: 200
 };
-module.exports = corsOptions;
