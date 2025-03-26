@@ -58,7 +58,7 @@ app.use('/api/positionHistory', positionHistoryRoutes);
 app.use('/api/employee-contributions', contributionRoutes);
 
 // Health Check Route
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.status(200).json({ message: 'Server is running', uptime: process.uptime() });
 });
 
