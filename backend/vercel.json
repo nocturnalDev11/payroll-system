@@ -2,8 +2,8 @@
     "version": 2,
     "routes": [
         {
-            "src": "/backend/(.*)",
-            "dest": "server.js"
+            "src": "server.js",
+            "use": "@vercel/node"
         },
         {
             "src": "/(.*)",
