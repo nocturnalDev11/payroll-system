@@ -52,6 +52,7 @@ export default {
                 this.loginError = true;
                 this.errorMessage = error.response?.data?.message || error.message || 'An unexpected error occurred';
                 console.error('Login error:', error.response?.data || error);
+                console.error('Error response:', error.response);
                 this.password = '';
             } finally {
                 this.isLoading = false;
