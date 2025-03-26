@@ -34,8 +34,12 @@ export default {
                 const response = await axios.post(
                     `${BASE_API_URL}/api/admin/login`,
                     { username: this.username.trim(), password: this.password.trim() },
-                    { headers: { 'Content-Type': 'application/json' } }
+                    { 
+                        headers: { 'Content-Type': 'application/json' },
+                        withCredentials: true
+                    }
                 );
+                console.log(response.data);
 
                 // Check if response contains a token (indicating success)
                 if (!response.data.token) {
