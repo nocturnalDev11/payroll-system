@@ -1,7 +1,6 @@
 const cors = require('cors');
 const path = require('path');
 const express = require('express');
-// const nodemailer = require('nodemailer');
 const connectDB = require('./config/database');
 const corsOptions = require('./config/cors');
 const adminRoutes = require('./routes/admin.routes.js');
@@ -20,14 +19,6 @@ const app = express();
 
 // Connect to the database
 connectDB();
-
-// const transporter = nodemailer.createTransport({
-//   service: 'gmail',
-//   auth: {
-//     user: process.env.EMAIL_USER,
-//     pass: process.env.EMAIL_PASS
-//   }
-// });
 
 app.use(express.json());
 app.use(cors(corsOptions));
@@ -62,22 +53,23 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ message: 'Server is running', uptime: process.uptime() });
 });
 
-// Default Route (404)
+// Root Route (Moved before the 404 handler)
+app.get('/', (req, res) => {
+  res.status(200).json({ message: 'Welcome to the Payroll System API' });
+});
+
+// Default Route (404) - Must be after all other routes
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Global Error Handler
+// Global Error Handler - Must be last
 app.use((err, req, res, next) => {
   console.error('Server Error:', err.stack);
   res.status(500).json({ error: 'Internal Server Error', message: err.message });
 });
 
 app.use(express.static('public'));
-
-app.get('/', (req, res) => {
-  res.status(200).json({ message: 'Welcome to the Payroll System API' });
-});
 
 // Export the app for Vercel
 module.exports = app;
