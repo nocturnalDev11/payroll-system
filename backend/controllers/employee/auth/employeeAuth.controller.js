@@ -10,16 +10,20 @@ function generateToken(employeeId) {
 }
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    }
+    },
+    logger: true, // Enable logging
+    debug: true // Enable debug output
 });
 
 transporter.verify((error, success) => {
     if (error) {
-        console.error('Email transporter verification failed in auth.js:', error);
+        console.error('Email transporter verification failed in employeeAuth.controller.js:', error);
     } else {
         console.log('Email transporter is ready in employeeAuth.controller.js');
     }
