@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 const Employee = require('../models/employee.model.js');
-const Payslip = require('../models/payslip.model.js');
+const Payslip = require('../models/paySlip.model.js');
 const { verifyToken } = require('../middlewares/authMiddleware.js');
 
 // Middleware to check for admin role
