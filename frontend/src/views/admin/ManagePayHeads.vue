@@ -240,7 +240,8 @@
 
 <script>
 import axios from 'axios';
-import PayHeadModal from './partials/payheads/PayHeadModal.vue'; // Corrected import
+import { BASE_API_URL } from '@/utils/constants.js';
+import PayHeadModal from './partials/payheads/PayHeadModal.vue';
 import PayHeadTable from './partials/payheads/PayHeadTable.vue';
 import EmployeePayrollTable from './partials/payheads/EmployeePayrollTable.vue';
 import AddPayheadModal from './partials/payheads/AddPayheadModal.vue';
@@ -383,7 +384,7 @@ export default {
             this.isLoading = true;
             this.statusMessage = '';
             try {
-                const response = await axios.get('http://localhost:7777/api/payheads', {
+                const response = await axios.get(`${BASE_API_URL}/api/payheads`, {
                     headers: { 'user-role': 'admin' },
                 });
                 this.payHeads = (response.data || []).map(item => ({
@@ -396,7 +397,7 @@ export default {
             } catch (error) {
                 console.error('Error fetching pay heads:', error);
                 this.showErrorMessage('Failed to load pay heads. Please try again.');
-                this.payHeads = []; // Reset to empty array on error
+                this.payHeads = [];
             } finally {
                 this.isLoading = false;
             }
@@ -406,7 +407,7 @@ export default {
             this.isLoading = true;
             this.statusMessage = '';
             try {
-                const response = await axios.get('http://localhost:7777/api/employees', {
+                const response = await axios.get(`${BASE_API_URL}/api/employees`, {
                     headers: { 'user-role': 'admin' },
                 });
 
@@ -460,7 +461,7 @@ export default {
                     isRecurring: payHead.isRecurring || false,
                     appliedThisCycle: false,
                 };
-                const response = await axios.post('http://localhost:7777/api/payheads', payload, {
+                const response = await axios.post(`${BASE_API_URL}/api/payheads`, payload, {
                     headers: { 'user-role': 'admin' },
                 });
                 this.payHeads.push({ ...response.data, amount: Number(response.data.amount || 0) });
@@ -490,7 +491,7 @@ export default {
                     appliedThisCycle: updatedPayHead.appliedThisCycle || false,
                 };
                 const response = await axios.put(
-                    `http://localhost:7777/api/payheads/${updatedPayHead.id}`,
+                    `${BASE_API_URL}/api/payheads/${updatedPayHead.id}`,
                     payload,
                     { headers: { 'user-role': 'admin' } }
                 );
@@ -518,7 +519,7 @@ export default {
         async deletePayHead(id) {
             try {
                 this.isLoading = true;
-                await axios.delete(`http://localhost:7777/api/payheads/${id}`, {
+                await axios.delete(`${BASE_API_URL}/api/payheads/${id}`, {
                     headers: { 'user-role': 'admin' },
                 });
                 this.payHeads = this.payHeads.filter(payHead => payHead.id !== id);
@@ -609,7 +610,7 @@ export default {
                 };
 
                 await axios.put(
-                    `http://localhost:7777/api/employees/${this.selectedEmployee.id}`,
+                    `${BASE_API_URL}/api/employees/${this.selectedEmployee.id}`,
                     updatedEmployee,
                     { headers: { 'user-role': 'admin' } }
                 );
@@ -643,7 +644,7 @@ export default {
 
                     for (const deduction of selectedDeductions) {
                         if (!updatedPayheads.some(ph => ph.id === deduction.id && ph.isRecurring)) {
-                            const payheadResponse = await axios.get(`http://localhost:7777/api/payheads`, {
+                            const payheadResponse = await axios.get(`${BASE_API_URL}/api/payheads`, {
                                 headers: { 'user-role': 'admin' },
                                 params: { id: deduction.id }
                             });
@@ -681,7 +682,7 @@ export default {
                     };
 
                     await axios.put(
-                        `http://localhost:7777/api/employees/${employee.id}`,
+                        `${BASE_API_URL}/api/employees/${employee.id}`,
                         updatedEmployee,
                         { headers: { 'user-role': 'admin' } }
                     );

@@ -88,7 +88,7 @@
     // Methods
     const fetchPositions = async () => {
         try {
-            const response = await axios.get('http://localhost:7777/api/positions');
+            const response = await axios.get(`${BASE_API_URL}/api/positions`);
             adminPositions.value = response.data.map((pos) => ({
                 _id: pos._id,
                 name: pos.name,
@@ -173,7 +173,7 @@
                 status: newRequest.value.status,
             };
             console.log('Sending request data:', requestData);
-            const response = await axios.post('http://localhost:7777/api/employees/register', requestData);
+            const response = await axios.post(`${BASE_API_URL}/api/employees/register`, requestData);
             if (response.status === 201) {
                 resetNewRequest();
                 showSuccessMessage('Account request submitted successfully! Awaiting admin approval.');
