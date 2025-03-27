@@ -1136,7 +1136,7 @@ export default {
                         </div>
                     </div>
                 </div>
-                <div class="p-4 border-t bg-gray-50 flex justify-end gap-2">
+                <div class="p-4 border-t border-gray-300 bg-gray-50 flex justify-end gap-2">
                     <button @click="saveRequestChanges"
                         class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors flex items-center gap-1"
                         :disabled="isEditingRequest">
@@ -1162,7 +1162,7 @@ export default {
         </div>
 
         <!-- Add Employee Modal -->
-        <div v-if="showAddModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div v-if="showAddModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[85vh] overflow-y-auto">
                 <div class="p-4 border-b border-gray-300">
                     <h2 class="text-lg font-semibold text-gray-800">Add New Employee</h2>
@@ -1175,7 +1175,7 @@ export default {
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">ID *</label>
                                     <input v-model.number="newEmployee.id" type="number"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required min="1" />
                                 </div>
                                 <div class="space-y-1">
@@ -1655,14 +1655,14 @@ export default {
                     <p class="text-sm text-gray-700">Move {{ selectedEmployee.firstName }} {{ selectedEmployee.lastName
                         }} to trash? This can be restored later.</p>
                 </div>
-                <div class="p-4 border-t bg-gray-50 flex justify-end gap-2">
+                <div class="p-2 border-t border-gray-300 flex justify-end gap-2">
                     <button @click="moveToTrash(selectedEmployee.id)"
                         class="px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
                         :disabled="isDeleting">
                         {{ isDeleting ? 'Moving...' : 'Move to Trash' }}
                     </button>
                     <button @click="showDeleteModal = false"
-                        class="px-3 py-1.5 border text-sm rounded-md text-gray-700 hover:bg-gray-100">Cancel</button>
+                        class="px-3 py-1.5 border border-gray-300 text-sm rounded-md text-gray-700 hover:bg-gray-100">Cancel</button>
                 </div>
             </div>
         </div>
