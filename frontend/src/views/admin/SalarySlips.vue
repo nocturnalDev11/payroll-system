@@ -549,10 +549,10 @@ sortedNewPayslips() {
         }
     },
     async created() {
-        if (!this.authStore.isAuthenticated || !this.authStore.isAdmin) {
-            console.error('User is not authenticated as admin. Redirecting to login...');
-            this.showErrorMessage('Please log in as an admin to access this page.');
-            this.$router.push('/admin-login');
+        if (!this.authStore.isAuthenticated) {
+            console.error('User is not authenticated. Redirecting to login...');
+            this.showErrorMessage('Please log in to access this page.');
+            this.$router.push(this.authStore.userRole === 'employee' ? '/employee-login' : '/admin-login');
             return;
         }
 
@@ -661,9 +661,9 @@ sortedNewPayslips() {
                 this.employees = response.data.map((employee) => {
                     const latestPosition = this.getLatestPosition(employee);
                     const name = `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Unnamed Employee';
-                    return {
+                    const mappedEmployee = {
                         ...employee,
-                        id: employee._id, // Explicitly set id to _id (string)
+                        id: employee._id,
                         name,
                         position: latestPosition.position,
                         salary: latestPosition.salary,
@@ -676,6 +676,11 @@ sortedNewPayslips() {
                         createdAt: employee.createdAt || employee.hireDate,
                         updatedAt: employee.updatedAt
                     };
+                    // Log the positionHistory for the employee in question
+                    if (employee._id === '67e4d967fc64c58822e13774') {
+                        console.log('Position history for employee 67e4d967fc64c58822e13774:', mappedEmployee.positionHistory);
+                    }
+                    return mappedEmployee;
                 });
                 this.showSuccessMessage('Employees loaded successfully!');
             } catch (error) {
@@ -950,7 +955,8 @@ sortedNewPayslips() {
             const targetDate = moment(date);
             const activePosition = positionHistory.find(history => {
                 const startDate = moment(history.startDate);
-                const endDate = history.endDate ? moment(history.endDate) : moment(this.currentDate);
+                // If endDate is null, the position is active indefinitely into the future
+                const endDate = history.endDate ? moment(history.endDate) : moment('9999-12-31');
                 return targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day');
             });
             return activePosition || positionHistory[positionHistory.length - 1];
@@ -991,7 +997,7 @@ sortedNewPayslips() {
                 const base64Data = await this.blobToBase64(pdfBlob);
 
                 const payload = {
-                    employeeId: employee.id, // Use string ID directly
+                    employeeId: employee.id,
                     empNo: String(employee.empNo),
                     payslipData: base64Data.split(',')[1],
                     salaryMonth: payslipData.salaryMonth,
@@ -1080,13 +1086,18 @@ sortedNewPayslips() {
                     endDate: null
                 });
 
-                const response = await axios.put(`${BASE_API_URL}/api/employees/${employee.id}`, {
-                    ...employee,
+                const token = this.authStore.accessToken || localStorage.getItem('token');
+                if (!token) throw new Error('No authentication token available');
+
+                const response = await axios.put(`${BASE_API_URL}/api/employees/update/${employee.id}`, {
                     position: newPositionData.name,
                     salary: newPositionData.salary,
                     positionHistory: updatedPositionHistory
                 }, {
-                    headers: { 'user-role': 'admin' }
+                    headers: {
+                        'user-role': this.authStore.userRole || 'admin',
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
 
                 if (response.status === 200) {
@@ -1103,6 +1114,7 @@ sortedNewPayslips() {
             } catch (error) {
                 console.error('Error updating position:', error);
                 this.showErrorMessage(`Failed to update position: ${error.message}`);
+                if (error.response) console.error('Server response:', error.response.data);
             } finally {
                 this.isLoading = false;
             }
