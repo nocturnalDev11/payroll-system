@@ -18,31 +18,44 @@ const positionHistoryRoutes = require('./routes/position.routes.js');
 
 const app = express();
 
-//  Connect to the database
+// Connect to the database (used in both local and production)
 connectDB();
 
-//  Set CORS headers for all responses
-//  Comment out if not use in production
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://payroll-system-frontend-pied.vercel.app');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, user-role', 'user-id');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  next();
-});
+/* LOCAL DEVELOPMENT ONLY */
+// Start the server locally when not running on Vercel.
+// Vercel handles the server start in production, so this is skipped there.
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 7777;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
 
+/* PRODUCTION ONLY (optional manual CORS) */
+// Uncomment this block if corsOptions in config/cors.js is insufficient for production.
+// In local dev, corsOptions handles CORS dynamically.
+// app.use((req, res, next) => {
+//   res.setHeader('Access-Control-Allow-Origin', 'https://payroll-system-frontend-pied.vercel.app');
+//   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
+//   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, user-role, user-id');
+//   res.setHeader('Access-Control-Allow-Credentials', 'true');
+//   next();
+// });
+
+// Middleware (used in both local and production)
 app.use(express.json());
+ // CORS config from config/cors.js, adjustable per environment
 app.use(cors(corsOptions));
 app.use(express.urlencoded({ extended: true }));
 
-//  Log environment variables
+// Log environment variables for debugging (useful in both environments)
 console.log('Environment Variables:');
 console.log('PORT:', process.env.PORT || 7777);
 console.log('EMAIL_USER:', process.env.EMAIL_USER);
 console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Set' : 'Not set');
 console.log('MONGO_URI:', process.env.MONGO_URI ? 'Set' : 'Not set');
 
-//  Routes
+// Routes (used in both local and production)
 app.use('/api/admin', adminRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/leaves', leaveRequestRoutes);
@@ -54,28 +67,29 @@ app.use('/api/pending-requests', pendingRequestRoutes);
 app.use('/api/positionHistory', positionHistoryRoutes);
 app.use('/api/employee-contributions', contributionRoutes);
 
-//  Health Check Route
+// Health Check Route (useful for monitoring in both environments)
 app.get('/api/health', (req, res) => {
   res.status(200).json({ message: 'Server is running', uptime: process.uptime() });
 });
 
-//  Root Route (Moved before the 404 handler)
+// Root Route (general welcome message, used in both environments)
 app.get('/', (req, res) => {
   res.status(200).json({ message: 'Welcome to the Payroll System API' });
 });
 
-//  Default Route (404) - Must be after all other routes
+// 404 Handler (catch-all for undefined routes, used in both environments)
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-//  Global Error Handler - Must be last
+// Global Error Handler (catch unhandled errors, used in both environments)
 app.use((err, req, res, next) => {
   console.error('Server Error:', err.stack);
   res.status(500).json({ error: 'Internal Server Error', message: err.message });
 });
 
+// Serve static files (used in both environments if 'public' folder exists)
 app.use(express.static('public'));
 
-//  Export the app for Vercel
+// Export the app for Vercel (required for production deployment)
 module.exports = app;
