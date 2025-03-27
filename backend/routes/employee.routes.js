@@ -227,52 +227,55 @@ router.post('/', isAdmin, async (req, res) => {
   try {
     const employeeData = req.body;
 
-    // Validate required fields
-    const requiredFields = ['empNo', 'firstName', 'lastName', 'position', 'salary', 'email', 'contactInfo', 'sss', 'philhealth', 'pagibig', 'tin', 'civilStatus', 'username', 'password', 'role', 'hireDate'];
-    for (const field of requiredFields) {
-      if (!employeeData[field]) {
-        return res.status(400).json({ error: `Missing required field: ${field}` });
-      }
+    // Basic validation
+    if (!employeeData.empNo || !employeeData.firstName || !employeeData.lastName || 
+        !employeeData.position || !employeeData.email || !employeeData.contactInfo ||
+        !employeeData.username || !employeeData.password) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Check if employee with empNo or username already exists
+    // Check for existing employee
     const existingEmployee = await Employee.findOne({
-      $or: [{ empNo: employeeData.empNo }, { username: employeeData.username }],
+      $or: [
+        { empNo: employeeData.empNo }, 
+        { username: employeeData.username },
+        { email: employeeData.email }
+      ],
     });
 
     if (existingEmployee) {
-      return res.status(400).json({ error: 'Employee with this empNo or username already exists' });
+      return res.status(400).json({ 
+        error: 'Employee with this empNo, username or email already exists' 
+      });
     }
 
-    // Generate a unique ID
+    // Generate ID
     const lastEmployee = await Employee.findOne().sort({ id: -1 });
     const newId = lastEmployee ? lastEmployee.id + 1 : 1;
 
+    // Create new employee
     const newEmployee = new Employee({
       ...employeeData,
       id: newId,
-      positionHistory: [
-        {
-          position: employeeData.position,
-          salary: employeeData.salary,
-          startDate: new Date(employeeData.hireDate),
-          endDate: null,
-        },
-      ],
+      positionHistory: employeeData.positionHistory || [{
+        position: employeeData.position,
+        salary: employeeData.salary,
+        startDate: employeeData.hireDate ? new Date(employeeData.hireDate) : new Date(),
+        endDate: null,
+      }],
+      status: 'approved',
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
     const savedEmployee = await newEmployee.save();
-    console.log('Employee created:', savedEmployee);
     res.status(201).json(savedEmployee);
   } catch (error) {
-    console.error('Error in POST /api/employees:', {
-      message: error.message,
-      stack: error.stack,
-      body: req.body,
+    console.error('Error creating employee:', error);
+    res.status(500).json({ 
+      error: 'Failed to create employee', 
+      message: error.message 
     });
-    res.status(500).json({ error: 'Failed to create employee', message: error.message });
   }
 });
 
