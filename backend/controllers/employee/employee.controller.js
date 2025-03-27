@@ -50,8 +50,19 @@ exports.uploadProfilePicture = asyncHandler(async (req, res) => {
             return res.status(404).json({ message: 'Employee not found' });
         }
 
-        const profilePicturePath = `/uploads/profile-pictures/${req.file.filename}`;
-        
+        // Generate a unique filename
+        const fileName = `${req.employeeId}-${Date.now()}${path.extname(req.file.originalname)}`;
+
+        // Upload to Vercel Blob
+        const blob = await put(`profile-pictures/${fileName}`, req.file.buffer, {
+            access: 'public', // Publicly accessible URL
+            token: process.env.BLOB_READ_WRITE_TOKEN
+        });
+
+        // Full URL, e.g., https://<blob-store>.vercel-storage.com/...
+        const profilePicturePath = blob.url;
+        console.log('Uploaded to Vercel Blob:', profilePicturePath);
+
         employee.profilePicture = profilePicturePath;
         await employee.save();
 
@@ -60,6 +71,7 @@ exports.uploadProfilePicture = asyncHandler(async (req, res) => {
             profilePicture: profilePicturePath
         });
     } catch (error) {
+        console.error('Error uploading profile picture:', error);
         res.status(500).json({ 
             message: 'Error uploading profile picture', 
             error: error.message 
