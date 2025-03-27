@@ -1,5 +1,6 @@
-const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcrypt');
+const mongoose = require('mongoose');
+const asyncHandler = require('express-async-handler');
 const Employee = require('../../models/employee.model.js');
 
 // Get pending employees
@@ -70,28 +71,48 @@ exports.uploadProfilePicture = asyncHandler(async (req, res) => {
 exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
     try {
         const { id } = req.params;
-        const { position, password, ...otherDetails } = req.body;
+        const { position, password, positionHistory, ...otherDetails } = req.body;
 
         console.log('Received req.body:', req.body);
         console.log('Updating employee with ID:', id);
 
+        // Validate the employee ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid employee ID' });
+        }
+
+        // Check if the user is authorized to update this employee
+        if (req.role === 'employee' && req.employeeId.toString() !== id) {
+            return res.status(403).json({ message: 'Employees can only update their own details' });
+        }
+
+        // Construct the update data
         const updateData = {
             ...otherDetails,
             position,
+            positionHistory, // Explicitly include positionHistory
             ...(req.body.deductions && { deductions: req.body.deductions }),
             ...(req.body.earnings && { earnings: req.body.earnings }),
             ...(req.body.payheads && { payheads: req.body.payheads })
         };
 
-        if (req.body.salary) {
+        // Validate and set salary
+        if (req.body.salary !== undefined && !isNaN(Number(req.body.salary))) {
             updateData.salary = Number(req.body.salary);
+        } else if (req.body.salary !== undefined) {
+            console.log('Salary is invalid:', req.body.salary);
+            return res.status(400).json({ message: 'Invalid salary value' });
         }
 
+        // Hash password if provided
         if (password) {
             const salt = await bcrypt.genSalt(10);
             updateData.password = await bcrypt.hash(password, salt);
         }
 
+        console.log('Update data:', updateData);
+
+        // Update the employee in the database
         const updatedEmployee = await Employee.findByIdAndUpdate(
             id,
             updateData,
@@ -102,6 +123,7 @@ exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
             return res.status(404).json({ message: 'Employee not found' });
         }
 
+        // Remove password from the response
         const employeeObj = updatedEmployee.toObject();
         delete employeeObj.password;
 
@@ -111,6 +133,7 @@ exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
             updatedEmployee: employeeObj 
         });
     } catch (error) {
+        console.error('Update error:', error.stack);
         res.status(500).json({ message: error.message });
     }
 });
