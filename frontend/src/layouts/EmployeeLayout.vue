@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store.js';
 import { BASE_API_URL } from '@/utils/constants.js';
@@ -9,6 +9,7 @@ import DropdownLink from '@/components/DropdownLink.vue';
 const router = useRouter();
 const authStore = useAuthStore();
 const employee = computed(() => authStore.employee);
+const imageLoadFailed = ref(false); // Track if image failed to load
 
 onMounted(() => {
     if (!authStore.isAuthenticated) {
@@ -41,8 +42,16 @@ const getLinkIcon = (name) => {
     }[name] || 'widgets';
 };
 
-const handleImageError = () => {
+const handleImageError = async () => {
     console.error('Failed to load profile picture:', employee.value?.profilePicture);
+    imageLoadFailed.value = true; // Switch to fallback
+    // Optionally refetch employee data to ensure profilePicture is correct
+    try {
+        await authStore.fetchEmployeeDetails(employee.value.id);
+        imageLoadFailed.value = !employee.value?.profilePicture; // Reset if new data has a valid picture
+    } catch (err) {
+        console.error('Failed to refetch employee data:', err);
+    }
 };
 </script>
 
@@ -63,7 +72,7 @@ const handleImageError = () => {
                             <div
                                 class="flex items-center bg-white/5 rounded-lg p-1 sm:p-2 hover:bg-white/10 transition-all cursor-pointer">
                                 <div class="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center overflow-hidden">
-                                    <img v-if="employee && employee.profilePicture"
+                                    <img v-if="employee && employee.profilePicture && !imageLoadFailed"
                                         :src="`${BASE_API_URL}${employee.profilePicture}`" :alt="employee.firstName"
                                         class="h-full w-full object-cover rounded-full" @error="handleImageError">
                                     <div v-else

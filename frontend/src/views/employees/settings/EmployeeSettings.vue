@@ -13,11 +13,9 @@ const employeeData = ref(authStore.employee);
 const isLoading = ref(true);
 const error = ref(null);
 
-// Make employee reactive
 const employee = computed(() => authStore.employee);
 
 onMounted(async () => {
-    // Use route.params.id or fall back to authStore.employee?.id
     let id = route.params.id || authStore.employee?.id;
 
     if (!id) {
@@ -29,14 +27,12 @@ onMounted(async () => {
     if (!authStore.isAuthenticated) {
         error.value = 'You must be logged in to view this page.';
         isLoading.value = false;
-        router.push('/login');
+        router.push('/employee-login');
         return;
     }
 
-    // If the user is an employee, they can only access their own settings
     if (authStore.userRole === 'employee' && id != authStore.employee?.id) {
-        // Redirect to the employee's own settings page
-        router.push(`/employees/${authStore.employee.id}/settings`);
+        router.push(`/employee/settings/${authStore.employee.id}`);
         return;
     }
 
@@ -49,24 +45,12 @@ onMounted(async () => {
     } catch (err) {
         console.error('Failed to fetch employee:', err);
         error.value = err.message || 'Failed to load employee data';
-        // If the error indicates an authentication issue, redirect to login
-        if (err.message.includes('Access denied') || err.message.includes('not authenticated')) {
+        if (err.message === 'Authentication failed') { // Only logout on explicit auth failure
             authStore.logout();
             router.push('/employee-login');
         }
     } finally {
         isLoading.value = false;
-    }
-});
-
-onMounted(async () => {
-    if (authStore.employee?.id) {
-        try {
-            await authStore.fetchEmployeeDetails(authStore.employee.id);
-            employeeData.value = authStore.employee;
-        } catch (error) {
-            console.error('Failed to fetch employee:', error);
-        }
     }
 });
 

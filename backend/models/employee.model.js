@@ -18,6 +18,7 @@ const employeeSchema = new mongoose.Schema({
     middleName: { type: String, default: '' },
     lastName: { type: String, required: true },
     position: { type: String, required: true },
+    profilePicture: { type: String, default: null },
     positionHistory: [{
         position: { type: String, required: true },
         salary: { type: Number, required: true },

@@ -3,7 +3,6 @@ import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth.store.js';
 import { BASE_API_URL } from '@/utils/constants.js';
 
-// Define props and emits
 defineProps({
     employee: {
         type: Object,
@@ -30,48 +29,60 @@ const triggerUpload = () => {
     fileInput.value.click();
 };
 
-const handleFileChange = async (event) => {
+const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
         error.value = 'Only JPEG/JPG/PNG images are allowed';
+        selectedFile.value = null;
         return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
         error.value = 'File size must be less than 5MB';
+        selectedFile.value = null;
         return;
     }
 
+    error.value = null;
     selectedFile.value = file;
-    await uploadFile();
 };
 
 const uploadFile = async () => {
-    if (!selectedFile.value) return;
+    if (!selectedFile.value) {
+        error.value = 'No file selected';
+        return;
+    }
 
     const formData = new FormData();
     formData.append('profilePicture', selectedFile.value);
 
     try {
+        const headers = {
+            'Authorization': `Bearer ${authStore.accessToken}`,
+            'user-role': authStore.userRole || 'employee',
+            'user-id': authStore.employee?.id?.toString() || '',
+        };
+
         const response = await fetch(`${BASE_API_URL}/api/employees/profile-picture`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${authStore.accessToken}`,
-            },
+            headers,
             body: formData,
         });
 
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Upload failed:', response.status, errorText);
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Authentication failed');
+            }
             throw new Error(`Upload failed: ${response.statusText} - ${errorText}`);
         }
 
         const result = await response.json();
         authStore.employee.profilePicture = result.profilePicture;
-        authStore.saveEmployee();
+        authStore.saveEmployee(authStore.employee);
         selectedFile.value = null;
         error.value = null;
         emit('employeeUpdated', authStore.employee);
@@ -79,6 +90,10 @@ const uploadFile = async () => {
         error.value = `Failed to upload profile picture: ${err.message}`;
         selectedFile.value = null;
         console.error('Upload error details:', err);
+        if (err.message === 'Authentication failed') {
+            authStore.logout();
+            router.push('/employee-login');
+        }
     }
 };
 
@@ -99,7 +114,7 @@ const clearUpload = async () => {
         }
 
         authStore.employee.profilePicture = null;
-        authStore.saveEmployee();
+        authStore.saveEmployee(authStore.employee);
         selectedFile.value = null;
         fileInput.value.value = '';
         error.value = null;
@@ -112,18 +127,8 @@ const clearUpload = async () => {
 
 const handleImageError = () => {
     error.value = 'Failed to load profile picture';
-    selectedFile.value = null; // Reset selected file instead of previewUrl
+    selectedFile.value = null;
 };
-
-watch(
-    () => authStore.employee,
-    () => {
-        if (!selectedFile.value) {
-            // No need to set previewUrl here; it’s handled by the computed property
-        }
-    },
-    { deep: true }
-);
 </script>
 
 <template>
@@ -158,7 +163,6 @@ watch(
                         </span>
                     </div>
 
-                    <!-- Buttons and Error Message -->
                     <div class="grow">
                         <div class="flex items-center gap-x-2">
                             <button type="button"
@@ -194,9 +198,10 @@ watch(
                         <p v-if="error" class="text-red-500 text-xs mt-1">{{ error }}</p>
                     </div>
                 </div>
-                <div class="flex justify-end">
+                <div class="flex justify-end mt-4">
                     <button type="submit"
-                        class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-white tracking-wide hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-white tracking-wide hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        :disabled="!selectedFile">
                         Update Photo
                     </button>
                 </div>
