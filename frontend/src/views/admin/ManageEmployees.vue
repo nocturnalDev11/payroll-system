@@ -163,16 +163,17 @@ export default {
                     },
                 });
                 this.employees = (response.data || [])
-                    .filter(emp => emp.status === 'approved') // Only include approved employees
+                    .filter(emp => emp.status === 'approved')
                     .map(emp => ({
                         ...emp,
-                        id: emp.id, // Use custom id field (Number)
+                        id: emp.id,
                         hourlyRate: emp.hourlyRate || (emp.salary / (8 * 22)),
                         empNo: emp.empNo || `EMP-${String(emp.id).padStart(4, '0')}`,
+                        hireDate: new Date(emp.hireDate).toISOString().slice(0, 10),
                         positionHistory: Array.isArray(emp.positionHistory) ? emp.positionHistory : [{
                             position: emp.position || 'N/A',
                             salary: emp.salary || 0,
-                            startDate: emp.hireDate || new Date().toISOString().slice(0, 10),
+                            startDate: new Date(emp.hireDate).toISOString().slice(0, 10),
                             endDate: null,
                         }],
                     }));
@@ -232,21 +233,25 @@ export default {
         },
 
         viewEmployeeDetails(employee) {
-            this.selectedEmployee = { ...employee };
+            this.selectedEmployee = {
+                ...employee,
+                hireDate: new Date(employee.hireDate).toISOString().slice(0, 10),
+            };
             this.showDetailsModal = true;
         },
 
         editEmployee(employee) {
             this.selectedEmployee = {
                 ...employee,
+                hireDate: new Date(employee.hireDate).toISOString().slice(0, 10),
                 earnings: {
                     travelExpenses: employee.earnings?.travelExpenses || 0,
-                    otherEarnings: employee.earnings?.otherEarnings || 0
+                    otherEarnings: employee.earnings?.otherEarnings || 0,
                 },
                 positionHistory: Array.isArray(employee.positionHistory) ? employee.positionHistory : [{
                     position: employee.position || 'N/A',
                     salary: employee.salary || 0,
-                    startDate: employee.hireDate || new Date().toISOString().slice(0, 10),
+                    startDate: new Date(employee.hireDate).toISOString().slice(0, 10),
                     endDate: null,
                 }],
             };
@@ -257,7 +262,7 @@ export default {
         async updateEmployee() {
             const requiredFields = [
                 'empNo', 'firstName', 'lastName', 'position', 'salary',
-                'email', 'contactInfo', 'username', 'password'
+                'email', 'contactInfo', 'username' // Removed 'password'
             ];
 
             const missingFields = requiredFields.filter(field => {
@@ -277,6 +282,7 @@ export default {
                 return;
             }
 
+            // Rest of the method remains unchanged
             this.isUpdating = true;
             try {
                 const originalEmployee = this.employees.find(emp => emp.id === this.selectedEmployee.id);
@@ -301,7 +307,7 @@ export default {
                 }
 
                 const response = await axios.put(
-                    `${BASE_API_URL}/api/employees/${this.selectedEmployee._id}`, // Use _id for backend
+                    `${BASE_API_URL}/api/employees/${this.selectedEmployee._id}`,
                     this.selectedEmployee,
                     {
                         headers: {
@@ -453,7 +459,7 @@ export default {
                     payheads: request.payheads || [],
                     username: request.username,
                     role: 'employee',
-                    status: 'approved', // Update status to approved
+                    status: 'approved',
                     hireDate: new Date().toISOString().slice(0, 10),
                     positionHistory: request.positionHistory || [{
                         position: request.position,
@@ -463,9 +469,13 @@ export default {
                     }],
                 };
 
+                // Do not include password unless explicitly provided
+                if (request.password) {
+                    updatedEmployee.password = request.password;
+                }
+
                 console.log('Approving employee data:', updatedEmployee);
 
-                // Update the existing employee record
                 const response = await axios.put(
                     `${BASE_API_URL}/api/employees/${request._id}`,
                     updatedEmployee,

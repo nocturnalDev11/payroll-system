@@ -15,7 +15,11 @@ exports.getPendingEmployees = asyncHandler(async (req, res) => {
 // Get total number of employees
 exports.getTotalEmployees = asyncHandler(async (req, res) => {
     try {
-        const total = await Employee.countDocuments();
+        const total = await Employee.countDocuments({ 
+            status: { 
+                $ne: 'pending' 
+            } 
+        });
         res.status(200).json({ total });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching total employees', error: error.message });

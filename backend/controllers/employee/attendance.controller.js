@@ -207,8 +207,16 @@ exports.createAttendance = async (req, res) => {
  */
 exports.getAllAttendance = async (req, res) => {
     try {
-        const attendanceRecords = await Attendance.find().populate('employeeId', 'firstName lastName position email employeeIdNumber');
-        res.status(200).json(attendanceRecords);
+        const attendanceRecords = await Attendance.find()
+            .populate({
+                path: 'employeeId',
+                select: 'firstName lastName position email employeeIdNumber',
+                match: { status: { $ne: 'pending' } }
+            });
+        
+        const filteredRecords = attendanceRecords.filter(record => record.employeeId !== null);
+        
+        res.status(200).json(filteredRecords);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
