@@ -255,11 +255,28 @@ export default {
         },
 
         async updateEmployee() {
-            if (!this.selectedEmployee.firstName || !this.selectedEmployee.lastName || !this.selectedEmployee.email ||
-                !this.selectedEmployee.contactInfo || this.selectedEmployee.salary < 0) {
-                this.showErrorMessage('Required fields missing or invalid salary');
+            const requiredFields = [
+                'empNo', 'firstName', 'lastName', 'position', 'salary',
+                'email', 'contactInfo', 'username', 'password'
+            ];
+
+            const missingFields = requiredFields.filter(field => {
+                const value = this.selectedEmployee[field];
+                if (value === undefined || value === null) return true;
+                if (['firstName', 'lastName', 'position', 'email', 'contactInfo'].includes(field)) {
+                    return typeof value !== 'string' || value.trim() === '';
+                }
+                if (field === 'salary') {
+                    return typeof value !== 'number' || value < 0;
+                }
+                return false;
+            });
+
+            if (missingFields.length > 0) {
+                this.showErrorMessage(`Missing or invalid required fields: ${missingFields.join(', ')}`);
                 return;
             }
+
             this.isUpdating = true;
             try {
                 const originalEmployee = this.employees.find(emp => emp.id === this.selectedEmployee.id);
@@ -284,7 +301,7 @@ export default {
                 }
 
                 const response = await axios.put(
-                    `${BASE_API_URL}/api/employees/${this.selectedEmployee.id}`,
+                    `${BASE_API_URL}/api/employees/${this.selectedEmployee._id}`, // Use _id for backend
                     this.selectedEmployee,
                     {
                         headers: {
@@ -293,6 +310,7 @@ export default {
                         },
                     }
                 );
+
                 if (response.status === 200) {
                     const index = this.employees.findIndex(emp => emp.id === this.selectedEmployee.id);
                     if (index !== -1) this.employees[index] = { ...this.selectedEmployee };
@@ -301,7 +319,7 @@ export default {
                 }
             } catch (error) {
                 console.error('Error updating employee:', error);
-                this.showErrorMessage('Failed to update employee');
+                this.showErrorMessage(error.response?.data?.error || 'Failed to update employee');
             } finally {
                 this.isUpdating = false;
             }
@@ -341,18 +359,40 @@ export default {
         },
 
         async saveRequestChanges() {
-            if (!`${this.selectedRequest.firstName} ${this.selectedRequest.middleName} ${this.selectedRequest.lastName}`.trim() || !this.selectedRequest.email || !this.selectedRequest.contactNumber || this.selectedRequest.salary < 0) {
-                this.showErrorMessage('Required fields missing or invalid salary');
+            const requiredFields = [
+                'firstName', 'lastName', 'position', 'salary', 'email', 'contactNumber'
+            ];
+
+            const missingFields = requiredFields.filter(field => {
+                const value = this.selectedRequest[field];
+                if (value === undefined || value === null) return true;
+                if (['firstName', 'lastName', 'position', 'email', 'contactNumber'].includes(field)) {
+                    return typeof value !== 'string' || value.trim() === '';
+                }
+                if (field === 'salary') {
+                    return typeof value !== 'number' || value < 0;
+                }
+                return false;
+            });
+
+            if (missingFields.length > 0) {
+                this.showErrorMessage(`Missing or invalid required fields: ${missingFields.join(', ')}`);
                 return;
             }
+
             this.isUpdating = true;
             try {
-                const response = await axios.put(`${BASE_API_URL}/api/pending-requests/${this.selectedRequest.id}`, this.selectedRequest, {
-                    headers: {
-                        Authorization: `Bearer ${this.authStore.accessToken}`,
-                        'user-role': this.authStore.userRole,
-                    },
-                });
+                const response = await axios.put(
+                    `${BASE_API_URL}/api/pending-requests/${this.selectedRequest._id}`, // Use _id
+                    this.selectedRequest,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${this.authStore.accessToken}`,
+                            'user-role': this.authStore.userRole,
+                        },
+                    }
+                );
+
                 if (response.status === 200) {
                     const index = this.pendingRequests.findIndex(req => req.id === this.selectedRequest.id);
                     if (index !== -1) this.pendingRequests[index] = { ...this.selectedRequest };
@@ -361,26 +401,28 @@ export default {
                 }
             } catch (error) {
                 console.error('Error saving request changes:', error);
-                this.showErrorMessage('Failed to save request changes');
+                this.showErrorMessage(error.response?.data?.error || 'Failed to save request changes');
             } finally {
                 this.isUpdating = false;
             }
         },
 
         async approveRequest(request) {
-            // Validate required fields
-            const requiredFields = ['empNo', 'firstName', 'lastName', 'position', 'salary', 'email', 'contactInfo', 'username', 'password'];
+            const requiredFields = [
+                'empNo', 'firstName', 'lastName', 'position', 'salary',
+                'email', 'contactInfo', 'username'
+            ];
 
             const missingFields = requiredFields.filter(field => {
                 const value = request[field];
                 if (value === undefined || value === null) return true;
-                if (['empNo', 'firstName', 'lastName', 'position', 'email', 'contactInfo', 'username', 'password'].includes(field)) {
+                if (['empNo', 'firstName', 'lastName', 'position', 'email', 'contactInfo', 'username'].includes(field)) {
                     return typeof value !== 'string' || value.trim() === '';
                 }
                 if (field === 'salary') {
                     return typeof value !== 'number' || value <= 0;
                 }
-                return !value;
+                return false;
             });
 
             if (missingFields.length > 0) {
@@ -410,11 +452,10 @@ export default {
                     },
                     payheads: request.payheads || [],
                     username: request.username,
-                    password: request.password,
                     role: 'employee',
-                    status: 'approved', // Update status to 'approved'
+                    status: 'approved', // Update status to approved
                     hireDate: new Date().toISOString().slice(0, 10),
-                    positionHistory: [{
+                    positionHistory: request.positionHistory || [{
                         position: request.position,
                         salary: Number(request.salary),
                         startDate: new Date().toISOString().slice(0, 10),
@@ -422,25 +463,28 @@ export default {
                     }],
                 };
 
-                console.log('Updating employee data:', updatedEmployee);
+                console.log('Approving employee data:', updatedEmployee);
 
-                // Update the employee (approve the request)
-                const response = await axios.put(`${BASE_API_URL}/api/employees/${request._id}`, updatedEmployee, {
-                    headers: {
-                        Authorization: `Bearer ${this.authStore.accessToken}`,
-                        'user-role': this.authStore.userRole,
-                    },
-                });
+                // Update the existing employee record
+                const response = await axios.put(
+                    `${BASE_API_URL}/api/employees/${request._id}`,
+                    updatedEmployee,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${this.authStore.accessToken}`,
+                            'user-role': this.authStore.userRole,
+                        },
+                    }
+                );
 
                 if (response.status === 200) {
                     this.employees.push({
                         ...response.data,
                         hourlyRate: response.data.hourlyRate || (response.data.salary / (8 * 22)),
                     });
-                    // Remove the request from pendingRequests (no DELETE request needed)
                     this.pendingRequests = this.pendingRequests.filter(req => req._id !== request._id);
                     this.showRequestModal = false;
-                    this.showSuccessMessage('Employee approved and updated successfully');
+                    this.showSuccessMessage('Employee approved successfully');
                 }
             } catch (error) {
                 console.error('Error approving request:', error.response?.data || error.message);
@@ -468,11 +512,27 @@ export default {
         },
 
         async addEmployee() {
-            if (!this.newEmployee.firstName || !this.newEmployee.lastName ||
-                !this.newEmployee.empNo || !this.newEmployee.email ||
-                !this.newEmployee.contactInfo || !this.newEmployee.username ||
-                !this.newEmployee.password || this.newEmployee.salary < 0) {
-                this.showErrorMessage('Required fields missing or invalid salary');
+            // Define required fields
+            const requiredFields = [
+                'empNo', 'firstName', 'lastName', 'position', 'salary',
+                'email', 'contactInfo', 'username', 'password'
+            ];
+
+            // Check for missing or empty required fields
+            const missingFields = requiredFields.filter(field => {
+                const value = this.newEmployee[field];
+                if (value === undefined || value === null) return true;
+                if (['empNo', 'firstName', 'lastName', 'position', 'email', 'contactInfo', 'username', 'password'].includes(field)) {
+                    return typeof value !== 'string' || value.trim() === '';
+                }
+                if (field === 'salary') {
+                    return typeof value !== 'number' || value < 0;
+                }
+                return false;
+            });
+
+            if (missingFields.length > 0) {
+                this.showErrorMessage(`Missing or invalid required fields: ${missingFields.join(', ')}`);
                 return;
             }
 
@@ -490,8 +550,10 @@ export default {
                         startDate: this.newEmployee.hireDate || new Date().toISOString().slice(0, 10),
                         endDate: null,
                     }],
+                    status: 'approved', // Ensure status is set to 'approved' for new employees
                 };
 
+                // Remove id if present (let backend generate it)
                 delete employeeData.id;
 
                 const response = await axios.post(`${BASE_API_URL}/api/employees`, employeeData, {
@@ -1027,7 +1089,7 @@ export default {
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Contact Number *</label>
-                                    <input v-model="selectedRequest.contactNumber"
+                                    <input v-model="selectedRequest.contactInfo"
                                         class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required pattern="\d{11}" />
                                 </div>
@@ -1076,7 +1138,7 @@ export default {
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Pag-IBIG ID</label>
-                                    <input v-model="selectedRequest.hdmf"
+                                    <input v-model="selectedRequest.pagibig"
                                         class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         pattern="\d{12}" />
                                 </div>
@@ -1240,8 +1302,22 @@ export default {
                                         <option value="Widowed">Widowed</option>
                                     </select>
                                 </div>
+                                <!-- Add Username and Password Fields -->
+                                <div class="space-y-1">
+                                    <label class="text-xs font-medium text-gray-600">Username *</label>
+                                    <input v-model="newEmployee.username"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        required />
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-xs font-medium text-gray-600">Password *</label>
+                                    <input v-model="newEmployee.password" type="password"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        required />
+                                </div>
                             </div>
                         </div>
+                        <!-- Rest of the modal remains unchanged -->
                         <div>
                             <h3 class="text-base font-semibold text-gray-800 mb-2">Employment Information</h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1545,8 +1621,7 @@ export default {
             </div>
         </div>
 
-        <div v-if="showPositionModal"
-            class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div v-if="showPositionModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[80vh] overflow-y-auto">
                 <div class="p-4 border-b border-gray-300">
                     <h2 class="text-lg font-semibold text-gray-800">Manage Positions</h2>
@@ -1607,8 +1682,7 @@ export default {
             </div>
         </div>
 
-        <div v-if="showEditPositionModal"
-            class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div v-if="showEditPositionModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-sm">
                 <div class="p-4 border-b border-gray-300">
                     <h2 class="text-lg font-semibold text-gray-800">Edit Position</h2>
@@ -1640,8 +1714,7 @@ export default {
         </div>
 
         <!-- Delete Position Confirmation Modal -->
-        <div v-if="showDeletePositionModal"
-            class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div v-if="showDeletePositionModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-sm">
                 <div class="p-4 border-b border-gray-300">
                     <h2 class="text-lg font-semibold text-gray-800">Confirm Delete</h2>

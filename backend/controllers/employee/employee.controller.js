@@ -68,13 +68,28 @@ exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
         const { id } = req.params;
         const { position, password, hireDate, ...otherDetails } = req.body;
 
+        // Validate required fields
+        const requiredFields = ['firstName', 'lastName', 'position', 'salary', 'email', 'contactInfo'];
+        const missingFields = requiredFields.filter(field => {
+            const value = otherDetails[field];
+            return !value || (typeof value === 'string' && value.trim() === '');
+        });
+
+        if (missingFields.length > 0) {
+            return res.status(400).json({ error: `Missing required fields: ${missingFields.join(', ')}` });
+        }
+
+        if (typeof req.body.salary !== 'number' || req.body.salary < 0) {
+            return res.status(400).json({ error: 'Salary must be a non-negative number' });
+        }
+
         const updateData = {
             ...otherDetails,
             position,
             ...(req.body.deductions && { deductions: req.body.deductions }),
             ...(req.body.earnings && { earnings: req.body.earnings }),
             ...(req.body.payheads && { payheads: req.body.payheads }),
-            ...(hireDate && { hireDate: new Date(hireDate) }), // Convert to Date if needed
+            ...(hireDate && { hireDate: new Date(hireDate) }),
         };
 
         if (req.file) {
