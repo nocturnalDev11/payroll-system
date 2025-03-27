@@ -43,6 +43,9 @@ export default {
                 hourlyRate: 0,
                 email: '',
                 contactInfo: '',
+                civilStatus: 'Single',
+                hireDate: new Date().toISOString().slice(0, 10),
+                role: 'employee',
                 sss: '',
                 philhealth: '',
                 pagibig: '',
@@ -480,16 +483,13 @@ export default {
                     hourlyRate: this.newEmployee.hourlyRate,
                     role: 'employee',
                     civilStatus: this.newEmployee.civilStatus || 'Single',
+                    hireDate: this.newEmployee.hireDate || new Date().toISOString().slice(0, 10),
                     positionHistory: [{
                         position: this.newEmployee.position,
                         salary: this.newEmployee.salary,
-                        startDate: this.newEmployee.hireDate || new Date().toISOString(),
+                        startDate: this.newEmployee.hireDate || new Date().toISOString().slice(0, 10),
                         endDate: null,
                     }],
-                    sss: this.newEmployee.sss || '',
-                    philhealth: this.newEmployee.philhealth || '',
-                    pagibig: this.newEmployee.pagibig || '',
-                    tin: this.newEmployee.tin || '',
                 };
 
                 delete employeeData.id;
