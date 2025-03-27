@@ -33,7 +33,7 @@ connectDB();
 
 /* PRODUCTION ONLY (optional manual CORS) */
 // Uncomment this block if corsOptions in config/cors.js is insufficient for production.
-In local dev, corsOptions handles CORS dynamically.
+// In local dev, corsOptions handles CORS dynamically.
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://payroll-system-frontend-pied.vercel.app');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
