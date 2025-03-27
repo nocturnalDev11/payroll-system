@@ -602,14 +602,20 @@ sortedNewPayslips() {
                     const userId = this.authStore.admin?._id || localStorage.getItem('userId') || '';
                     const token = this.authStore.accessToken || localStorage.getItem('token') || '';
                     if (!token) throw new Error('No authentication token found');
+
+                    const headers = {
+                        'Authorization': `Bearer ${token}`,
+                        'user-role': 'admin'
+                    };
+
+                    // Only add user-id if it exists
+                    if (userId) {
+                        headers['user-id'] = userId;
+                    }
+
                     console.log('Fetching positions with:', { userId, token: token.slice(0, 20) + '...' });
-                    const response = await axios.get(`${BASE_API_URL}/api/positions`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'user-role': 'admin',
-                            'user-id': userId,
-                        },
-                    });
+                    const response = await axios.get(`${BASE_API_URL}/api/positions`, { headers });
+
                     this.positions = response.data.map(position => ({
                         name: position.name,
                         salary: position.salary

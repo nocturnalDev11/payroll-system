@@ -1,7 +1,11 @@
 const corsOptions = {
+    //  for testing
+    //  origin: ['http://localhost:5173', 'http://localhost:7777'],
+
+    // for production
     origin: 'https://payroll-system-frontend-pied.vercel.app',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'user-role'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'user-role', 'user-id'],
     credentials: true,
     optionsSuccessStatus: 204
 };

@@ -955,7 +955,7 @@ export default {
                         Edit Profile
                     </button>
                     <button @click="showDetailsModal = false"
-                        class="px-3 py-1 border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">
+                        class="px-3 py-1 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">
                         Close
                     </button>
                 </div>
@@ -965,7 +965,7 @@ export default {
         <!-- Pending Request Details Modal -->
         <div v-if="showRequestModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[85vh] overflow-y-auto">
-                <div class="p-4 border-b">
+                <div class="p-4 border-b border-gray-300">
                     <h2 class="text-lg font-semibold text-gray-800">Pending Request Details - {{
                         selectedRequest.firstName }} {{ selectedRequest.lastName }}</h2>
                 </div>
@@ -977,48 +977,48 @@ export default {
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">ID *</label>
                                     <input v-model.number="selectedRequest.id" type="number"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required min="1" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Employee Number *</label>
                                     <input v-model="selectedRequest.empNo"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">First Name *</label>
                                     <input v-model="selectedRequest.firstName"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Middle Name</label>
                                     <input v-model="selectedRequest.middleName"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500" />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Last Name *</label>
                                     <input v-model="selectedRequest.lastName"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Email *</label>
                                     <input v-model="selectedRequest.email" type="email"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Contact Number *</label>
                                     <input v-model="selectedRequest.contactNumber"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required pattern="\d{11}" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Civil Status *</label>
                                     <select v-model="selectedRequest.civilStatus"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required>
                                         <option value="Single">Single</option>
                                         <option value="Married">Married</option>
@@ -1034,7 +1034,7 @@ export default {
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Position *</label>
                                     <select v-model="selectedRequest.position"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required>
                                         <option v-for="position in adminPositions" :key="position.name"
                                             :value="position.name">{{ position.name }}</option>
@@ -1043,31 +1043,31 @@ export default {
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Hire Date *</label>
                                     <input v-model="selectedRequest.hireDate" type="date"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">SSS ID</label>
                                     <input v-model="selectedRequest.sss"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         pattern="\d{10}" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">PhilHealth ID</label>
                                     <input v-model="selectedRequest.philhealth"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         pattern="\d{12}" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Pag-IBIG ID</label>
                                     <input v-model="selectedRequest.hdmf"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         pattern="\d{12}" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">TIN</label>
                                     <input v-model="selectedRequest.tin"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         pattern="\d{9,12}" />
                                 </div>
                             </div>
@@ -1078,47 +1078,52 @@ export default {
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Monthly Salary *</label>
                                     <input v-model.number="selectedRequest.salary" type="number"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required min="0" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Hourly Rate</label>
                                     <input :value="selectedRequest.hourlyRate.toLocaleString()" type="text"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Travel Expenses</label>
                                     <input v-model.number="selectedRequest.earnings.travelExpenses" type="number"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         min="0" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Other Earnings</label>
                                     <input v-model.number="selectedRequest.earnings.otherEarnings" type="number"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         min="0" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">SSS Contribution</label>
                                     <input :value="calculateSSSContribution(selectedRequest.salary).toLocaleString()"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">PhilHealth Contribution</label>
                                     <input
                                         :value="calculatePhilHealthContribution(selectedRequest.salary).toLocaleString()"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Pag-IBIG Contribution</label>
                                     <input
                                         :value="calculatePagIBIGContribution(selectedRequest.salary).toLocaleString()"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Withholding Tax</label>
                                     <input :value="calculateWithholdingTax(selectedRequest.salary).toLocaleString()"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                             </div>
                         </div>
@@ -1159,7 +1164,7 @@ export default {
         <!-- Add Employee Modal -->
         <div v-if="showAddModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[85vh] overflow-y-auto">
-                <div class="p-4 border-b">
+                <div class="p-4 border-b border-gray-300">
                     <h2 class="text-lg font-semibold text-gray-800">Add New Employee</h2>
                 </div>
                 <div class="p-4">
@@ -1176,42 +1181,42 @@ export default {
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Employee Number *</label>
                                     <input v-model="newEmployee.empNo"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">First Name *</label>
                                     <input v-model="newEmployee.firstName"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Middle Name</label>
                                     <input v-model="newEmployee.middleName"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500" />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Last Name *</label>
                                     <input v-model="newEmployee.lastName"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Email *</label>
                                     <input v-model="newEmployee.email" type="email"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Contact Number *</label>
                                     <input v-model="newEmployee.contactInfo"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required pattern="\d{11}" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Civil Status *</label>
                                     <select v-model="newEmployee.civilStatus"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required>
                                         <option value="Single">Single</option>
                                         <option value="Married">Married</option>
@@ -1227,7 +1232,7 @@ export default {
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Position *</label>
                                     <select v-model="newEmployee.position" @change="updateSalaryFromPosition"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required>
                                         <option v-for="position in adminPositions" :key="position.name"
                                             :value="position.name">{{ position.name }}</option>
@@ -1236,31 +1241,31 @@ export default {
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Hire Date *</label>
                                     <input v-model="newEmployee.hireDate" type="date"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">SSS ID</label>
                                     <input v-model="newEmployee.sss"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         pattern="\d{10}" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">PhilHealth ID</label>
                                     <input v-model="newEmployee.philhealth"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         pattern="\d{12}" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Pag-IBIG ID</label>
                                     <input v-model="newEmployee.pagibig"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         pattern="\d{12}" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">TIN</label>
                                     <input v-model="newEmployee.tin"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         pattern="\d{9,12}" />
                                 </div>
                             </div>
@@ -1271,45 +1276,50 @@ export default {
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Monthly Salary *</label>
                                     <input v-model.number="newEmployee.salary" type="number"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required min="0" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Hourly Rate</label>
                                     <input :value="newEmployee.hourlyRate.toLocaleString()" type="text"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Travel Expenses</label>
                                     <input v-model.number="newEmployee.earnings.travelExpenses" type="number"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         min="0" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Other Earnings</label>
                                     <input v-model.number="newEmployee.earnings.otherEarnings" type="number"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         min="0" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">SSS Contribution</label>
                                     <input :value="calculateSSSContribution(newEmployee.salary).toLocaleString()"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">PhilHealth Contribution</label>
                                     <input :value="calculatePhilHealthContribution(newEmployee.salary).toLocaleString()"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Pag-IBIG Contribution</label>
                                     <input :value="calculatePagIBIGContribution(newEmployee.salary).toLocaleString()"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Withholding Tax</label>
                                     <input :value="calculateWithholdingTax(newEmployee.salary).toLocaleString()"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                             </div>
                         </div>
@@ -1322,21 +1332,21 @@ export default {
                         </div>
                     </div>
                 </div>
-                <div class="p-4 border-t bg-gray-50 flex justify-end gap-2">
+                <div class="p-4 border-t border-gray-300 bg-gray-50 flex justify-end gap-2">
                     <button @click="addEmployee"
                         class="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700"
                         :disabled="isAdding">
                         {{ isAdding ? 'Adding...' : 'Add' }}
                     </button>
                     <button @click="showAddModal = false"
-                        class="px-3 py-1.5 border text-sm rounded-md text-gray-700 hover:bg-gray-100">Cancel</button>
+                        class="px-3 py-1.5 border border-gray-300 text-sm rounded-md text-gray-700 hover:bg-gray-100">Cancel</button>
                 </div>
             </div>
         </div>
 
         <div v-if="showEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[85vh] overflow-y-auto">
-                <div class="p-4 border-b">
+                <div class="p-4 border-b border-gray-300">
                     <h2 class="text-lg font-semibold text-gray-800">Edit Employee - {{ selectedEmployee.firstName }} {{
                         selectedEmployee.lastName }}</h2>
                 </div>
@@ -1348,48 +1358,48 @@ export default {
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">ID *</label>
                                     <input v-model.number="selectedEmployee.id" type="number"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required min="1" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Employee Number *</label>
                                     <input v-model="selectedEmployee.empNo"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">First Name *</label>
                                     <input v-model="selectedEmployee.firstName"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Middle Name</label>
                                     <input v-model="selectedEmployee.middleName"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500" />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Last Name *</label>
                                     <input v-model="selectedEmployee.lastName"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Email *</label>
                                     <input v-model="selectedEmployee.email" type="email"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Contact Number *</label>
                                     <input v-model="selectedEmployee.contactInfo"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required pattern="\d{11}" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Civil Status *</label>
                                     <select v-model="selectedEmployee.civilStatus"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required>
                                         <option value="Single">Single</option>
                                         <option value="Married">Married</option>
@@ -1405,7 +1415,7 @@ export default {
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Position *</label>
                                     <select v-model="selectedEmployee.position" @change="updateSalaryFromPositionEdit"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required>
                                         <option v-for="position in adminPositions" :key="position.name"
                                             :value="position.name">{{ position.name }}</option>
@@ -1414,31 +1424,31 @@ export default {
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Hire Date *</label>
                                     <input v-model="selectedEmployee.hireDate" type="date"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">SSS ID</label>
                                     <input v-model="selectedEmployee.sss"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         pattern="\d{10}" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">PhilHealth ID</label>
                                     <input v-model="selectedEmployee.philhealth"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         pattern="\d{12}" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Pag-IBIG ID</label>
                                     <input v-model="selectedEmployee.pagibig"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         pattern="\d{12}" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">TIN</label>
                                     <input v-model="selectedEmployee.tin"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         pattern="\d{9,12}" />
                                 </div>
                             </div>
@@ -1449,47 +1459,52 @@ export default {
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Monthly Salary *</label>
                                     <input v-model.number="selectedEmployee.salary" type="number"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         required min="0" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Hourly Rate</label>
                                     <input :value="selectedEmployee.hourlyRate.toLocaleString()" type="text"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Travel Expenses</label>
                                     <input v-model.number="selectedEmployee.earnings.travelExpenses" type="number"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         min="0" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Other Earnings</label>
                                     <input v-model.number="selectedEmployee.earnings.otherEarnings" type="number"
-                                        class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                         min="0" />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">SSS Contribution</label>
                                     <input :value="calculateSSSContribution(selectedEmployee.salary).toLocaleString()"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">PhilHealth Contribution</label>
                                     <input
                                         :value="calculatePhilHealthContribution(selectedEmployee.salary).toLocaleString()"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Pag-IBIG Contribution</label>
                                     <input
                                         :value="calculatePagIBIGContribution(selectedEmployee.salary).toLocaleString()"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Withholding Tax</label>
                                     <input :value="calculateWithholdingTax(selectedEmployee.salary).toLocaleString()"
-                                        class="w-full p-1.5 text-sm border rounded-md bg-gray-100" disabled />
+                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                        disabled />
                                 </div>
                             </div>
                         </div>
@@ -1517,7 +1532,7 @@ export default {
         <div v-if="showPositionModal"
             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[80vh] overflow-y-auto">
-                <div class="p-4 border-b">
+                <div class="p-4 border-b border-gray-300">
                     <h2 class="text-lg font-semibold text-gray-800">Manage Positions</h2>
                 </div>
                 <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1527,13 +1542,13 @@ export default {
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Position Name *</label>
                                 <input v-model="newPosition.name"
-                                    class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                    class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Monthly Salary *</label>
                                 <input v-model.number="newPosition.salary" type="number"
-                                    class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                                    class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required min="0" />
                             </div>
                             <button @click="createPosition"
@@ -1545,7 +1560,8 @@ export default {
                     </div>
                     <div class="space-y-4">
                         <h3 class="text-base font-semibold text-gray-800">Available Positions</h3>
-                        <div v-if="adminPositions.length === 0" class="text-gray-500 text-sm text-center">No positions
+                        <div v-if="adminPositions.length === 0" class="text-gray-500 text-sm text-center">
+                            No positions
                         </div>
                         <div v-else class="space-y-2 max-h-[50vh] overflow-y-auto">
                             <div v-for="position in adminPositions" :key="position.id"
@@ -1568,9 +1584,9 @@ export default {
                         </div>
                     </div>
                 </div>
-                <div class="p-4 border-t bg-gray-50 flex justify-end">
+                <div class="p-4 border-t border-gray-300 bg-gray-50 flex justify-end">
                     <button @click="showPositionModal = false"
-                        class="px-3 py-1.5 border text-sm rounded-md text-gray-700 hover:bg-gray-100">Close</button>
+                        class="px-3 py-1.5 border border-gray-300 text-sm rounded-md text-gray-700 hover:bg-gray-100">Close</button>
                 </div>
             </div>
         </div>
@@ -1578,31 +1594,31 @@ export default {
         <div v-if="showEditPositionModal"
             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-sm">
-                <div class="p-4 border-b">
+                <div class="p-4 border-b border-gray-300">
                     <h2 class="text-lg font-semibold text-gray-800">Edit Position</h2>
                 </div>
                 <div class="p-4 space-y-3">
                     <div class="space-y-1">
                         <label class="text-xs font-medium text-gray-600">Position Name *</label>
                         <input v-model="editPositionData.name"
-                            class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500"
+                            class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                             required />
                     </div>
                     <div class="space-y-1">
                         <label class="text-xs font-medium text-gray-600">Monthly Salary *</label>
                         <input v-model.number="editPositionData.salary" type="number"
-                            class="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-indigo-500" required
-                            min="0" />
+                            class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                            required min="0" />
                     </div>
                 </div>
-                <div class="p-4 border-t bg-gray-50 flex justify-end gap-2">
+                <div class="p-4 border-t border-gray-300 bg-gray-50 flex justify-end gap-2">
                     <button @click="updatePosition"
                         class="px-3 py-1.5 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700"
                         :disabled="isUpdatingPosition">
                         {{ isUpdatingPosition ? 'Updating...' : 'Update' }}
                     </button>
                     <button @click="showEditPositionModal = false"
-                        class="px-3 py-1.5 border text-sm rounded-md text-gray-700 hover:bg-gray-100">Cancel</button>
+                        class="px-3 py-1.5 border border-gray-300 text-sm rounded-md text-gray-700 hover:bg-gray-100">Cancel</button>
                 </div>
             </div>
         </div>
@@ -1611,20 +1627,20 @@ export default {
         <div v-if="showDeletePositionModal"
             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-sm">
-                <div class="p-4 border-b">
+                <div class="p-4 border-b border-gray-300">
                     <h2 class="text-lg font-semibold text-gray-800">Confirm Delete</h2>
                 </div>
                 <div class="p-4">
                     <p class="text-sm text-gray-700">Delete <strong>{{ selectedPosition.name }}</strong>?</p>
                 </div>
-                <div class="p-4 border-t bg-gray-50 flex justify-end gap-2">
+                <div class="p-4 border-t border-gray-300 bg-gray-50 flex justify-end gap-2">
                     <button @click="deletePosition"
                         class="px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
                         :disabled="isDeletingPosition">
                         {{ isDeletingPosition ? 'Deleting...' : 'Delete' }}
                     </button>
                     <button @click="showDeletePositionModal = false"
-                        class="px-3 py-1.5 border text-sm rounded-md text-gray-700 hover:bg-gray-100">Cancel</button>
+                        class="px-3 py-1.5 border border-gray-300 text-sm rounded-md text-gray-700 hover:bg-gray-100">Cancel</button>
                 </div>
             </div>
         </div>
@@ -1632,7 +1648,7 @@ export default {
         <!-- Delete Employee Confirmation Modal -->
         <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-sm">
-                <div class="p-4 border-b">
+                <div class="p-4 border-b border-gray-300">
                     <h2 class="text-lg font-semibold text-gray-800">Confirm Move to Trash</h2>
                 </div>
                 <div class="p-4">
