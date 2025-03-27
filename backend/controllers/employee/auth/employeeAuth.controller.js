@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const Employee = require('../../../models/employee.model.js');
+const Position = require('../../../models/position.model.js');
 
 function generateToken(employeeId) {
     return jwt.sign({ employeeId }, process.env.JWT_SECRET, { expiresIn: '1800s' });
@@ -38,6 +39,17 @@ const registerEmployee = asyncHandler(async (req, res) => {
     if (!employeeIdNumber || !firstName || !lastName || !username || !email || !password || !position || !salary || !contactInfo || !hireDate) {
         res.status(400).json({ error: 'Required fields are missing' });
         return;
+    }
+
+    // Check if the position exists, create it if it doesn't
+    let positionRecord = await Position.findOne({ name: position });
+    if (!positionRecord) {
+        positionRecord = await Position.create({
+            name: position,
+            salary: salary,
+            createdAt: new Date(),
+        });
+        console.log(`Created new position: ${position}`);
     }
 
     const existingEmployee = await Employee.exists({

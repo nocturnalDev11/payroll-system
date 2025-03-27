@@ -196,7 +196,7 @@ export default {
                 });
                 this.pendingRequests = (response.data || []).map(req => ({
                     ...req,
-                    id: req.id,
+                    id: req._id, // Map _id to id for consistency
                     _id: req._id,
                 }));
             } catch (error) {
@@ -359,20 +359,27 @@ export default {
         },
 
         viewRequestInfo(request) {
-            this.selectedRequest = { ...request, earnings: { travelExpenses: request.earnings?.travelExpenses || 0, otherEarnings: request.earnings?.otherEarnings || 0 } };
+            this.selectedRequest = {
+                ...request,
+                earnings: {
+                    travelExpenses: request.earnings?.travelExpenses || 0,
+                    otherEarnings: request.earnings?.otherEarnings || 0
+                },
+                hireDate: request.hireDate ? new Date(request.hireDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10) // Convert to "yyyy-MM-dd"
+            };
             this.showRequestModal = true;
             this.isEditingRequest = false;
         },
 
         async saveRequestChanges() {
             const requiredFields = [
-                'firstName', 'lastName', 'position', 'salary', 'email', 'contactNumber'
+                'firstName', 'lastName', 'position', 'salary', 'email', 'contactInfo'
             ];
 
             const missingFields = requiredFields.filter(field => {
                 const value = this.selectedRequest[field];
                 if (value === undefined || value === null) return true;
-                if (['firstName', 'lastName', 'position', 'email', 'contactNumber'].includes(field)) {
+                if (['firstName', 'lastName', 'position', 'email', 'contactInfo'].includes(field)) {
                     return typeof value !== 'string' || value.trim() === '';
                 }
                 if (field === 'salary') {
@@ -388,9 +395,14 @@ export default {
 
             this.isUpdating = true;
             try {
+                const updatedRequest = {
+                    ...this.selectedRequest,
+                    hireDate: this.selectedRequest.hireDate
+                };
+
                 const response = await axios.put(
-                    `${BASE_API_URL}/api/pending-requests/${this.selectedRequest._id}`, // Use _id
-                    this.selectedRequest,
+                    `${BASE_API_URL}/api/employees/pending-requests/${this.selectedRequest._id}`, // Updated endpoint
+                    updatedRequest,
                     {
                         headers: {
                             Authorization: `Bearer ${this.authStore.accessToken}`,
@@ -414,70 +426,15 @@ export default {
         },
 
         async approveRequest(request) {
-            const requiredFields = [
-                'empNo', 'firstName', 'lastName', 'position', 'salary',
-                'email', 'contactInfo', 'username'
-            ];
-
-            const missingFields = requiredFields.filter(field => {
-                const value = request[field];
-                if (value === undefined || value === null) return true;
-                if (['empNo', 'firstName', 'lastName', 'position', 'email', 'contactInfo', 'username'].includes(field)) {
-                    return typeof value !== 'string' || value.trim() === '';
-                }
-                if (field === 'salary') {
-                    return typeof value !== 'number' || value <= 0;
-                }
-                return false;
-            });
-
-            if (missingFields.length > 0) {
-                this.showErrorMessage(`Missing or invalid required fields: ${missingFields.join(', ')}`);
-                return;
-            }
-
             try {
                 const updatedEmployee = {
-                    empNo: request.empNo,
-                    firstName: request.firstName,
-                    lastName: request.lastName,
-                    middleName: request.middleName || '',
-                    position: request.position,
-                    salary: Number(request.salary),
-                    hourlyRate: Number(request.hourlyRate || (request.salary / (8 * 22))),
-                    email: request.email,
-                    contactInfo: request.contactInfo,
-                    sss: request.sss || '',
-                    philhealth: request.philhealth || '',
-                    pagibig: request.pagibig || '',
-                    tin: request.tin || '',
-                    civilStatus: request.civilStatus || 'Single',
-                    earnings: {
-                        travelExpenses: Number(request.earnings?.travelExpenses || 0),
-                        otherEarnings: Number(request.earnings?.otherEarnings || 0),
-                    },
-                    payheads: request.payheads || [],
-                    username: request.username,
-                    role: 'employee',
                     status: 'approved',
-                    hireDate: new Date().toISOString().slice(0, 10),
-                    positionHistory: request.positionHistory || [{
-                        position: request.position,
-                        salary: Number(request.salary),
-                        startDate: new Date().toISOString().slice(0, 10),
-                        endDate: null,
-                    }],
+                    hireDate: new Date(),
+                    username: request.username || `${request.firstName.toLowerCase()}${Math.floor(Math.random() * 1000)}`,
+                    empNo: request.empNo || `EMP-${Date.now()}`,
                 };
-
-                // Do not include password unless explicitly provided
-                if (request.password) {
-                    updatedEmployee.password = request.password;
-                }
-
-                console.log('Approving employee data:', updatedEmployee);
-
                 const response = await axios.put(
-                    `${BASE_API_URL}/api/employees/${request._id}`,
+                    `${BASE_API_URL}/api/employees/update/${request.id}`,
                     updatedEmployee,
                     {
                         headers: {
@@ -486,19 +443,16 @@ export default {
                         },
                     }
                 );
-
                 if (response.status === 200) {
-                    this.employees.push({
-                        ...response.data,
-                        hourlyRate: response.data.hourlyRate || (response.data.salary / (8 * 22)),
-                    });
-                    this.pendingRequests = this.pendingRequests.filter(req => req._id !== request._id);
+                    // Update local state directly (Options API)
+                    this.pendingRequests = this.pendingRequests.filter(req => req.id !== request.id);
+                    this.employees.push(response.data.updatedEmployee);
                     this.showRequestModal = false;
                     this.showSuccessMessage('Employee approved successfully');
                 }
             } catch (error) {
-                console.error('Error approving request:', error.response?.data || error.message);
-                this.showErrorMessage(error.response?.data?.error || 'Failed to approve employee');
+                console.error('Error approving request:', error);
+                this.showErrorMessage('Error approving employee');
             }
         },
 
@@ -849,8 +803,9 @@ export default {
                             class="p-3 hover:bg-gray-50 transition">
                             <div class="flex justify-between items-start mb-1">
                                 <div>
-                                    <h3 class="text-sm font-medium text-gray-900">{{ request.firstName }} {{
-                                        request.lastName }}</h3>
+                                    <h3 class="text-sm font-medium text-gray-900">
+                                        {{ request.firstName }} {{ request.middleName }} {{ request.lastName }}
+                                    </h3>
                                     <p class="text-xs text-gray-500">{{ request.position }}</p>
                                 </div>
                                 <span

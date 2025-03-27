@@ -70,35 +70,18 @@ exports.uploadProfilePicture = asyncHandler(async (req, res) => {
 exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
     try {
         const { id } = req.params;
-        const { position, password, hireDate, ...otherDetails } = req.body;
+        const { position, password, ...otherDetails } = req.body;
 
-        // Validate required fields
-        const requiredFields = ['firstName', 'lastName', 'position', 'salary', 'email', 'contactInfo'];
-        const missingFields = requiredFields.filter(field => {
-            const value = otherDetails[field];
-            return !value || (typeof value === 'string' && value.trim() === '');
-        });
-
-        if (missingFields.length > 0) {
-            return res.status(400).json({ error: `Missing required fields: ${missingFields.join(', ')}` });
-        }
-
-        if (typeof req.body.salary !== 'number' || req.body.salary < 0) {
-            return res.status(400).json({ error: 'Salary must be a non-negative number' });
-        }
+        console.log('Received req.body:', req.body);
+        console.log('Updating employee with ID:', id);
 
         const updateData = {
             ...otherDetails,
             position,
             ...(req.body.deductions && { deductions: req.body.deductions }),
             ...(req.body.earnings && { earnings: req.body.earnings }),
-            ...(req.body.payheads && { payheads: req.body.payheads }),
-            ...(hireDate && { hireDate: new Date(hireDate) }),
+            ...(req.body.payheads && { payheads: req.body.payheads })
         };
-
-        if (req.file) {
-            updateData.profilePicture = `/uploads/profile-pictures/${req.file.filename}`;
-        }
 
         if (req.body.salary) {
             updateData.salary = Number(req.body.salary);
@@ -122,6 +105,7 @@ exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
         const employeeObj = updatedEmployee.toObject();
         delete employeeObj.password;
 
+        console.log('Updated employee:', employeeObj);
         res.status(200).json({ 
             message: 'Employee details updated successfully', 
             updatedEmployee: employeeObj 
