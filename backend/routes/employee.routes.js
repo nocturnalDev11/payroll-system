@@ -305,7 +305,6 @@ router.put('/:id', isAdmin, async (req, res) => {
             return res.status(404).json({ error: `Employee with id ${employeeId} not found` });
         }
 
-        // Validate payheads references
         if (updateData.payheads) {
             const invalidPayheads = updateData.payheads.filter(id => !mongoose.Types.ObjectId.isValid(id));
             if (invalidPayheads.length > 0) {
@@ -313,7 +312,6 @@ router.put('/:id', isAdmin, async (req, res) => {
                 return res.status(400).json({ error: 'Invalid payhead IDs', invalid: invalidPayheads });
             }
 
-            // Check if all payhead IDs exist
             const payheadsExist = await PayHead.find({ _id: { $in: updateData.payheads } });
             if (payheadsExist.length !== updateData.payheads.length) {
                 console.log('Some payhead IDs not found:', updateData.payheads);
@@ -321,7 +319,6 @@ router.put('/:id', isAdmin, async (req, res) => {
             }
         }
 
-        // Only update fields defined in the schema
         const allowedFields = [
             'id', 'empNo', 'firstName', 'middleName', 'lastName', 'position', 'profilePicture',
             'positionHistory', 'salary', 'hourlyRate', 'email', 'contactInfo', 'sss', 'philhealth',
@@ -340,23 +337,6 @@ router.put('/:id', isAdmin, async (req, res) => {
 
         console.log('Filtered update data:', JSON.stringify(filteredUpdateData, null, 2));
 
-        // Update position history if position or salary changes
-        if (filteredUpdateData.position || filteredUpdateData.salary) {
-            const currentPosition = employee.positionHistory.find((h) => !h.endDate);
-            if (currentPosition && 
-                ((filteredUpdateData.position && filteredUpdateData.position !== currentPosition.position) ||
-                 (filteredUpdateData.salary && filteredUpdateData.salary !== currentPosition.salary))) {
-                currentPosition.endDate = new Date();
-                employee.positionHistory.push({
-                    position: filteredUpdateData.position || currentPosition.position,
-                    salary: filteredUpdateData.salary || currentPosition.salary,
-                    startDate: new Date(),
-                    endDate: null,
-                });
-            }
-        }
-
-        // Apply updates
         Object.assign(employee, filteredUpdateData, { updatedAt: new Date() });
         const updatedEmployee = await employee.save();
 
@@ -369,7 +349,13 @@ router.put('/:id', isAdmin, async (req, res) => {
             params: req.params,
             body: req.body,
         });
-        res.status(500).json({ error: 'Failed to update employee', message: error.message });
+        if (error.name === 'ValidationError') {
+            res.status(400).json({ error: 'Validation failed', message: error.message, details: error.errors });
+        } else if (error.code === 11000) {
+            res.status(400).json({ error: 'Duplicate key error', message: error.message });
+        } else {
+            res.status(500).json({ error: 'Failed to update employee', message: error.message });
+        }
     }
 });
 

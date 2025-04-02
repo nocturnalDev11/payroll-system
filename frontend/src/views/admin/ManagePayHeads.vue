@@ -398,6 +398,9 @@ export default {
         async saveRecurringDeductions(selectedDeductions, selectedEmployees) {
             try {
                 this.isLoading = true;
+                console.log('Selected deductions:', JSON.stringify(selectedDeductions, null, 2));
+                console.log('Selected employees:', JSON.stringify(selectedEmployees, null, 2));
+
                 for (const employee of selectedEmployees) {
                     const existingPayheads = this.employees.find(e => e.id === employee.id)?.payheads || [];
                     const updatedPayheads = [...existingPayheads];
@@ -409,6 +412,7 @@ export default {
                                 params: { id: deduction.id }
                             });
 
+                            console.log('Payhead response:', payheadResponse.data);
                             const payhead = payheadResponse.data.find(ph => ph.id === deduction.id);
                             if (!payhead) {
                                 throw new Error(`Payhead with id ${deduction.id} not found`);
@@ -441,11 +445,13 @@ export default {
                             this.calculateRecurringDeductions(updatedPayheads),
                     };
 
-                    await axios.put(
+                    console.log(`Sending update for employee ${employee.id}:`, JSON.stringify(updatedEmployee, null, 2));
+                    const response = await axios.put(
                         `${BASE_API_URL}/api/employees/${employee.id}`,
                         updatedEmployee,
                         { headers: { 'user-role': 'admin' } }
                     );
+                    console.log(`Response for employee ${employee.id}:`, response.data);
 
                     const employeeIndex = this.employees.findIndex(e => e.id === employee.id);
                     if (employeeIndex !== -1) {
@@ -458,8 +464,8 @@ export default {
                 this.showRecurringDeductionModal = false;
                 this.showSuccessMessage('Recurring deductions saved successfully!');
             } catch (error) {
-                console.error('Error saving recurring deductions:', error);
-                this.showErrorMessage('Failed to save recurring deductions.');
+                console.error('Error saving recurring deductions:', error.response?.data || error.message);
+                this.showErrorMessage('Failed to save recurring deductions: ' + (error.response?.data?.message || error.message));
             } finally {
                 this.isLoading = false;
             }
