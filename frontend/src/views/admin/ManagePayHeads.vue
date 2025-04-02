@@ -735,7 +735,7 @@ export default {
             <!-- Data Table Section -->
             <div v-else class="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
                 <!-- Table Header (Only show item count here) -->
-                <div v-if="activeTab === 'payheads'" class="px-4 py-2 border-b bg-gray-50">
+                <div v-if="activeTab === 'payheads'" class="px-4 py-2 border-b border-gray-300 bg-gray-50">
                     <div class="text-xs text-gray-500">
                         Showing {{ filteredPayHeads.length }} {{ filteredPayHeads.length === 1 ? 'item' : 'items' }}
                     </div>
