@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const mongoose = require('mongoose');
 const { verifyToken, restrictToAdmin } = require('../middlewares/authMiddleware.js');
 const Employee = require('../models/employee.model.js');
 const PayHead = require('../models/payHead.model.js');
