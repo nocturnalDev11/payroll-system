@@ -123,6 +123,7 @@ router.get('/', isAuthenticated, async (req, res) => {
         }
 
         const employees = await Employee.find(query)
+            .populate('payheads')
             .sort({ empNo: 1 })
             .select('-password')
             .catch((err) => {
@@ -154,6 +155,7 @@ router.get('/', isAuthenticated, async (req, res) => {
 });
 
 // GET a single employee by ID
+// GET a single employee by ID
 router.get('/:id', isAuthenticated, async (req, res) => {
     try {
         const employeeId = parseInt(req.params.id);
@@ -166,9 +168,11 @@ router.get('/:id', isAuthenticated, async (req, res) => {
         }
 
         console.log('Fetching employee with ID:', employeeId);
-        const employee = await Employee.findOne({ id: employeeId }).catch((err) => {
-            throw new Error(`Database query failed: ${err.message}`);
-        });
+        const employee = await Employee.findOne({ id: employeeId })
+            .populate('payheads') // Populate payheads field
+            .catch((err) => {
+                throw new Error(`Database query failed: ${err.message}`);
+            });
 
         if (!employee) {
             console.log('Employee with id', employeeId, 'not found');
@@ -199,7 +203,8 @@ router.get('/:id/salary', isAuthenticated, async (req, res) => {
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        const employee = await Employee.findById(employeeId);
+        const employee = await Employee.findById(employeeId)
+            .populate('payheads'); // Populate payheads field
         if (!employee) {
             return res.status(404).json({ error: 'Employee not found' });
         }
@@ -211,6 +216,7 @@ router.get('/:id/salary', isAuthenticated, async (req, res) => {
             position: employee.position,
             salary: employee.salary,
             earnings: employee.earnings,
+            payheads: employee.payheads, // Include populated payheads
             sss: employee.sss,
             philhealth: employee.philhealth,
             pagibig: employee.pagibig,
