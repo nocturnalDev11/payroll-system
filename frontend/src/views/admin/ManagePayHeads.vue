@@ -629,7 +629,7 @@ export default {
                             </span>
                             <input id="search" v-model="searchQuery" type="text"
                                 placeholder="Search by name or description..." class="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 
-                      focus:border-blue-500 outline-none transition-all text-sm" />
+                                focus:border-blue-500 outline-none transition-all text-sm" />
                             <button v-if="searchQuery" @click="searchQuery = ''"
                                 class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
                                 title="Clear Search">

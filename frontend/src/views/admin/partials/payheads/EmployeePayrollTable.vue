@@ -1,3 +1,15 @@
+<script>
+export default {
+    props: {
+        employees: {
+            type: Array,
+            required: true,
+            default: () => [],
+        },
+    },
+};
+</script>
+
 <template>
     <div class="bg-white p-5 rounded-xl shadow-md">
         <h2 class="text-xl font-bold mb-4">Employee Payroll Information</h2>
@@ -40,15 +52,3 @@
         </table>
     </div>
 </template>
-
-<script>
-export default {
-    props: {
-        employees: {
-            type: Array,
-            required: true,
-            default: () => [], // Fallback to empty array
-        },
-    },
-};
-</script>
