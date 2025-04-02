@@ -19,18 +19,18 @@
                     <!-- Container 1: Available Payheads -->
                     <div class="space-y-2">
                         <h3 class="text-lg font-semibold text-gray-800">Available Payheads</h3>
-                        <div class="max-h-64 overflow-y-auto border rounded-lg p-2">
+                        <div class="max-h-64 overflow-y-auto border border-gray-300 rounded-lg p-2">
                             <div v-if="availablePayheads.length === 0" class="text-gray-500 text-sm text-center">
                                 No payheads available
                             </div>
                             <div v-else v-for="payhead in availablePayheads" :key="payhead.id"
                                 class="flex items-center p-2 hover:bg-gray-50 rounded">
                                 <input type="checkbox" :value="payhead" v-model="selectedPayheads"
-                                    class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
+                                    class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border border-gray-300 rounded" />
                                 <label class="text-sm text-gray-700">
-                                    {{ payhead.name }} ({{ payhead.type }}, ₱{{ (payhead.amount || 0).toLocaleString()
-                                    }}{{
-                                        payhead.isRecurring ? ', Recurring' : '' }})
+                                    {{ payhead.name }} ({{ payhead.type }},
+                                    ₱{{ (payhead.amount || 0).toLocaleString() }}
+                                    {{ payhead.isRecurring ? ', Recurring' : '' }})
                                 </label>
                             </div>
                         </div>
@@ -46,7 +46,7 @@
                             <div v-else v-for="employee in employees" :key="employee.id"
                                 class="flex items-center p-2 hover:bg-gray-50 rounded">
                                 <input type="checkbox" :value="employee" v-model="selectedEmployees"
-                                    class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
+                                    class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border border-gray-300 rounded" />
                                 <label class="text-sm text-gray-700">
                                     {{ employee.firstName }} {{ employee.lastName }} ({{ employee.position || 'N/A' }})
                                 </label>
@@ -76,7 +76,7 @@
                 <div class="bg-gray-100 p-4 rounded-lg">
                     <p class="text-sm text-gray-700">
                         Employee: {{ selectedEmployee.name || selectedEmployee.firstName + ' ' +
-                            selectedEmployee.lastName || 'N/A'
+                        selectedEmployee.lastName || 'N/A'
                         }}
                     </p>
                     <p class="text-sm text-gray-700">
@@ -91,12 +91,12 @@
                 <div class="space-y-2" v-if="!isUpdate">
                     <h3 class="text-lg font-semibold text-gray-800">Available Payheads</h3>
                     <select v-model="selectedPayhead"
-                        class="block w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="block w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         :disabled="isUpdate">
                         <option value="" disabled>Select a Payhead</option>
                         <option v-for="payhead in availablePayheads" :key="payhead.id" :value="payhead">
                             {{ payhead.name }} ({{ payhead.type }}, ₱{{ (payhead.amount || 0).toLocaleString() }}{{
-                                payhead.isRecurring ? ', Recurring' : '' }})
+                            payhead.isRecurring ? ', Recurring' : '' }})
                         </option>
                     </select>
                     <button @click="addPayhead"
@@ -115,7 +115,7 @@
                             payhead.isRecurring ? ', Recurring' : '' }})</span>
                         <div>
                             <input v-model.number="payhead.amount" type="number"
-                                class="w-24 p-1 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                class="w-24 p-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 @change="updatePayhead(payhead)" min="0" :disabled="isUpdate" />
                             <button @click="removePayhead(payhead)" class="ml-2 p-1 text-red-500 hover:text-red-700"
                                 :disabled="isUpdate" title="Remove Payhead">

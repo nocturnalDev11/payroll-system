@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+  <div class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
     <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-2xl font-bold text-gray-800">{{ title }}</h2>

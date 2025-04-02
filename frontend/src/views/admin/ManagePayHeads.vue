@@ -355,7 +355,7 @@ export default {
                     appliedThisCycle: ph.isRecurring ? ph.appliedThisCycle || false : undefined,
                 }));
 
-                const payheadsForBackend = payheadsToSave.map(ph => ph._id).filter(id => id); // Only send valid _ids
+                const payheadsForBackend = payheadsToSave.map(ph => ph._id).filter(id => id);
 
                 const updatedEmployee = {
                     ...this.selectedEmployee,
@@ -369,6 +369,7 @@ export default {
                         this.calculateRecurringDeductions(payheadsToSave),
                 };
 
+                console.log('Payload being sent:', JSON.stringify(updatedEmployee, null, 2));
                 await axios.put(
                     `${BASE_API_URL}/api/employees/${this.selectedEmployee.id}`,
                     updatedEmployee,
@@ -388,7 +389,7 @@ export default {
                 this.showAddPayheadModal = false;
                 this.showSuccessMessage('Payheads saved successfully!');
             } catch (error) {
-                console.error('Error saving payheads:', error);
+                console.error('Error saving payheads:', error.response?.data || error);
                 this.showErrorMessage('Failed to save payheads.');
             } finally {
                 this.isLoading = false;
@@ -548,7 +549,7 @@ export default {
                                 search
                             </span>
                             <input id="search" v-model="searchQuery" type="text"
-                                placeholder="Search by name or description..." class="w-full pl-8 pr-3 py-1.5 border rounded-md focus:ring-1 focus:ring-blue-500 
+                                placeholder="Search by name or description..." class="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 
                       focus:border-blue-500 outline-none transition-all text-sm" />
                             <button v-if="searchQuery" @click="searchQuery = ''"
                                 class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
@@ -566,7 +567,7 @@ export default {
                                 class="material-icons absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-base">
                                 filter_list
                             </span>
-                            <select id="filter" v-model="filterType" class="w-full pl-8 pr-7 py-1.5 border rounded-md appearance-none focus:ring-1 
+                            <select id="filter" v-model="filterType" class="w-full pl-8 pr-7 py-1.5 border border-gray-300 rounded-md appearance-none focus:ring-1 
                       focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
                                 <option value="">All Types</option>
                                 <option value="Earnings">Earnings</option>
@@ -600,7 +601,8 @@ export default {
             </div>
 
             <!-- Action Buttons Section (Always Visible) -->
-            <div v-if="!isLoading" class="mb-4 flex items-center justify-between px-4 py-2 bg-gray-50 rounded-lg shadow-sm border border-gray-100">
+            <div v-if="!isLoading"
+                class="mb-4 flex items-center justify-between px-4 py-2 bg-gray-50 rounded-lg shadow-sm border border-gray-100">
                 <h2 class="text-base font-medium text-gray-900">
                     {{ activeTab === 'payheads' ? 'Pay Heads' : 'Employees' }}
                 </h2>
@@ -673,7 +675,7 @@ export default {
                     <div class="text-xs text-gray-700">
                         Showing <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span> to
                         <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, filteredEmployees.length)
-                        }}</span> of
+                            }}</span> of
                         <span class="font-medium">{{ filteredEmployees.length }}</span> entries
                     </div>
 

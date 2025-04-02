@@ -153,36 +153,36 @@ router.get('/', isAuthenticated, async (req, res) => {
 
 // GET a single employee by ID
 router.get('/:id', isAuthenticated, async (req, res) => {
-  try {
-    const employeeId = parseInt(req.params.id);
-    const userId = parseInt(req.headers['user-id']);
-    const userRole = req.headers['user-role'];
+    try {
+        const employeeId = parseInt(req.params.id);
+        const userId = parseInt(req.headers['user-id']);
+        const userRole = req.headers['user-role'];
 
-    // Employees can only access their own data
-    if (userRole === 'employee' && employeeId !== userId) {
-      return res.status(403).json({ error: 'Access denied: Employees can only access their own data' });
+        // Employees can only access their own data
+        if (userRole === 'employee' && employeeId !== userId) {
+            return res.status(403).json({ error: 'Access denied: Employees can only access their own data' });
+        }
+
+        console.log('Fetching employee with ID:', employeeId);
+        const employee = await Employee.findOne({ id: employeeId }).catch((err) => {
+            throw new Error(`Database query failed: ${err.message}`);
+        });
+
+        if (!employee) {
+            console.log('Employee with id', employeeId, 'not found');
+            return res.status(404).json({ error: `Employee with id ${employeeId} not found` });
+        }
+
+        console.log('Found employee:', employee);
+        res.status(200).json(employee);
+    } catch (error) {
+        console.error('Error in GET /api/employees/:id:', {
+            message: error.message,
+            stack: error.stack,
+            params: req.params,
+        });
+        res.status(500).json({ error: 'Failed to fetch employee', message: error.message });
     }
-
-    console.log('Fetching employee with ID:', employeeId);
-    const employee = await Employee.findOne({ id: employeeId }).catch((err) => {
-      throw new Error(`Database query failed: ${err.message}`);
-    });
-
-    if (!employee) {
-      console.log('Employee with id', employeeId, 'not found');
-      return res.status(404).json({ error: `Employee with id ${employeeId} not found` });
-    }
-
-    console.log('Found employee:', employee);
-    res.status(200).json(employee);
-  } catch (error) {
-    console.error('Error in GET /api/employees/:id:', {
-      message: error.message,
-      stack: error.stack,
-      params: req.params,
-    });
-    res.status(500).json({ error: 'Failed to fetch employee', message: error.message });
-  }
 });
 
 // GET salary data for a specific employee
@@ -293,55 +293,34 @@ router.post('/', isAdmin, async (req, res) => {
 // PUT update an employee by ID (admin only)
 router.put('/:id', isAdmin, async (req, res) => {
     try {
-        const employeeId = req.params.id;
+        const employeeId = parseInt(req.params.id);
         const updateData = req.body;
 
-        console.log('Updating employee with _id:', employeeId, 'Data:', updateData);
+        console.log('Updating employee with id:', employeeId, 'Data:', updateData);
 
-        // Validate that the position exists, create it if it doesn't
-        if (updateData.position) {
-            let position = await Position.findOne({ name: updateData.position });
-            if (!position) {
-                position = new Position({
-                    name: updateData.position,
-                    salary: updateData.salary || 0,
-                    createdAt: new Date(),
-                });
-                await position.save();
-                console.log(`Created new position: ${updateData.position}`);
-            }
-        } else {
-            return res.status(400).json({ error: 'Position is required' });
-        }
-
-        // Find the employee by '_id'
-        const employee = await Employee.findById(employeeId);
+        const employee = await Employee.findOne({ id: employeeId }); // Use custom id field
         if (!employee) {
-            return res.status(404).json({ error: `Employee with _id ${employeeId} not found` });
+            return res.status(404).json({ error: `Employee with id ${employeeId} not found` });
         }
 
-        // Update position history if position or salary changes
+        // Update position history if needed
         if (updateData.position || updateData.salary) {
             const currentPosition = employee.positionHistory.find((h) => !h.endDate);
-            if (currentPosition) {
-                if (
-                    (updateData.position && updateData.position !== currentPosition.position) ||
-                    (updateData.salary && updateData.salary !== currentPosition.salary)
-                ) {
-                    currentPosition.endDate = new Date();
-                    employee.positionHistory.push({
-                        position: updateData.position || currentPosition.position,
-                        salary: updateData.salary || currentPosition.salary,
-                        startDate: new Date(),
-                        endDate: null,
-                    });
-                }
+            if (currentPosition && 
+                ((updateData.position && updateData.position !== currentPosition.position) ||
+                 (updateData.salary && updateData.salary !== currentPosition.salary))) {
+                currentPosition.endDate = new Date();
+                employee.positionHistory.push({
+                    position: updateData.position || currentPosition.position,
+                    salary: updateData.salary || currentPosition.salary,
+                    startDate: new Date(),
+                    endDate: null,
+                });
             }
         }
 
-        // Prevent updating _id
+        // Update employee
         delete updateData._id;
-        // Update employee fields
         Object.assign(employee, updateData, { updatedAt: new Date() });
         const updatedEmployee = await employee.save();
 
