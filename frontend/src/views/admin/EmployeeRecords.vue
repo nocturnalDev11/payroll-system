@@ -9,27 +9,28 @@
                 <table v-if="employees && employees.length" class="min-w-full border border-gray-300">
                     <thead class="bg-gray-200">
                         <tr>
-                        <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                        <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                        <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
-                        <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Salary</th>
-                        <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Hire Date</th>
-                        <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                            <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                            <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Position
+                            </th>
+                            <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Salary
+                            </th> <!-- New Column -->
+                            <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Hire Date
+                            </th>
+                            <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr
-                        v-for="emp in employees"
-                        :key="emp.id"
-                        class="hover:bg-gray-50 cursor-pointer"
-                        @click="openTaxModal(emp)"
-                        >
-                        <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.id }}</td>
-                        <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.name }}</td>
-                        <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.position }}</td>
-                        <td class="border px-4 py-2 text-sm text-gray-900">₱{{ emp.salary.toLocaleString() }}</td>
-                        <td class="border px-4 py-2 text-sm text-gray-900">{{ formatDate(emp.hireDate) }}</td>
-                        <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.salaryMonth }}</td>
+                        <tr v-for="emp in employees" :key="emp.id" class="hover:bg-gray-50 cursor-pointer"
+                            @click="openTaxModal(emp)">
+                            <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.id }}</td>
+                            <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.name }}</td>
+                            <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.position }}</td>
+                            <td class="border px-4 py-2 text-sm text-gray-900">₱{{ emp.salary.toLocaleString() }}</td>
+                            <!-- Display Salary -->
+                            <td class="border px-4 py-2 text-sm text-gray-900">{{ formatDate(emp.hireDate) }}</td>
+                            <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.salaryMonth }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -41,92 +42,105 @@
 
                 <!-- Tax Contributions Modal -->
                 <transition name="modal-fade">
-                    <div v-if="showTaxModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div v-if="showTaxModal"
+                        class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
                         <div class="bg-white p-5 rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-y-auto">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-lg font-bold text-gray-800">
-                            Tax Contributions - {{ currentEmployee?.name }}
-                            </h2>
-                            <button
-                            @click="showTaxModal = false"
-                            class="text-gray-500 hover:text-gray-700"
-                            title="Close Modal"
-                            >
-                            <span class="material-icons-outlined">close</span>
-                            </button>
-                        </div>
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-lg font-bold text-gray-800">
+                                    Tax Contributions - {{ currentEmployee?.name }}
+                                </h2>
+                                <button @click="showTaxModal = false" class="text-gray-500 hover:text-gray-700"
+                                    title="Close Modal">
+                                    <span class="material-icons-outlined">close</span>
+                                </button>
+                            </div>
 
-                        <!-- Date Filter Inside Modal -->
-                        <div class="mb-4">
-                            <label class="text-sm font-medium text-gray-700">Filter by Month (optional):</label>
-                            <input
-                            v-model="selectedMonth"
-                            type="month"
-                            class="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all w-full mt-1"
-                            @change="filterTaxContributions"
-                            />
-                        </div>
+                            <!-- Date Filter Inside Modal -->
+                            <div class="mb-4">
+                                <label class="text-sm font-medium text-gray-700">Filter by Month (optional):</label>
+                                <input v-model="selectedMonth" type="month"
+                                    class="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all w-full mt-1"
+                                    @change="filterTaxContributions" />
+                            </div>
 
-                        <div v-if="filteredTaxContributions.length > 0" class="space-y-4">
-                            <table class="min-w-full border border-gray-300">
-                            <thead class="bg-gray-100">
-                                <tr>
-                                <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pay Date</th>
-                                <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
-                                <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Salary</th>
-                                <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">SSS</th>
-                                <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">PhilHealth</th>
-                                <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">HDMF</th>
-                                <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Withholding Tax</th>
-                                <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="entry in filteredTaxContributions" :key="entry.payDate" class="hover:bg-gray-50">
-                                <td class="border px-4 py-2 text-sm text-gray-900">{{ formatDate(entry.payDate) }}</td>
-                                <td class="border px-4 py-2 text-sm text-gray-900">{{ entry.position }}</td>
-                                <td class="border px-4 py-2 text-sm text-gray-900">₱{{ entry.salary.toLocaleString() }}</td>
-                                <td class="border px-4 py-2 text-sm text-gray-900">₱{{ entry.sss.toLocaleString() }}</td>
-                                <td class="border px-4 py-2 text-sm text-gray-900">₱{{ entry.philhealth.toLocaleString() }}</td>
-                                <td class="border px-4 py-2 text-sm text-gray-900">₱{{ entry.hdmf.toLocaleString() }}</td>
-                                <td class="border px-4 py-2 text-sm text-gray-900">₱{{ entry.withholdingTax.toLocaleString() }}</td>
-                                <td class="border px-4 py-2 text-sm text-gray-900 font-semibold">
-                                    ₱{{ (entry.sss + entry.philhealth + entry.hdmf + entry.withholdingTax).toLocaleString() }}
-                                </td>
-                                </tr>
-                            </tbody>
-                            </table>
-                        </div>
-                        <div v-else class="text-center text-gray-500 py-4">
-                            No tax contributions available{{ selectedMonth ? ` for ${selectedMonth}` : '' }}.
-                        </div>
+                            <div v-if="filteredTaxContributions.length > 0" class="space-y-4">
+                                <table class="min-w-full border border-gray-300">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th
+                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                Pay Date</th>
+                                            <th
+                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                Position</th>
+                                            <th
+                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                Salary</th> <!-- New Column -->
+                                            <th
+                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                SSS</th>
+                                            <th
+                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                PhilHealth</th>
+                                            <th
+                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                HDMF</th>
+                                            <th
+                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                Withholding Tax</th>
+                                            <th
+                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="entry in filteredTaxContributions" :key="entry.payDate"
+                                            class="hover:bg-gray-50">
+                                            <td class="border px-4 py-2 text-sm text-gray-900">{{
+                                                formatDate(entry.payDate) }}</td>
+                                            <td class="border px-4 py-2 text-sm text-gray-900">{{ entry.position }}</td>
+                                            <td class="border px-4 py-2 text-sm text-gray-900">₱{{
+                                                entry.salary.toLocaleString() }}</td> <!-- Display Salary -->
+                                            <td class="border px-4 py-2 text-sm text-gray-900">₱{{
+                                                entry.sss.toLocaleString() }}</td>
+                                            <td class="border px-4 py-2 text-sm text-gray-900">₱{{
+                                                entry.philhealth.toLocaleString() }}</td>
+                                            <td class="border px-4 py-2 text-sm text-gray-900">₱{{
+                                                entry.hdmf.toLocaleString() }}</td>
+                                            <td class="border px-4 py-2 text-sm text-gray-900">₱{{
+                                                entry.withholdingTax.toLocaleString() }}</td>
+                                            <td class="border px-4 py-2 text-sm text-gray-900 font-semibold">
+                                                ₱{{ (entry.sss + entry.philhealth + entry.hdmf +
+                                                entry.withholdingTax).toLocaleString() }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div v-else class="text-center text-gray-500 py-4">
+                                No tax contributions available{{ selectedMonth ? ` for ${selectedMonth}` : '' }}.
+                            </div>
 
-                        <!-- Modal Actions -->
-                        <div class="mt-4 flex justify-end gap-3">
-                            <button
-                            @click="generateCSV"
-                            class="py-1 px-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 flex items-center gap-1"
-                            >
-                            <span class="material-icons-outlined text-sm">download</span>
-                            Generate CSV
-                            </button>
-                            <button
-                            @click="showTaxModal = false"
-                            class="py-1 px-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200"
-                            >
-                            Close
-                            </button>
-                        </div>
+                            <!-- Modal Actions -->
+                            <div class="mt-4 flex justify-end gap-3">
+                                <button @click="generateCSV"
+                                    class="py-1 px-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 flex items-center gap-1">
+                                    <span class="material-icons-outlined text-sm">download</span>
+                                    Generate CSV
+                                </button>
+                                <button @click="showTaxModal = false"
+                                    class="py-1 px-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">
+                                    Close
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </transition>
 
                 <!-- Status Message -->
-                <div
-                    v-if="statusMessage"
+                <div v-if="statusMessage"
                     :class="statusMessage.includes('successfully') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'"
-                    class="mt-4 p-3 rounded-lg text-center"
-                >
+                    class="mt-4 p-3 rounded-lg text-center">
                     {{ statusMessage }}
                 </div>
             </div>
@@ -149,10 +163,10 @@ export default {
             errorMessage: '',
             statusMessage: '',
             showTaxModal: false,
-            taxContributions: [],
-            filteredTaxContributions: [],
-            allTaxContributions: {},
-            currentDate: new Date('2025-03-19'),
+            taxContributions: [], // All contributions
+            filteredTaxContributions: [], // Filtered based on selectedMonth
+            allTaxContributions: {}, // Store tax contributions per employee
+            currentDate: new Date('2025-03-19'), // Matches your context
             showUpdateModal: false,
             selectedEmployeeForUpdate: '',
             newPosition: '',
@@ -164,26 +178,25 @@ export default {
     },
     methods: {
         async fetchEmployeeData() {
-            const authStore = useAuthStore();
             try {
                 const response = await axios.get('/api/employees', {
                     headers: {
-                        'user-role': authStore.userRole || 'admin', 
-                        'user-id': authStore.admin?.id || authStore.employee?.id || '1',
-                        Authorization: `Bearer ${authStore.accessToken}`
+                        'user-role': 'admin',
+                        'user-id': localStorage.getItem('userId') || '1',
                     },
                 });
 
-                // Ensure response.data is an array; if not, handle it as an error
-                const employeeData = Array.isArray(response.data) ? response.data : [];
-                
-                if (employeeData.length === 0) {
+                if (!response.data) {
+                    throw new Error('Invalid response from server');
+                }
+
+                if (response.data.length === 0) {
                     this.errorMessage = 'No employee records found.';
                     this.employees = [];
                     return;
                 }
 
-                this.employees = employeeData.map(emp => ({
+                this.employees = response.data.map(emp => ({
                     ...emp,
                     positionHistory: Array.isArray(emp.positionHistory) && emp.positionHistory.length > 0 ? emp.positionHistory : [{
                         position: emp.position || 'N/A',
@@ -199,24 +212,17 @@ export default {
                 await this.fetchAllTaxContributions();
                 this.errorMessage = '';
             } catch (error) {
-                // Handle any error response from the server
-                this.errorMessage = error.response?.data?.error || 'Failed to load employee records. Please check your connection or try again later.';
-                this.employees = [];
                 console.error('Error fetching employee data:', error);
+                this.errorMessage = 'Failed to load employee records. Please check your connection or try again later.';
+                this.employees = [];
             }
         },
         async fetchAllTaxContributions() {
-            const authStore = useAuthStore();
             try {
                 const response = await axios.get('/api/tax-contributions', {
-                    headers: {
-                        'user-role': authStore.userRole || 'admin',
-                        Authorization: `Bearer ${authStore.accessToken}`
-                    },
+                    headers: { 'user-role': 'admin' },
                 });
-
-                const taxData = Array.isArray(response.data) ? response.data : [];
-                this.allTaxContributions = taxData.reduce((acc, contribution) => {
+                this.allTaxContributions = response.data.reduce((acc, contribution) => {
                     if (!acc[contribution.employeeId]) {
                         acc[contribution.employeeId] = [];
                     }
@@ -248,10 +254,10 @@ export default {
         },
         getActivePositionForDate(positionHistory, date) {
             if (!Array.isArray(positionHistory) || positionHistory.length === 0) {
-                return { 
-                    position: 'N/A', 
-                    salary: 0, 
-                    startDate: this.currentEmployee?.hireDate || this.currentDate.toISOString().split('T')[0] 
+                return {
+                    position: 'N/A',
+                    salary: 0,
+                    startDate: this.currentEmployee?.hireDate || this.currentDate.toISOString().split('T')[0]
                 };
             }
             const targetDate = moment(date);
@@ -270,6 +276,7 @@ export default {
             const payDates = [];
             let backendContributions = this.allTaxContributions[this.currentEmployee.id] || [];
 
+            // Generate semi-monthly pay dates from hire date to today
             let currentDate = hireDate.clone().startOf('month');
             while (currentDate.isSameOrBefore(today, 'day')) {
                 const month = currentDate.month();
@@ -297,7 +304,7 @@ export default {
                 return {
                     payDate,
                     position: positionAtDate.position,
-                    salary: salary,
+                    salary: salary, // Add salary to the entry
                     sss: existing.sss || this.calculateSSSContribution(salary),
                     philhealth: existing.philhealth || this.calculatePhilHealthContribution(salary),
                     hdmf: existing.hdmf || this.calculatePagIBIGContribution(salary),
@@ -334,7 +341,7 @@ export default {
                     hdmf: Number(contribution.hdmf),
                     withholdingTax: Number(contribution.withholdingTax),
                     position: contribution.position,
-                    salary: Number(contribution.salary),
+                    salary: Number(contribution.salary), // Include salary in the payload
                     salaryMonth: contribution.salaryMonth
                 }));
 
@@ -428,6 +435,7 @@ export default {
                     this.showSuccessMessage(`Position updated for ${employee.name} to ${this.newPosition}!`);
                     this.showUpdateModal = false;
 
+                    // Recalculate and save tax contributions
                     this.currentEmployee = employee;
                     this.calculateTaxContributions();
                     await this.saveTaxContributions();
@@ -437,6 +445,7 @@ export default {
                 this.showErrorMessage(`Failed to update position: ${error.message}`);
             }
         },
+        // Tax calculation methods from SalarySlips.vue
         calculateSSSContribution(salary) {
             const monthlySalaryCredit = Math.min(Math.max(salary || 0, 5000), 35000) || 0;
             const employeeShareRate = 0.045;
@@ -453,7 +462,7 @@ export default {
             return Math.round(cappedSalary * rate) || 0;
         },
         calculateWithholdingTax(employee) {
-            const taxableIncome = employee.salary || 0;
+            const taxableIncome = employee.salary || 0; // Simplified
             if (taxableIncome <= 20833) return 0;
             if (taxableIncome <= 33333) return Math.round((taxableIncome - 20833) * 0.15) || 0;
             if (taxableIncome <= 66667) return Math.round(1875 + (taxableIncome - 33333) * 0.20) || 0;

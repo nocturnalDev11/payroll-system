@@ -7,7 +7,7 @@
                 <h2 class="text-2xl font-semibold text-gray-800 tracking-tight">Assign Recurring Deductions</h2>
                 <button @click="$emit('close')"
                     class="text-gray-500 hover:text-gray-700 transition-colors duration-200 p-2 rounded-full hover:bg-gray-100">
-                    <span class="material-icons-outlined text-xl">close</span>
+                    <span class="material-icons text-xl">close</span>
                 </button>
             </div>
 

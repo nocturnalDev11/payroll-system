@@ -29,7 +29,9 @@ exports.getTotalEmployees = asyncHandler(async (req, res) => {
 // Get user details
 exports.getProfile = asyncHandler(async (req, res) => {
     console.log('req.employeeId:', req.employeeId);
-    const employee = await Employee.findById(req.employeeId).select('-password');
+    const employee = await Employee.findById(req.employeeId)
+        .populate('payheads')
+        .select('-password');
     if (!employee) {
         return res.status(404).json({ error: 'Employee not found' });
     }
@@ -181,7 +183,7 @@ exports.restoreEmployee = asyncHandler(async (req, res) => {
             stack: error.stack,
             id
         });
-        throw error; // Let asyncHandler handle the 500 response
+        throw error;
     }
 });
 

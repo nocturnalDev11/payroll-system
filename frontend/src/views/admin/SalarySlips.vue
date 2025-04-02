@@ -129,8 +129,7 @@
             </div>
 
             <!-- Payslip History Modal -->
-            <div v-if="showHistoryModal"
-                class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div v-if="showHistoryModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                 <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl h-[80vh] flex flex-col">
                     <div class="flex items-center justify-between p-4 border-b">
                         <h2 class="text-base font-medium text-gray-800 flex items-center gap-1">
@@ -182,7 +181,7 @@
                                         <td class="px-4 py-2 text-sm text-gray-900">
                                             {{ payslip.paydayType === 'mid-month' ?
                                                 payslip.expectedPaydays.midMonthPayday :
-                                            payslip.expectedPaydays.endMonthPayday }}
+                                                payslip.expectedPaydays.endMonthPayday }}
                                         </td>
                                         <td class="px-4 py-2 text-sm text-gray-500">
                                             {{ getPositionName(payslip.position) }}
@@ -201,8 +200,8 @@
                                                 <span class="material-icons text-sm">description</span>
                                                 {{
                                                     payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
-                                                ?
-                                                'Generating...' : 'Generate' }}
+                                                        ?
+                                                        'Generating...' : 'Generate' }}
                                             </button>
                                         </td>
                                     </tr>
@@ -224,13 +223,13 @@
                                                 @click="sortNewPayslips('payDate')">
                                                 Pay Date <span class="material-icons text-xs">{{ sortNewField ===
                                                     'payDate' ? (sortNewAsc ?
-                                                    'arrow_upward' : 'arrow_downward') : '' }}</span>
+                                                        'arrow_upward' : 'arrow_downward') : '' }}</span>
                                             </th>
                                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 cursor-pointer"
                                                 @click="sortNewPayslips('position')">
                                                 Position <span class="material-icons text-xs">{{ sortNewField ===
                                                     'position' ? (sortNewAsc ?
-                                                    'arrow_upward' : 'arrow_downward') : '' }}</span>
+                                                        'arrow_upward' : 'arrow_downward') : '' }}</span>
                                             </th>
                                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Salary
                                             </th>
@@ -249,7 +248,7 @@
                                             <td class="px-4 py-2 text-sm text-gray-900">
                                                 {{ payslip.paydayType === 'mid-month' ?
                                                     payslip.expectedPaydays.midMonthPayday :
-                                                payslip.expectedPaydays.endMonthPayday }}
+                                                    payslip.expectedPaydays.endMonthPayday }}
                                             </td>
                                             <td class="px-4 py-2 text-sm text-gray-500">
                                                 {{ getPositionName(payslip.position) }}
@@ -268,8 +267,8 @@
                                                     <span class="material-icons text-sm">description</span>
                                                     {{
                                                         payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
-                                                    ?
-                                                    'Generating...' : 'Generate' }}
+                                                            ?
+                                                            'Generating...' : 'Generate' }}
                                                 </button>
                                             </td>
                                         </tr>
@@ -314,8 +313,7 @@
             </div>
 
             <!-- Update Position Modal -->
-            <div v-if="showUpdateModal"
-                class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div v-if="showUpdateModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                 <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
                     <h2 class="text-base font-medium text-gray-800 mb-4 flex items-center gap-1">
                         <span class="material-icons text-sm">edit</span>
@@ -355,8 +353,7 @@
             </div>
 
             <!-- Print All Modal -->
-            <div v-if="showPrintAllModal"
-                class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div v-if="showPrintAllModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                 <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
                     <div class="flex items-center justify-between p-4 border-b">
                         <h2 class="text-base font-medium text-gray-800 flex items-center gap-1">
@@ -421,12 +418,12 @@
 <script>
 import axios from 'axios';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { applyPlugin } from 'jspdf-autotable';
 import moment from 'moment';
 import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
 
-jsPDF.prototype.autoTable = autoTable.default;
+applyPlugin(jsPDF);
 
 export default {
     name: 'SalarySlips',
@@ -528,7 +525,7 @@ export default {
                 return 0;
             });
         },
-sortedNewPayslips() {
+        sortedNewPayslips() {
             const newPayslips = this.payslipHistory.filter(payslip =>
                 payslip.position === this.latestPosition.position &&
                 this.hasUpdatedPosition &&
@@ -1242,24 +1239,33 @@ sortedNewPayslips() {
             return moment(date).isValid() ? moment(date).format('D MMMM YYYY') : 'Invalid Date';
         },
         calculateTotalEarnings(employee) {
-            const baseEarnings = (employee.earnings ? employee.earnings.travelExpenses : 0) + (employee.earnings ? employee.earnings.otherEarnings : 0);
+            const baseEarnings = (employee.earnings?.travelExpenses || 0) + (employee.earnings?.otherEarnings || 0);
             const monthlySalary = employee.salary || 0;
             const holidayPay = this.calculateHolidayPay(employee) || 0;
             const overtimePay = this.calculateOvertimePay(employee) || 0;
             const payheadEarnings = this.calculatePayheadEarnings(employee.payheads) || 0;
-            const taxableSupplementary = this.calculateSupplementaryIncome(employee) ? this.calculateSupplementaryIncome(employee).taxable : 0;
+            const taxableSupplementary = this.calculateSupplementaryIncome(employee)?.taxable || 0;
             return monthlySalary + baseEarnings + holidayPay + overtimePay + payheadEarnings + taxableSupplementary || 0;
         },
+
         calculatePayheadEarnings(payheads) {
-            return payheads
-                .filter(p => p.type === 'Earnings')
+            const sanitizedPayheads = Array.isArray(payheads)
+                ? payheads.filter((p) => p && typeof p === 'object' && 'type' in p && 'amount' in p)
+                : [];
+            return sanitizedPayheads
+                .filter((p) => p.type === 'Earnings')
                 .reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
         },
+
         calculatePayheadDeductions(payheads) {
-            return payheads
-                .filter(p => p.type === 'Deductions')
+            const sanitizedPayheads = Array.isArray(payheads)
+                ? payheads.filter((p) => p && typeof p === 'object' && 'type' in p && 'amount' in p)
+                : [];
+            return sanitizedPayheads
+                .filter((p) => p.type === 'Deductions')
                 .reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
         },
+
         calculateSupplementaryIncome(employee) {
             const commission = employee.commission || 0;
             const profitSharing = employee.profitSharing || 0;
@@ -1278,9 +1284,10 @@ sortedNewPayslips() {
             return {
                 taxable: taxableSupplementaryIncome || 0,
                 nonTaxable: exemptThirteenthMonth || 0,
-                totalSupplementary: totalSupplementary || 0
+                totalSupplementary: totalSupplementary || 0,
             };
         },
+
         calculateNonTaxableIncome(employee) {
             const isMWE = (employee.salary / 30) <= this.config.minimumWage;
             const basicSalaryMWE = isMWE ? employee.salary : 0;
@@ -1295,9 +1302,20 @@ sortedNewPayslips() {
             const pagibigContribution = this.calculatePagIBIGContribution(employee.salary) || 0;
 
             return {
-                totalNonTaxable: basicSalaryMWE + holidayPayMWE + overtimePayMWE + nightShiftDiffMWE + hazardPayMWE + thirteenthMonthExempt + deMinimis + sssContribution + philhealthContribution + pagibigContribution || 0
+                totalNonTaxable:
+                    basicSalaryMWE +
+                    holidayPayMWE +
+                    overtimePayMWE +
+                    nightShiftDiffMWE +
+                    hazardPayMWE +
+                    thirteenthMonthExempt +
+                    deMinimis +
+                    sssContribution +
+                    philhealthContribution +
+                    pagibigContribution || 0,
             };
         },
+
         calculateTotalDeductions(employee) {
             const sssContribution = this.calculateSSSContribution(employee.salary) || 0;
             const philhealthContribution = this.calculatePhilHealthContribution(employee.salary) || 0;
@@ -1307,11 +1325,18 @@ sortedNewPayslips() {
 
             return sssContribution + philhealthContribution + pagibigContribution + withholdingTax + payheadDeductions || 0;
         },
+
         calculateNetSalary(employee) {
-            const totalEarnings = this.calculateTotalEarnings(employee) || 0;
-            const totalDeductions = this.calculateTotalDeductions(employee) || 0;
-            return totalEarnings - totalDeductions || 0;
+            const basicSalary = employee.salary || 0;
+            const payheadDeductions = this.calculatePayheadDeductions(employee.payheads) || 0;
+            const adjustedBasicSalary = basicSalary - payheadDeductions; // Deduct payheads first
+            const sssContribution = this.calculateSSSContribution(basicSalary) || 0;
+            const philhealthContribution = this.calculatePhilHealthContribution(basicSalary) || 0;
+            const pagibigContribution = this.calculatePagIBIGContribution(basicSalary) || 0;
+            const withholdingTax = this.calculateWithholdingTax(employee) || 0;
+            return adjustedBasicSalary - (sssContribution + philhealthContribution + pagibigContribution + withholdingTax) || 0;
         },
+
         calculateHolidayPay(employee) {
             const dailyRate = (employee.salary / 30) || 0;
             const salaryMonth = employee.salaryMonth
@@ -1319,35 +1344,44 @@ sortedNewPayslips() {
                 : moment(this.currentDate).format('YYYY-MM');
             const regularHolidays = this.config.regularHolidays || [];
             const specialNonWorkingDays = this.config.specialNonWorkingDays || [];
-            const isRegularHoliday = regularHolidays.some(holiday => moment(holiday, 'MM/DD/YYYY').format('YYYY-MM') === salaryMonth);
-            const isSpecialHoliday = specialNonWorkingDays.some(holiday => moment(holiday, 'MM/DD/YYYY').format('YYYY-MM') === salaryMonth);
+            const isRegularHoliday = regularHolidays.some((holiday) =>
+                moment(holiday, 'MM/DD/YYYY').format('YYYY-MM') === salaryMonth
+            );
+            const isSpecialHoliday = specialNonWorkingDays.some((holiday) =>
+                moment(holiday, 'MM/DD/YYYY').format('YYYY-MM') === salaryMonth
+            );
             if (isRegularHoliday) return dailyRate * 2 || 0;
             if (isSpecialHoliday) return dailyRate * 1.3 || 0;
             return 0;
         },
+
         calculateOvertimePay(employee) {
             const hourlyRate = employee.salary / (8 * 22) || 0;
-            const regularOTHours = employee.overtimeHours ? employee.overtimeHours.regular : 0;
-            const holidayOTHours = employee.overtimeHours ? employee.overtimeHours.holiday : 0;
+            const regularOTHours = employee.overtimeHours?.regular || 0;
+            const holidayOTHours = employee.overtimeHours?.holiday || 0;
             const regularOTPay = regularOTHours * hourlyRate * 1.25 || 0;
             const holidayOTPay = holidayOTHours * hourlyRate * 1.3 || 0;
             return regularOTPay + holidayOTPay || 0;
         },
+
         calculateSSSContribution(salary) {
             const monthlySalaryCredit = Math.min(Math.max(salary || 0, 5000), 35000) || 0;
             const employeeShareRate = 0.045;
             return Math.round(monthlySalaryCredit * employeeShareRate) || 0;
         },
+
         calculatePhilHealthContribution(salary) {
             const rate = 0.05;
             const monthlySalary = Math.min(salary || 0, 100000) || 0;
             return Math.round((monthlySalary * rate) / 2) || 0;
         },
+
         calculatePagIBIGContribution(salary) {
             const rate = 0.02;
             const cappedSalary = Math.min(salary || 0, 10000) || 0;
             return Math.round(cappedSalary * rate) || 0;
         },
+
         calculateWithholdingTax(employee) {
             const nonTaxable = this.calculateNonTaxableIncome(employee).totalNonTaxable || 0;
             const taxableIncome = (this.calculateTotalEarnings(employee) || 0) - nonTaxable || 0;
@@ -1358,6 +1392,7 @@ sortedNewPayslips() {
             if (taxableIncome <= 666667) return Math.round(90841.80 + (taxableIncome - 166667) * 0.30) || 0;
             return Math.round(408841.80 + (taxableIncome - 666667) * 0.35) || 0;
         },
+
         getExpectedPayday(hireDate, salaryMonth) {
             const [year, month] = salaryMonth.split('-').map(part => parseInt(part, 10));
             const lastDay = new Date(year, month, 0).getDate();
@@ -1391,22 +1426,49 @@ sortedNewPayslips() {
                 endMonthPayday: payday2.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
             };
         },
+
         createPayslipData(employee) {
             const salaryDate = moment(employee.salaryMonth, 'YYYY-MM-DD').format('MM/DD/YYYY');
             const basicSalary = employee.salary || 0;
+
+            // Fetch and sanitize payheads
+            const sanitizedPayheads = Array.isArray(employee.payheads)
+                ? employee.payheads.filter((ph) => ph && typeof ph === 'object' && 'type' in ph && 'name' in ph && 'amount' in ph)
+                : [];
+
+            // Calculate payhead deductions (non-recurring, excluding mandatory taxes)
+            const payheadDeductions = sanitizedPayheads
+                .filter((ph) => ph.type === 'Deductions')
+                .reduce((sum, ph) => sum + Number(ph.amount || 0), 0) || 0;
+
             const sss = this.calculateSSSContribution(basicSalary) || 0;
             const philhealth = this.calculatePhilHealthContribution(basicSalary) || 0;
             const pagibig = this.calculatePagIBIGContribution(basicSalary) || 0;
-            const totalDeductions = sss + philhealth + pagibig + (this.calculateWithholdingTax(employee) || 0) || 0;
-            const netSalary = this.calculateNetSalary(employee) || 0;
-            const paidLeavesDays = employee.paidLeaves ? employee.paidLeaves.days : 0;
-            const absencesDays = employee.absences ? employee.absences.days : 0;
-            const paidLeavesAmount = employee.paidLeaves ? employee.paidLeaves.amount : 0;
-            const absencesAmount = employee.absences ? -(employee.absences.amount) : 0;
-            const paydays = this.getExpectedPayday(employee.hireDate, employee.salaryMonth.split('-')[0] + '-' + employee.salaryMonth.split('-')[1]);
+            const withholdingTax = this.calculateWithholdingTax(employee) || 0;
+            const totalDeductions = sss + philhealth + pagibig + withholdingTax + payheadDeductions;
+            const netSalary = (basicSalary - payheadDeductions) - (sss + philhealth + pagibig + withholdingTax); // Deduct payheads from basic salary first
+            const paidLeavesDays = employee.paidLeaves?.days || 0;
+            const absencesDays = employee.absences?.days || 0;
+            const paidLeavesAmount = employee.paidLeaves?.amount || 0;
+            const absencesAmount = employee.absences ? -(employee.absences.amount || 0) : 0;
+
+            // Categorize payheads
+            const earnings = sanitizedPayheads
+                .filter((ph) => ph.type === 'Earnings')
+                .map((ph) => ({
+                    name: ph.name,
+                    amount: this.formatNumber(ph.amount),
+                }));
+
+            const deductions = sanitizedPayheads
+                .filter((ph) => ph.type === 'Deductions')
+                .map((ph) => ({
+                    name: ph.name,
+                    amount: this.formatNumber(ph.amount),
+                }));
 
             return {
-                salaryDate: salaryDate,
+                salaryDate,
                 empNo: employee.empNo || 'N/A',
                 lastName: employee.lastName || 'N/A',
                 middleName: employee.middleName || 'N/A',
@@ -1414,7 +1476,6 @@ sortedNewPayslips() {
                 birthDate: moment(employee.birthDate).isValid() ? moment(employee.birthDate).format('MM/DD/YYYY') : 'N/A',
                 hireDate: moment(employee.hireDate).isValid() ? moment(employee.hireDate).format('MM/DD/YYYY') : 'N/A',
                 civilStatus: employee.civilStatus || 'SINGLE',
-                dependents: employee.dependents || 0,
                 sss: employee.sss || 'N/A',
                 tin: employee.tin || 'N/A',
                 philhealth: employee.philhealth || 'N/A',
@@ -1426,26 +1487,27 @@ sortedNewPayslips() {
                 sssDeduction: this.formatNumber(sss),
                 philhealthDeduction: this.formatNumber(philhealth),
                 pagibigDeduction: this.formatNumber(pagibig),
-                paidLeavesDays: paidLeavesDays,
-                absencesDays: absencesDays,
+                withholdingTax: this.formatNumber(withholdingTax),
+                payheads: sanitizedPayheads,
+                earnings,
+                deductions, // Only non-recurring deductions from payheads
+                paidLeavesDays,
+                absencesDays,
                 paidLeavesAmount: this.formatNumber(paidLeavesAmount),
                 absencesAmount: this.formatNumber(absencesAmount),
-                withholdingTax: this.formatNumber(this.calculateWithholdingTax(employee) || 0),
-                payheads: employee.payheads || [],
-                expectedPaydays: paydays
             };
         },
+
+        formatNumber(value) {
+            return Number(value || 0).toFixed(2);
+        },
+
         formatNumber(value) {
             const num = Number(value) || 0;
             return num.toFixed(2);
         },
         async generatePdf(payslipData, doc) {
-            const pdfDoc = doc || new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: [216, 279]
-            });
-
+            const pdfDoc = doc || new jsPDF({ orientation: 'portrait', unit: 'mm', format: [216, 279] });
             pdfDoc.setFont('Helvetica');
 
             const margin = 10;
@@ -1455,17 +1517,12 @@ sortedNewPayslips() {
             const lineHeight = 5;
             const pageHeight = pdfDoc.internal.pageSize.getHeight();
 
-            function addText(doc, text, x, y, options) {
-                options = options || {};
-                text = text || 'N/A';
+            function addText(doc, text, x, y, options = {}) {
+                text = text?.toString() || 'N/A';
                 text = text.replace('₱', 'P');
                 doc.setFontSize(options.fontSize || 10);
                 doc.setFont(options.font || 'Helvetica', options.fontStyle || 'normal');
-                doc.setTextColor(
-                    options.textColor ? options.textColor[0] : 0,
-                    options.textColor ? options.textColor[1] : 0,
-                    options.textColor ? options.textColor[2] : 0
-                );
+                doc.setTextColor(...(options.textColor || [0, 0, 0]));
                 doc.text(text, x, y, { align: options.align || 'left', maxWidth: options.maxWidth });
             }
 
@@ -1474,17 +1531,26 @@ sortedNewPayslips() {
                 addText(doc, value, x + 35, y, { fontSize: 9, maxWidth: columnWidth - 35 });
             }
 
+            // Header
             pdfDoc.setFillColor(0, 128, 0);
             pdfDoc.rect(margin, margin, contentWidth, 10, 'F');
-            addText(pdfDoc, 'RIGHTJOB Solutions', margin + 5, margin + 7, { fontSize: 12, fontStyle: 'bold', textColor: [255, 255, 255] });
-            addText(pdfDoc, 'PAYSLIP', margin + contentWidth / 2, margin + 7, { fontSize: 12, fontStyle: 'bold', textColor: [255, 255, 255], align: 'center' });
+            addText(pdfDoc, 'RIGHTJOB Solutions', margin + 5, margin + 7, {
+                fontSize: 12,
+                fontStyle: 'bold',
+                textColor: [255, 255, 255],
+            });
+            addText(pdfDoc, 'PAYSLIP', margin + contentWidth / 2, margin + 7, {
+                fontSize: 12,
+                fontStyle: 'bold',
+                textColor: [255, 255, 255],
+                align: 'center',
+            });
 
             let y = margin + 15;
             addText(pdfDoc, 'Salary Date:', margin + contentWidth - 40, y, { fontSize: 9 });
             addText(pdfDoc, payslipData.salaryDate, margin + contentWidth - 20, y, { fontSize: 9 });
 
             y += 10;
-
             addText(pdfDoc, 'Personal Information', margin, y, { fontSize: 11, fontStyle: 'bold' });
             y += lineHeight;
             const leftPersonalInfo = [
@@ -1495,7 +1561,7 @@ sortedNewPayslips() {
                 ['Birth Date', payslipData.birthDate],
                 ['Hire Date', payslipData.hireDate],
                 ['Position', payslipData.position],
-                ['Basic Salary', `P${payslipData.basicSalary}`]
+                ['Basic Salary', `P${payslipData.basicSalary}`],
             ];
             leftPersonalInfo.forEach(([label, value], index) => {
                 addLabelValue(pdfDoc, label, value, margin, y + index * lineHeight);
@@ -1506,11 +1572,10 @@ sortedNewPayslips() {
             yRight += lineHeight;
             const rightPersonalInfo = [
                 ['Civil Status', payslipData.civilStatus],
-                ['Dependents', payslipData.dependents.toString()],
                 ['SSS', payslipData.sss],
                 ['TIN', payslipData.tin],
                 ['Philhealth', payslipData.philhealth],
-                ['PAG-IBIG', payslipData.pagibig]
+                ['PAG-IBIG', payslipData.pagibig],
             ];
             rightPersonalInfo.forEach(([label, value], index) => {
                 addLabelValue(pdfDoc, label, value, margin + columnWidth + 10, yRight + index * lineHeight);
@@ -1518,45 +1583,96 @@ sortedNewPayslips() {
 
             y = Math.max(y + leftPersonalInfo.length * lineHeight, yRight + rightPersonalInfo.length * lineHeight) + 10;
 
-            addText(pdfDoc, 'Expected Paydays', margin, y, { fontSize: 11, fontStyle: 'bold' });
-            addText(pdfDoc, 'Mid-Month:', margin, y + lineHeight);
-            addText(pdfDoc, payslipData.expectedPaydays.midMonthPayday, margin + 35, y + lineHeight, { maxWidth: columnWidth - 35 });
-            addText(pdfDoc, 'End-of-Month:', margin + columnWidth + 10, y + lineHeight);
-            addText(pdfDoc, payslipData.expectedPaydays.endMonthPayday, margin + columnWidth + 45, y + lineHeight, { maxWidth: columnWidth - 35 });
-            y += 2 * lineHeight + 10;
-
+            // Deductions Section (Mandatory Taxes Only)
             addText(pdfDoc, 'Deductions', margin, y, { fontSize: 11, fontStyle: 'bold' });
             y += lineHeight;
             const leftDeductions = [
                 ['SSS', `P${payslipData.sssDeduction}`],
                 ['Philhealth', `P${payslipData.philhealthDeduction}`],
-                ['PAG-IBIG', `P${payslipData.pagibigDeduction}`]
+                ['PAG-IBIG', `P${payslipData.pagibigDeduction}`],
             ];
+            const rightDeductions = [['Withholding Tax', `P${payslipData.withholdingTax}`]];
             leftDeductions.forEach(([label, value], index) => {
                 addLabelValue(pdfDoc, label, value, margin, y + index * lineHeight);
             });
-
-            const rightDeductions = [
-                ['Withholding Tax', `P${payslipData.withholdingTax}`]
-            ];
             rightDeductions.forEach(([label, value], index) => {
                 addLabelValue(pdfDoc, label, value, margin + columnWidth + 10, y + index * lineHeight);
             });
-            y += Math.max(leftDeductions.length, rightDeductions.length) * lineHeight + 10;
+            y += Math.max(leftDeductions.length, rightDeductions.length) * lineHeight + 5;
 
+            // Summary
             addText(pdfDoc, 'Summary', margin, y, { fontSize: 11, fontStyle: 'bold' });
             y += lineHeight;
             addText(pdfDoc, 'Total Deductions:', margin, y, { fontSize: 9, fontStyle: 'bold' });
             addText(pdfDoc, `(P${payslipData.totalDeductions})`, margin + 35, y, { fontSize: 9 });
             addText(pdfDoc, 'Net Salary:', margin + columnWidth + 10, y, { fontSize: 9, fontStyle: 'bold' });
             addText(pdfDoc, `P${payslipData.netSalary}`, margin + columnWidth + 45, y, { fontSize: 9 });
+            y += lineHeight + 10;
 
-            const footerY = pageHeight - margin - 5;
-            addText(pdfDoc, 'This is a computer-generated payslip; no signature required.', margin + contentWidth / 2, footerY, { fontSize: 8, align: 'center' });
-
-            if (!doc) {
-                return pdfDoc.output('blob');
+            // Earnings Table
+            addText(pdfDoc, 'Earnings', margin, y, { fontSize: 11, fontStyle: 'bold' });
+            y += lineHeight;
+            if (payslipData.earnings.length > 0) {
+                const earningsTableData = payslipData.earnings.map((earning) => [
+                    earning.name,
+                    `P${earning.amount}`,
+                ]);
+                pdfDoc.autoTable({
+                    startY: y,
+                    head: [['Description', 'Amount']],
+                    body: earningsTableData,
+                    margin: { left: margin, right: margin },
+                    styles: { fontSize: 9, cellPadding: 1.5 },
+                    headStyles: { fillColor: [0, 128, 0], textColor: [255, 255, 255] },
+                    columnStyles: {
+                        0: { cellWidth: contentWidth * 0.7 },
+                        1: { cellWidth: contentWidth * 0.3, halign: 'right' },
+                    },
+                });
+                y = pdfDoc.lastAutoTable.finalY + 5;
+            } else {
+                addText(pdfDoc, 'None', margin, y, { fontSize: 9 });
+                y += lineHeight + 5;
             }
+
+            // Other Deductions Table (Non-Recurring, Excluding Taxes)
+            addText(pdfDoc, 'Other Deductions', margin, y, { fontSize: 11, fontStyle: 'bold' });
+            y += lineHeight;
+            if (payslipData.deductions.length > 0) {
+                const deductionsTableData = payslipData.deductions.map((deduction) => [
+                    deduction.name,
+                    `P${deduction.amount}`,
+                ]);
+                pdfDoc.autoTable({
+                    startY: y,
+                    head: [['Description', 'Amount']],
+                    body: deductionsTableData,
+                    margin: { left: margin, right: margin },
+                    styles: { fontSize: 9, cellPadding: 1.5 },
+                    headStyles: { fillColor: [0, 128, 0], textColor: [255, 255, 255] },
+                    columnStyles: {
+                        0: { cellWidth: contentWidth * 0.7 },
+                        1: { cellWidth: contentWidth * 0.3, halign: 'right' },
+                    },
+                });
+                y = pdfDoc.lastAutoTable.finalY + 5;
+            } else {
+                addText(pdfDoc, 'None', margin, y, { fontSize: 9 });
+                y += lineHeight + 5;
+            }
+
+            // Footer
+            const footerY = pageHeight - margin - 5;
+            if (y > footerY - 10) {
+                pdfDoc.addPage();
+                y = margin;
+            }
+            addText(pdfDoc, 'This is a computer-generated payslip; no signature required.', margin + contentWidth / 2, footerY, {
+                fontSize: 8,
+                align: 'center',
+            });
+
+            return doc ? undefined : pdfDoc.output('blob');
         },
         blobToBase64(blob) {
             return new Promise((resolve, reject) => {

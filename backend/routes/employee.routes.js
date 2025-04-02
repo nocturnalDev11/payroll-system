@@ -90,7 +90,6 @@ router.get('/', isAuthenticated, async (req, res) => {
         console.log('Fetching all employees');
         const { month } = req.query;
 
-        // Validate month format if provided
         if (month && !/^\d{4}-\d{2}$/.test(month)) {
             return res.status(400).json({ error: 'Invalid month format: must be YYYY-MM (e.g., 2025-03)' });
         }
@@ -99,7 +98,6 @@ router.get('/', isAuthenticated, async (req, res) => {
         if (month) {
             const endOfMonth = new Date(`${month}-31T23:59:59.999Z`);
             const startOfMonth = new Date(`${month}-01T00:00:00.000Z`);
-
             query.$and = [
                 { status: { $ne: 'trashed' } },
                 {
@@ -113,42 +111,34 @@ router.get('/', isAuthenticated, async (req, res) => {
                                 }
                             }
                         },
-                        {
-                            hireDate: { $lte: endOfMonth },
-                            'positionHistory.0.endDate': null
-                        }
+                        { hireDate: { $lte: endOfMonth }, 'positionHistory.0.endDate': null }
                     ]
                 }
             ];
         }
 
         const employees = await Employee.find(query)
+            .populate({
+                path: 'payheads',
+                select: 'id name amount type' // Include id for consistency
+            })
             .sort({ empNo: 1 })
-            .select('-password')
-            .catch((err) => {
-                throw new Error(`Database query failed: ${err.message}`);
-            });
+            .select('-password');
 
         console.log('Fetched employees:', employees.length);
-
         if (!employees || employees.length === 0) {
             console.log(`No employees found${month ? ` for month ${month}` : ''}`);
             return res.status(200).json([]);
         }
 
-        // Add salaryMonth to response for frontend consistency
         const employeesWithMonth = employees.map(emp => ({
             ...emp._doc,
-            salaryMonth: month || new Date(emp.hireDate).toISOString().slice(0, 7),
+            salaryMonth: month || new Date(emp.hireDate).toISOString().slice(0, 7)
         }));
 
         res.status(200).json(employeesWithMonth);
     } catch (error) {
-        console.error('Error in GET /api/employees:', {
-            message: error.message,
-            stack: error.stack,
-            query: req.query,
-        });
+        console.error('Error in GET /api/employees:', error.message);
         res.status(500).json({ error: 'Failed to fetch employees', message: error.message });
     }
 });
@@ -166,9 +156,14 @@ router.get('/:id', isAuthenticated, async (req, res) => {
         }
 
         console.log('Fetching employee with ID:', employeeId);
-        const employee = await Employee.findOne({ id: employeeId }).catch((err) => {
-            throw new Error(`Database query failed: ${err.message}`);
-        });
+        const employee = await Employee.findOne({ id: employeeId })
+            .populate({
+                path: 'payheads',
+                select: 'name amount type'
+            })
+            .catch((err) => {
+                throw new Error(`Database query failed: ${err.message}`);
+            });
 
         if (!employee) {
             console.log('Employee with id', employeeId, 'not found');
@@ -199,7 +194,11 @@ router.get('/:id/salary', isAuthenticated, async (req, res) => {
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        const employee = await Employee.findById(employeeId);
+        const employee = await Employee.findById(employeeId)
+            .populate({
+                path: 'payheads',
+                select: 'name amount type'
+            })
         if (!employee) {
             return res.status(404).json({ error: 'Employee not found' });
         }
@@ -211,6 +210,7 @@ router.get('/:id/salary', isAuthenticated, async (req, res) => {
             position: employee.position,
             salary: employee.salary,
             earnings: employee.earnings,
+            payheads: employee.payheads,
             sss: employee.sss,
             philhealth: employee.philhealth,
             pagibig: employee.pagibig,
@@ -308,17 +308,27 @@ router.put('/:id', isAdmin, async (req, res) => {
         }
 
         if (updateData.payheads) {
-            const invalidPayheads = updateData.payheads.filter(id => !mongoose.Types.ObjectId.isValid(id));
-            if (invalidPayheads.length > 0) {
-                console.log('Invalid payhead IDs:', invalidPayheads);
-                return res.status(400).json({ error: 'Invalid payhead IDs', invalid: invalidPayheads });
-            }
+        // Ensure payheads is an array of strings
+        if (!Array.isArray(updateData.payheads)) {
+            return res.status(400).json({ error: 'Payheads must be an array' });
+        }
 
-            const payheadsExist = await PayHead.find({ _id: { $in: updateData.payheads } });
-            if (payheadsExist.length !== updateData.payheads.length) {
-                console.log('Some payhead IDs not found:', updateData.payheads);
-                return res.status(400).json({ error: 'One or more payhead IDs do not exist' });
-            }
+        const invalidPayheads = updateData.payheads.filter(id => 
+            typeof id !== 'string' || !mongoose.Types.ObjectId.isValid(id)
+        );
+        if (invalidPayheads.length > 0) {
+            console.log('Invalid payhead IDs detected:', invalidPayheads);
+            return res.status(400).json({ error: 'Invalid payhead IDs', invalid: invalidPayheads });
+        }
+
+        const payheadsExist = await PayHead.find({ _id: { $in: updateData.payheads } });
+        if (payheadsExist.length !== updateData.payheads.length) {
+            const missingIds = updateData.payheads.filter(id => 
+            !payheadsExist.some(ph => ph._id.toString() === id)
+            );
+            console.log('Some payhead IDs not found:', missingIds);
+            return res.status(400).json({ error: 'One or more payhead IDs do not exist', missing: missingIds });
+        }
         }
 
         const allowedFields = [
