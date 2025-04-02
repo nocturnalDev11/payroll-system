@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const PayHead = require('../models/payHead.model.js');
 
 const isAdmin = (req, res, next) => {
@@ -45,7 +46,11 @@ router.post('/', isAdmin, async (req, res) => {
         const maxIdPayhead = await PayHead.findOne().sort({ id: -1 }).select('id');
         const newId = maxIdPayhead ? maxIdPayhead.id + 1 : 1;
 
-        const payhead = new PayHead({ ...req.body, id: newId });
+        const payhead = new PayHead({
+            ...req.body,
+            id: newId,
+            isRecurring: req.body.isRecurring || false // Ensure isRecurring is set
+        });
         await payhead.save();
         console.log('Saved pay head:', payhead);
         res.status(201).json(payhead);
@@ -66,7 +71,7 @@ router.put('/:id', isAdmin, async (req, res) => {
     try {
         const payhead = await PayHead.findOneAndUpdate(
             { id: parseInt(req.params.id) },
-            req.body,
+            { ...req.body, isRecurring: req.body.isRecurring || false }, // Ensure isRecurring is updated
             { new: true, runValidators: true }
         );
         if (!payhead) {
