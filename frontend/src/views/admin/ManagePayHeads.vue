@@ -370,15 +370,14 @@ export default {
                 };
 
                 console.log('Payload being sent:', JSON.stringify(updatedEmployee, null, 2));
-                await axios.put(
+                const response = await axios.put(
                     `${BASE_API_URL}/api/employees/${this.selectedEmployee.id}`,
                     updatedEmployee,
                     { headers: { 'user-role': 'admin' } }
                 );
+                console.log('Response from server:', response.data);
 
-                const employeeIndex = this.employees.findIndex(
-                    e => e.id === this.selectedEmployee.id
-                );
+                const employeeIndex = this.employees.findIndex(e => e.id === this.selectedEmployee.id);
                 if (employeeIndex !== -1) {
                     this.employees.splice(employeeIndex, 1, {
                         ...updatedEmployee,
@@ -389,8 +388,8 @@ export default {
                 this.showAddPayheadModal = false;
                 this.showSuccessMessage('Payheads saved successfully!');
             } catch (error) {
-                console.error('Error saving payheads:', error.response?.data || error);
-                this.showErrorMessage('Failed to save payheads.');
+                console.error('Error saving payheads:', error.response?.data || error.message);
+                this.showErrorMessage('Failed to save payheads: ' + (error.response?.data?.message || error.message));
             } finally {
                 this.isLoading = false;
             }

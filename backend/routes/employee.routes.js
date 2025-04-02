@@ -296,35 +296,71 @@ router.put('/:id', isAdmin, async (req, res) => {
         const employeeId = parseInt(req.params.id);
         const updateData = req.body;
 
-        console.log('Updating employee with id:', employeeId, 'Data:', updateData);
+        console.log('Received update for employee ID:', employeeId);
+        console.log('Full payload:', JSON.stringify(updateData, null, 2));
 
-        const employee = await Employee.findOne({ id: employeeId }); // Use custom id field
+        const employee = await Employee.findOne({ id: employeeId });
         if (!employee) {
+            console.log('Employee not found for ID:', employeeId);
             return res.status(404).json({ error: `Employee with id ${employeeId} not found` });
         }
 
-        // Update position history if needed
-        if (updateData.position || updateData.salary) {
+        // Validate payheads references
+        if (updateData.payheads) {
+            const invalidPayheads = updateData.payheads.filter(id => !mongoose.Types.ObjectId.isValid(id));
+            if (invalidPayheads.length > 0) {
+                console.log('Invalid payhead IDs:', invalidPayheads);
+                return res.status(400).json({ error: 'Invalid payhead IDs', invalid: invalidPayheads });
+            }
+
+            // Check if all payhead IDs exist
+            const payheadsExist = await PayHead.find({ _id: { $in: updateData.payheads } });
+            if (payheadsExist.length !== updateData.payheads.length) {
+                console.log('Some payhead IDs not found:', updateData.payheads);
+                return res.status(400).json({ error: 'One or more payhead IDs do not exist' });
+            }
+        }
+
+        // Only update fields defined in the schema
+        const allowedFields = [
+            'id', 'empNo', 'firstName', 'middleName', 'lastName', 'position', 'profilePicture',
+            'positionHistory', 'salary', 'hourlyRate', 'email', 'contactInfo', 'sss', 'philhealth',
+            'pagibig', 'tin', 'civilStatus', 'username', 'password', 'role', 'hireDate', 'earnings',
+            'payheads', 'commission', 'profitSharing', 'fees', 'thirteenthMonthPay', 'hazardPay',
+            'overtimeHours', 'nightShiftDiff', 'deMinimis', 'otherTaxable', 'paidLeaves', 'absences',
+            'status', 'trashedAt', 'resetToken', 'verificationCode', 'resetTokenExpires'
+        ];
+
+        const filteredUpdateData = {};
+        allowedFields.forEach(field => {
+            if (updateData[field] !== undefined) {
+                filteredUpdateData[field] = updateData[field];
+            }
+        });
+
+        console.log('Filtered update data:', JSON.stringify(filteredUpdateData, null, 2));
+
+        // Update position history if position or salary changes
+        if (filteredUpdateData.position || filteredUpdateData.salary) {
             const currentPosition = employee.positionHistory.find((h) => !h.endDate);
             if (currentPosition && 
-                ((updateData.position && updateData.position !== currentPosition.position) ||
-                 (updateData.salary && updateData.salary !== currentPosition.salary))) {
+                ((filteredUpdateData.position && filteredUpdateData.position !== currentPosition.position) ||
+                 (filteredUpdateData.salary && filteredUpdateData.salary !== currentPosition.salary))) {
                 currentPosition.endDate = new Date();
                 employee.positionHistory.push({
-                    position: updateData.position || currentPosition.position,
-                    salary: updateData.salary || currentPosition.salary,
+                    position: filteredUpdateData.position || currentPosition.position,
+                    salary: filteredUpdateData.salary || currentPosition.salary,
                     startDate: new Date(),
                     endDate: null,
                 });
             }
         }
 
-        // Update employee
-        delete updateData._id;
-        Object.assign(employee, updateData, { updatedAt: new Date() });
+        // Apply updates
+        Object.assign(employee, filteredUpdateData, { updatedAt: new Date() });
         const updatedEmployee = await employee.save();
 
-        console.log('Employee updated:', updatedEmployee);
+        console.log('Employee updated successfully:', updatedEmployee._id);
         res.status(200).json(updatedEmployee);
     } catch (error) {
         console.error('Error in PUT /api/employees/:id:', {
