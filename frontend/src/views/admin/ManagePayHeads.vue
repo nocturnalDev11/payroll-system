@@ -144,19 +144,27 @@ export default {
             this.isLoading = true;
             this.statusMessage = '';
             try {
+                console.log('Fetching payheads from:', `${BASE_API_URL}/api/payheads`);
+                console.log('Request headers:', { 'user-role': 'admin' });
                 const response = await axios.get(`${BASE_API_URL}/api/payheads`, {
                     headers: { 'user-role': 'admin' },
                 });
+                console.log('Raw payheads response:', response.status, response.data);
                 this.payHeads = (response.data || []).map(item => ({
                     ...item,
                     amount: Number(item.amount || 0),
                     isRecurring: item.isRecurring || false,
                     appliedThisCycle: item.appliedThisCycle || false,
                 }));
+                console.log('Processed payHeads:', this.payHeads);
                 this.showSuccessMessage('Pay heads loaded successfully!');
             } catch (error) {
-                console.error('Error fetching pay heads:', error);
-                this.showErrorMessage('Failed to load pay heads. Please try again.');
+                console.error('Error fetching pay heads:', {
+                    status: error.response?.status,
+                    data: error.response?.data,
+                    message: error.message,
+                });
+                this.showErrorMessage(`Failed to load pay heads: ${error.response?.data?.message || error.message}`);
                 this.payHeads = [];
             } finally {
                 this.isLoading = false;

@@ -15,7 +15,7 @@ const isAdmin = (req, res, next) => {
 router.get('/', isAdmin, async (req, res) => {
     try {
         const payheads = await PayHead.find().sort({ id: 1 });
-        console.log('Fetched pay heads:', payheads.length);
+        console.log('Fetched pay heads:', payheads.length, payheads);
         res.status(200).json(payheads);
     } catch (error) {
         console.error('Error fetching pay heads:', error);
