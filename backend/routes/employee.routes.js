@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const { verifyToken, restrictToAdmin } = require('../middlewares/authMiddleware.js');
 const Employee = require('../models/employee.model.js');
+const PayHead = require('../models/payHead.model.js');
 const Position = require('../models/position.model.js');
 const { 
   loginEmployee, 
