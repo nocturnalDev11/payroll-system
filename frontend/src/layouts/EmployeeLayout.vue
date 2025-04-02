@@ -9,7 +9,7 @@ import DropdownLink from '@/components/DropdownLink.vue';
 const router = useRouter();
 const authStore = useAuthStore();
 const employee = computed(() => authStore.employee);
-const imageLoadFailed = ref(false); // Track if image failed to load
+const imageLoadFailed = ref(false);
 
 onMounted(() => {
     if (!authStore.isAuthenticated) {

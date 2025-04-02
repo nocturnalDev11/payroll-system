@@ -1,243 +1,3 @@
-<template>
-    <div>
-        <!-- Main Content -->
-        <main class="flex-1 max-w-9xl mx-auto px-2 sm:px-4 lg:px-6 py-1">
-            <!-- Controls Section -->
-            <div class="bg-white rounded-lg shadow-sm p-3 mb-4 border border-gray-100">
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-                    <!-- Search Input -->
-                    <div class="md:col-span-5 relative">
-                        <label for="search" class="block text-xs font-medium text-gray-700 mb-0.5">Search</label>
-                        <div class="relative">
-                            <span
-                                class="material-icons absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-base">
-                                search
-                            </span>
-                            <input id="search" v-model="searchQuery" type="text"
-                                placeholder="Search by name or description..." class="w-full pl-8 pr-3 py-1.5 border rounded-md focus:ring-1 focus:ring-blue-500 
-                      focus:border-blue-500 outline-none transition-all text-sm" />
-                            <button v-if="searchQuery" @click="searchQuery = ''"
-                                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
-                                title="Clear Search">
-                                <span class="material-icons text-base">clear</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Filter Dropdown -->
-                    <div class="md:col-span-3">
-                        <label for="filter" class="block text-xs font-medium text-gray-700 mb-0.5">Filter Type</label>
-                        <div class="relative">
-                            <span
-                                class="material-icons absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-base">
-                                filter_list
-                            </span>
-                            <select id="filter" v-model="filterType" class="w-full pl-8 pr-7 py-1.5 border rounded-md appearance-none focus:ring-1 
-                      focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
-                                <option value="">All Types</option>
-                                <option value="Earnings">Earnings</option>
-                                <option value="Deductions">Deductions</option>
-                                <option value="Recurring Deductions">Recurring Deductions</option>
-                            </select>
-                            <span
-                                class="material-icons absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-base">
-                                arrow_drop_down
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- View Toggle -->
-                    <div class="md:col-span-4">
-                        <label class="block text-xs font-medium text-gray-700 mb-0.5">View</label>
-                        <div class="flex rounded-md bg-gray-100 p-0.5 shadow-inner">
-                            <button v-for="tab in ['payheads', 'employees']" :key="tab" @click="activeTab = tab"
-                                class="flex-1 px-3 py-1.5 rounded-sm text-xs font-medium transition-all"
-                                :class="activeTab === tab ? 'bg-white text-blue-600 shadow' : 'text-gray-600 hover:text-gray-900'">
-                                <div class="flex items-center justify-center gap-1">
-                                    <span class="material-icons text-xs">
-                                        {{ tab === 'payheads' ? 'payments' : 'people' }}
-                                    </span>
-                                    {{ tab.charAt(0).toUpperCase() + tab.slice(1) }}
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons Section (Always Visible) -->
-            <div v-if="!isLoading" class="mb-4 flex items-center justify-between px-4 py-2 bg-gray-50 rounded-lg shadow-sm border border-gray-100">
-                <h2 class="text-base font-medium text-gray-900">
-                    {{ activeTab === 'payheads' ? 'Pay Heads' : 'Employees' }}
-                </h2>
-                <div class="flex items-center space-x-2">
-                    <button v-if="activeTab === 'payheads'" @click="showAddModal = true" class="inline-flex items-center px-2 py-0.5 bg-blue-600 text-white rounded-sm 
-                        text-xs font-medium hover:bg-blue-700 focus:outline-none focus:ring-1 
-                        focus:ring-offset-1 focus:ring-blue-500 transition-all shadow-sm transform hover:scale-105">
-                        <span class="material-icons text-xs mr-1">add</span>
-                        New Pay Head
-                    </button>
-                    <button v-if="activeTab === 'payheads'" @click="showRecurringDeductionModal = true" class="inline-flex items-center px-2 py-0.5 bg-green-600 text-white rounded-sm 
-                        text-xs font-medium hover:bg-green-700 focus:outline-none focus:ring-1 
-                        focus:ring-offset-1 focus:ring-green-500 transition-all shadow-sm transform hover:scale-105">
-                        <span class="material-icons text-xs mr-1">repeat</span>
-                        Add Recurring Deduction
-                    </button>
-                    <!-- Temporary Test Button -->
-                    <button v-if="activeTab === 'employees'" @click="testOpenAddPayheadModal"
-                        class="inline-flex items-center px-2 py-0.5 bg-purple-600 text-white rounded-sm 
-                        text-xs font-medium hover:bg-purple-700 focus:outline-none focus:ring-1 
-                        focus:ring-offset-1 focus:ring-purple-500 transition-all shadow-sm transform hover:scale-105">
-                        <span class="material-icons text-xs mr-1">bug_report</span>
-                        Test Add Payhead Modal
-                    </button>
-                </div>
-            </div>
-
-            <!-- Loading State -->
-            <div v-if="isLoading" class="bg-white rounded-lg shadow-sm flex justify-center items-center p-10">
-                <div class="flex flex-col items-center">
-                    <div class="loader ease-linear rounded-full border-2 border-t-2 border-gray-200 h-8 w-8 mb-2"></div>
-                    <h2 class="text-center text-gray-600 text-base font-semibold">Loading...</h2>
-                    <p class="w-full text-center text-gray-500 text-xs">Please wait while we fetch the data</p>
-                </div>
-            </div>
-
-            <!-- Empty State -->
-            <div v-else-if="(activeTab === 'payheads' && filteredPayHeads.length === 0) ||
-                (activeTab === 'employees' && filteredEmployees.length === 0)"
-                class="bg-white rounded-lg shadow-sm border border-gray-100">
-                <div class="flex flex-col items-center justify-center py-8 px-3 sm:px-4 lg:px-6">
-                    <div class="rounded-full bg-blue-100 p-2 mb-2">
-                        <span class="material-icons text-blue-600 text-lg">search_off</span>
-                    </div>
-                    <h3 class="text-base font-medium text-gray-900">No results found</h3>
-                    <p class="mt-1 text-gray-500 text-center max-w-sm text-xs">
-                        We couldn't find any {{ activeTab }} that match your search criteria. Try adjusting your filters
-                        or search terms.
-                    </p>
-                    <button @click="resetFilters"
-                        class="mt-2 p-1.5 rounded-sm text-gray-700 hover:text-gray-900 bg-white border border-gray-300 shadow-sm 
-                   focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-blue-500 transition-all transform hover:scale-105"
-                        title="Reset Filters">
-                        <span class="material-icons text-base">refresh</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Data Table Section -->
-            <div v-else class="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
-                <!-- Table Header (Only show item count here) -->
-                <div v-if="activeTab === 'payheads'" class="px-4 py-2 border-b bg-gray-50">
-                    <div class="text-xs text-gray-500">
-                        Showing {{ filteredPayHeads.length }} {{ filteredPayHeads.length === 1 ? 'item' : 'items' }}
-                    </div>
-                </div>
-
-                <!-- Table Content -->
-                <div class="overflow-x-auto">
-                    <component :is="activeTab === 'payheads' ? 'PayHeadTable' : 'EmployeePayrollTable'"
-                        :payHeads="filteredPayHeads" :employees="paginatedEmployees" @update="showUpdatePayHeadModal"
-                        @delete="confirmDeletePayHead" @addPayhead="openAddPayheadModal" />
-                </div>
-
-                <!-- Pagination -->
-                <div v-if="activeTab === 'employees' && totalPages > 1"
-                    class="flex items-center justify-between px-4 py-2 bg-gray-50 border-t">
-                    <div class="text-xs text-gray-700">
-                        Showing <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span> to
-                        <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, filteredEmployees.length)
-                        }}</span> of
-                        <span class="font-medium">{{ filteredEmployees.length }}</span> entries
-                    </div>
-
-                    <div class="flex items-center space-x-1">
-                        <button @click="prevPage" :disabled="currentPage === 1"
-                            class="p-1 rounded-md hover:bg-blue-100 transition-all disabled:opacity-50 disabled:hover:bg-transparent"
-                            :class="currentPage === 1 ? 'text-gray-400' : 'text-gray-700'" title="Previous Page">
-                            <span class="material-icons text-base">chevron_left</span>
-                        </button>
-
-                        <div class="flex items-center gap-0.5">
-                            <template v-for="page in displayedPages" :key="page">
-                                <button v-if="typeof page === 'number'" @click="currentPage = page"
-                                    class="min-w-[24px] h-6 rounded-md text-xs font-medium transition-all"
-                                    :class="currentPage === page ? 'bg-blue-600 text-white' : 'hover:bg-blue-100 text-gray-700'">
-                                    {{ page }}
-                                </button>
-                                <span v-else-if="page === '...'" class="px-1 text-gray-500 text-xs">...</span>
-                            </template>
-                        </div>
-
-                        <button @click="nextPage" :disabled="currentPage === totalPages"
-                            class="p-1 rounded-md hover:bg-blue-100 transition-all disabled:opacity-50 disabled:hover:bg-transparent"
-                            :class="currentPage === totalPages ? 'text-gray-400' : 'text-gray-700'" title="Next Page">
-                            <span class="material-icons text-base">chevron_right</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <!-- Modals -->
-        <transition name="modal-fade">
-            <PayHeadModal v-if="showAddModal" :payHead="newPayHead" title="Add New Pay Head"
-                @close="showAddModal = false" @save="addPayHead" />
-        </transition>
-
-        <transition name="modal-fade">
-            <PayHeadModal v-if="showUpdateModal" :payHead="selectedPayHead" :isUpdate="true" title="Update Pay Head"
-                @close="showUpdateModal = false" @save="updatePayHead" />
-        </transition>
-
-        <transition name="modal-fade">
-            <AddPayheadModal v-if="showAddPayheadModal" :availablePayheads="availablePayheads"
-                :selectedEmployeePayheads="selectedEmployeePayheads" :selectedEmployee="selectedEmployee"
-                :totalPayableSalary="totalPayableSalary" @close="showAddPayheadModal = false" @save="savePayheads"
-                @addPayhead="addPayheadToEmployee" @removePayhead="removePayheadFromEmployee"
-                @updatePayhead="updatePayheadInEmployee" />
-        </transition>
-
-        <transition name="modal-fade">
-            <RecurringDeductionModal v-if="showRecurringDeductionModal"
-                :availableDeductions="filteredPayHeads.filter(p => p.type === 'Deductions')" :employees="employees"
-                @close="showRecurringDeductionModal = false" @save="saveRecurringDeductions" />
-        </transition>
-
-        <!-- Toast Notifications -->
-        <div class="fixed bottom-2 right-2 z-50 space-y-2">
-            <TransitionGroup enter-active-class="transform ease-out duration-300 transition"
-                enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-                enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
-                leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100"
-                leave-to-class="opacity-0" move-class="transition duration-500">
-                <div v-if="statusMessage" :key="statusMessage" class="max-w-xs w-full bg-white rounded-md shadow-lg pointer-events-auto
-                ring-1 ring-black ring-opacity-5 overflow-hidden">
-                    <div class="p-2">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <span class="material-icons text-base"
-                                    :class="statusMessage.includes('success') ? 'text-green-500' : 'text-red-500'">
-                                    {{ statusMessage.includes('success') ? 'check_circle' : 'error' }}
-                                </span>
-                            </div>
-                            <div class="ml-2 flex-1">
-                                <p class="text-xs font-medium text-gray-900">
-                                    {{ statusMessage }}
-                                </p>
-                            </div>
-                            <button @click="statusMessage = ''" class="ml-2 flex-shrink-0 rounded-sm text-gray-400 hover:text-gray-500 
-                      focus:outline-none focus:ring-1 focus:ring-blue-500" title="Close Notification">
-                                <span class="material-icons text-base">close</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </TransitionGroup>
-        </div>
-    </div>
-</template>
-
 <script>
 import axios from 'axios';
 import { BASE_API_URL } from '@/utils/constants.js';
@@ -766,11 +526,243 @@ export default {
     },
 
     created() {
-        this.initializeData(); // Use a single method to handle both fetches
+        this.initializeData();
         setInterval(() => this.resetPayheadsCycle(), 24 * 60 * 60 * 1000);
     },
 };
 </script>
+
+<template>
+    <div>
+        <!-- Main Content -->
+        <main class="flex-1 max-w-9xl mx-auto px-2 sm:px-4 lg:px-6 py-1">
+            <!-- Controls Section -->
+            <div class="bg-white rounded-lg shadow-sm p-3 mb-4 border border-gray-100">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    <!-- Search Input -->
+                    <div class="md:col-span-5 relative">
+                        <label for="search" class="block text-xs font-medium text-gray-700 mb-0.5">Search</label>
+                        <div class="relative">
+                            <span
+                                class="material-icons absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-base">
+                                search
+                            </span>
+                            <input id="search" v-model="searchQuery" type="text"
+                                placeholder="Search by name or description..." class="w-full pl-8 pr-3 py-1.5 border rounded-md focus:ring-1 focus:ring-blue-500 
+                      focus:border-blue-500 outline-none transition-all text-sm" />
+                            <button v-if="searchQuery" @click="searchQuery = ''"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                                title="Clear Search">
+                                <span class="material-icons text-base">clear</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Dropdown -->
+                    <div class="md:col-span-3">
+                        <label for="filter" class="block text-xs font-medium text-gray-700 mb-0.5">Filter Type</label>
+                        <div class="relative">
+                            <span
+                                class="material-icons absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-base">
+                                filter_list
+                            </span>
+                            <select id="filter" v-model="filterType" class="w-full pl-8 pr-7 py-1.5 border rounded-md appearance-none focus:ring-1 
+                      focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
+                                <option value="">All Types</option>
+                                <option value="Earnings">Earnings</option>
+                                <option value="Deductions">Deductions</option>
+                                <option value="Recurring Deductions">Recurring Deductions</option>
+                            </select>
+                            <span
+                                class="material-icons absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-base">
+                                arrow_drop_down
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- View Toggle -->
+                    <div class="md:col-span-4">
+                        <label class="block text-xs font-medium text-gray-700 mb-0.5">View</label>
+                        <div class="flex rounded-md bg-gray-100 p-0.5 shadow-inner">
+                            <button v-for="tab in ['payheads', 'employees']" :key="tab" @click="activeTab = tab"
+                                class="flex-1 px-3 py-1.5 rounded-sm text-xs font-medium transition-all"
+                                :class="activeTab === tab ? 'bg-white text-blue-600 shadow' : 'text-gray-600 hover:text-gray-900'">
+                                <div class="flex items-center justify-center gap-1">
+                                    <span class="material-icons text-xs">
+                                        {{ tab === 'payheads' ? 'payments' : 'people' }}
+                                    </span>
+                                    {{ tab.charAt(0).toUpperCase() + tab.slice(1) }}
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons Section (Always Visible) -->
+            <div v-if="!isLoading" class="mb-4 flex items-center justify-between px-4 py-2 bg-gray-50 rounded-lg shadow-sm border border-gray-100">
+                <h2 class="text-base font-medium text-gray-900">
+                    {{ activeTab === 'payheads' ? 'Pay Heads' : 'Employees' }}
+                </h2>
+                <div class="flex items-center space-x-2">
+                    <button v-if="activeTab === 'payheads'" @click="showAddModal = true" class="inline-flex items-center px-2 py-0.5 bg-blue-600 text-white rounded-sm 
+                        text-xs font-medium hover:bg-blue-700 focus:outline-none focus:ring-1 
+                        focus:ring-offset-1 focus:ring-blue-500 transition-all shadow-sm transform hover:scale-105">
+                        <span class="material-icons text-xs mr-1">add</span>
+                        New Pay Head
+                    </button>
+                    <button v-if="activeTab === 'payheads'" @click="showRecurringDeductionModal = true" class="inline-flex items-center px-2 py-0.5 bg-green-600 text-white rounded-sm 
+                        text-xs font-medium hover:bg-green-700 focus:outline-none focus:ring-1 
+                        focus:ring-offset-1 focus:ring-green-500 transition-all shadow-sm transform hover:scale-105">
+                        <span class="material-icons text-xs mr-1">repeat</span>
+                        Add Recurring Deduction
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div v-if="isLoading" class="bg-white rounded-lg shadow-sm flex justify-center items-center p-10">
+                <div class="flex flex-col items-center">
+                    <div class="loader ease-linear rounded-full border-2 border-t-2 border-gray-200 h-8 w-8 mb-2"></div>
+                    <h2 class="text-center text-gray-600 text-base font-semibold">Loading...</h2>
+                    <p class="w-full text-center text-gray-500 text-xs">Please wait while we fetch the data</p>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-else-if="(activeTab === 'payheads' && filteredPayHeads.length === 0) ||
+                (activeTab === 'employees' && filteredEmployees.length === 0)"
+                class="bg-white rounded-lg shadow-sm border border-gray-100">
+                <div class="flex flex-col items-center justify-center py-8 px-3 sm:px-4 lg:px-6">
+                    <div class="rounded-full bg-blue-100 p-2 mb-2">
+                        <span class="material-icons text-blue-600 text-lg">search_off</span>
+                    </div>
+                    <h3 class="text-base font-medium text-gray-900">No results found</h3>
+                    <p class="mt-1 text-gray-500 text-center max-w-sm text-xs">
+                        We couldn't find any {{ activeTab }} that match your search criteria. Try adjusting your filters
+                        or search terms.
+                    </p>
+                    <button @click="resetFilters"
+                        class="mt-2 p-1.5 rounded-sm text-gray-700 hover:text-gray-900 bg-white border border-gray-300 shadow-sm 
+                   focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-blue-500 transition-all transform hover:scale-105"
+                        title="Reset Filters">
+                        <span class="material-icons text-base">refresh</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Data Table Section -->
+            <div v-else class="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
+                <!-- Table Header (Only show item count here) -->
+                <div v-if="activeTab === 'payheads'" class="px-4 py-2 border-b bg-gray-50">
+                    <div class="text-xs text-gray-500">
+                        Showing {{ filteredPayHeads.length }} {{ filteredPayHeads.length === 1 ? 'item' : 'items' }}
+                    </div>
+                </div>
+
+                <!-- Table Content -->
+                <div class="overflow-x-auto">
+                    <component :is="activeTab === 'payheads' ? 'PayHeadTable' : 'EmployeePayrollTable'"
+                        :payHeads="filteredPayHeads" :employees="paginatedEmployees" @update="showUpdatePayHeadModal"
+                        @delete="confirmDeletePayHead" @addPayhead="openAddPayheadModal" />
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="activeTab === 'employees' && totalPages > 1"
+                    class="flex items-center justify-between px-4 py-2 bg-gray-50 border-t">
+                    <div class="text-xs text-gray-700">
+                        Showing <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span> to
+                        <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, filteredEmployees.length)
+                        }}</span> of
+                        <span class="font-medium">{{ filteredEmployees.length }}</span> entries
+                    </div>
+
+                    <div class="flex items-center space-x-1">
+                        <button @click="prevPage" :disabled="currentPage === 1"
+                            class="p-1 rounded-md hover:bg-blue-100 transition-all disabled:opacity-50 disabled:hover:bg-transparent"
+                            :class="currentPage === 1 ? 'text-gray-400' : 'text-gray-700'" title="Previous Page">
+                            <span class="material-icons text-base">chevron_left</span>
+                        </button>
+
+                        <div class="flex items-center gap-0.5">
+                            <template v-for="page in displayedPages" :key="page">
+                                <button v-if="typeof page === 'number'" @click="currentPage = page"
+                                    class="min-w-[24px] h-6 rounded-md text-xs font-medium transition-all"
+                                    :class="currentPage === page ? 'bg-blue-600 text-white' : 'hover:bg-blue-100 text-gray-700'">
+                                    {{ page }}
+                                </button>
+                                <span v-else-if="page === '...'" class="px-1 text-gray-500 text-xs">...</span>
+                            </template>
+                        </div>
+
+                        <button @click="nextPage" :disabled="currentPage === totalPages"
+                            class="p-1 rounded-md hover:bg-blue-100 transition-all disabled:opacity-50 disabled:hover:bg-transparent"
+                            :class="currentPage === totalPages ? 'text-gray-400' : 'text-gray-700'" title="Next Page">
+                            <span class="material-icons text-base">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Modals -->
+        <transition name="modal-fade">
+            <PayHeadModal v-if="showAddModal" :payHead="newPayHead" title="Add New Pay Head"
+                @close="showAddModal = false" @save="addPayHead" />
+        </transition>
+
+        <transition name="modal-fade">
+            <PayHeadModal v-if="showUpdateModal" :payHead="selectedPayHead" :isUpdate="true" title="Update Pay Head"
+                @close="showUpdateModal = false" @save="updatePayHead" />
+        </transition>
+
+        <transition name="modal-fade">
+            <AddPayheadModal v-if="showAddPayheadModal" :availablePayheads="availablePayheads"
+                :selectedEmployeePayheads="selectedEmployeePayheads" :selectedEmployee="selectedEmployee"
+                :totalPayableSalary="totalPayableSalary" @close="showAddPayheadModal = false" @save="savePayheads"
+                @addPayhead="addPayheadToEmployee" @removePayhead="removePayheadFromEmployee"
+                @updatePayhead="updatePayheadInEmployee" />
+        </transition>
+
+        <transition name="modal-fade">
+            <RecurringDeductionModal v-if="showRecurringDeductionModal"
+                :availableDeductions="filteredPayHeads.filter(p => p.type === 'Deductions')" :employees="employees"
+                @close="showRecurringDeductionModal = false" @save="saveRecurringDeductions" />
+        </transition>
+
+        <!-- Toast Notifications -->
+        <div class="fixed bottom-2 right-2 z-50 space-y-2">
+            <TransitionGroup enter-active-class="transform ease-out duration-300 transition"
+                enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+                enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+                leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100"
+                leave-to-class="opacity-0" move-class="transition duration-500">
+                <div v-if="statusMessage" :key="statusMessage" class="max-w-xs w-full bg-white rounded-md shadow-lg pointer-events-auto
+                ring-1 ring-black ring-opacity-5 overflow-hidden">
+                    <div class="p-2">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <span class="material-icons text-base"
+                                    :class="statusMessage.includes('success') ? 'text-green-500' : 'text-red-500'">
+                                    {{ statusMessage.includes('success') ? 'check_circle' : 'error' }}
+                                </span>
+                            </div>
+                            <div class="ml-2 flex-1">
+                                <p class="text-xs font-medium text-gray-900">
+                                    {{ statusMessage }}
+                                </p>
+                            </div>
+                            <button @click="statusMessage = ''" class="ml-2 flex-shrink-0 rounded-sm text-gray-400 hover:text-gray-500 
+                      focus:outline-none focus:ring-1 focus:ring-blue-500" title="Close Notification">
+                                <span class="material-icons text-base">close</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </TransitionGroup>
+        </div>
+    </div>
+</template>
 
 <style scoped>
 /* Modal animation */
