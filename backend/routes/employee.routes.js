@@ -8,11 +8,11 @@ const Employee = require('../models/employee.model.js');
 const PayHead = require('../models/payHead.model.js');
 const Position = require('../models/position.model.js');
 const { 
-  loginEmployee, 
-  registerEmployee,
-  forgotPassword,
-  resetPassword,
-  getPendingEmployees
+    loginEmployee, 
+    registerEmployee,
+    forgotPassword,
+    resetPassword,
+    getPendingEmployees
 } = require('../controllers/employee/auth/employeeAuth.controller');
 const { 
     getTotalEmployees,
@@ -364,7 +364,7 @@ router.put('/:id', isAdmin, async (req, res) => {
 // Update a pending request by ID (admin only)
 router.put('/pending-requests/:id', isAdmin, async (req, res) => {
     try {
-        const requestId = req.params.id; // This is the _id (ObjectId)
+        const requestId = req.params.id;
         const updateData = req.body;
 
         console.log('Updating pending request with _id:', requestId, 'Data:', updateData);
