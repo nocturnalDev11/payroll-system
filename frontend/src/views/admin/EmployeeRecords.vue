@@ -152,6 +152,7 @@
 import axios from 'axios';
 import moment from 'moment';
 import { useAuthStore } from '@/stores/auth.store';
+import { BASE_API_URL } from '@/utils/constants';
 
 export default {
     name: 'EmployeeRecords',
@@ -178,33 +179,46 @@ export default {
     },
     methods: {
         async fetchEmployeeData() {
+            const authStore = useAuthStore();
             try {
-                const response = await axios.get('/api/employees', {
+                const response = await axios.get(`${BASE_API_URL}/api/employees`, {
                     headers: {
-                        'user-role': 'admin',
-                        'user-id': localStorage.getItem('userId') || '1',
+                        'Authorization': `Bearer ${authStore.accessToken}`,
+                        'user-role': authStore.userRole || 'admin',
+                        'user-id': authStore.admin?.id || authStore.employee?.id || '1',
                     },
                 });
 
-                if (!response.data) {
-                    throw new Error('Invalid response from server');
+                // Log the raw response for debugging
+                console.log('API Response:', response.data);
+
+                if (!response.data || typeof response.data !== 'object') {
+                    throw new Error('Invalid response from server: Data is not an object');
                 }
 
-                if (response.data.length === 0) {
+                // Handle error responses from the API
+                if (response.data.error) {
+                    throw new Error(response.data.error || 'API returned an error');
+                }
+
+                const employeeData = Array.isArray(response.data) ? response.data : response.data.employees || [];
+                if (employeeData.length === 0) {
                     this.errorMessage = 'No employee records found.';
                     this.employees = [];
                     return;
                 }
 
-                this.employees = response.data.map(emp => ({
+                this.employees = employeeData.map(emp => ({
                     ...emp,
-                    positionHistory: Array.isArray(emp.positionHistory) && emp.positionHistory.length > 0 ? emp.positionHistory : [{
-                        position: emp.position || 'N/A',
-                        salary: emp.salary || 0,
-                        startDate: emp.hireDate || this.currentDate.toISOString().split('T')[0],
-                        endDate: null
-                    }],
-                    name: emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim(),
+                    positionHistory: Array.isArray(emp.positionHistory) && emp.positionHistory.length > 0
+                        ? emp.positionHistory
+                        : [{
+                            position: emp.position || 'N/A',
+                            salary: emp.salary || 0,
+                            startDate: emp.hireDate || this.currentDate.toISOString().split('T')[0],
+                            endDate: null
+                        }],
+                    name: emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unnamed Employee',
                     position: this.getLatestPosition(emp).position,
                     salary: this.getLatestPosition(emp).salary,
                     salaryMonth: emp.salaryMonth || moment(emp.hireDate).format('YYYY-MM')
@@ -213,13 +227,14 @@ export default {
                 this.errorMessage = '';
             } catch (error) {
                 console.error('Error fetching employee data:', error);
-                this.errorMessage = 'Failed to load employee records. Please check your connection or try again later.';
+                this.errorMessage = `Failed to load employee records: ${error.message || 'Unknown error'}. Please check your connection or try again later.`;
                 this.employees = [];
             }
         },
+        
         async fetchAllTaxContributions() {
             try {
-                const response = await axios.get('/api/tax-contributions', {
+                const response = await axios.get(`${BASE_API_URL}/api/tax-contributions`, {
                     headers: { 'user-role': 'admin' },
                 });
                 this.allTaxContributions = response.data.reduce((acc, contribution) => {
@@ -345,7 +360,7 @@ export default {
                     salaryMonth: contribution.salaryMonth
                 }));
 
-                const response = await axios.post('/api/tax-contributions', payload, {
+                const response = await axios.post(` ${BASE_API_URL}/api/tax-contributions`, payload, {
                     headers: { 'user-role': 'admin' },
                 });
 

@@ -133,45 +133,50 @@ exports.permanentDeleteEmployee = asyncHandler(async (req, res) => {
 
 // Get all employees
 exports.getAllEmployees = asyncHandler(async (req, res) => {
-    const { month } = req.query;
-    if (month && !/^\d{4}-\d{2}$/.test(month)) {
-        return res.status(400).json({ error: 'Invalid month format: must be YYYY-MM' });
-    }
+    try {
+        const { month } = req.query;
+        if (month && !/^\d{4}-\d{2}$/.test(month)) {
+            return res.status(400).json({ error: 'Invalid month format: must be YYYY-MM' });
+        }
 
-    let query = { status: { $ne: 'trashed' } };
-    if (month) {
-        const endOfMonth = new Date(`${month}-31T23:59:59.999Z`);
-        const startOfMonth = new Date(`${month}-01T00:00:00.000Z`);
-        query.$and = [
-            { status: { $ne: 'trashed' } },
-            {
-                $or: [
-                    {
-                        hireDate: { $lte: endOfMonth },
-                        'positionHistory': {
-                            $elemMatch: {
-                                startDate: { $lte: endOfMonth },
-                                $or: [{ endDate: { $gte: startOfMonth } }, { endDate: null }]
+        let query = { status: { $ne: 'trashed' } };
+        if (month) {
+            const endOfMonth = new Date(`${month}-31T23:59:59.999Z`);
+            const startOfMonth = new Date(`${month}-01T00:00:00.000Z`);
+            query.$and = [
+                { status: { $ne: 'trashed' } },
+                {
+                    $or: [
+                        {
+                            hireDate: { $lte: endOfMonth },
+                            'positionHistory': {
+                                $elemMatch: {
+                                    startDate: { $lte: endOfMonth },
+                                    $or: [{ endDate: { $gte: startOfMonth } }, { endDate: null }]
+                                }
                             }
-                        }
-                    },
-                    { hireDate: { $lte: endOfMonth }, 'positionHistory.0.endDate': null }
-                ]
-            }
-        ];
+                        },
+                        { hireDate: { $lte: endOfMonth }, 'positionHistory.0.endDate': null }
+                    ]
+                }
+            ];
+        }
+
+        const employees = await Employee.find(query)
+            .populate({ path: 'payheads', select: 'id name amount type' })
+            .sort({ empNo: 1 })
+            .select('-password');
+
+        if (!employees.length) return res.status(200).json([]);
+        const employeesWithMonth = employees.map(emp => ({
+            ...emp._doc,
+            salaryMonth: month || new Date(emp.hireDate).toISOString().slice(0, 7)
+        }));
+        res.status(200).json(employeesWithMonth);
+    } catch (error) {
+        console.error('Error in getAllEmployees:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
-
-    const employees = await Employee.find(query)
-        .populate({ path: 'payheads', select: 'id name amount type' })
-        .sort({ empNo: 1 })
-        .select('-password');
-
-    if (!employees.length) return res.status(200).json([]);
-    const employeesWithMonth = employees.map(emp => ({
-        ...emp._doc,
-        salaryMonth: month || new Date(emp.hireDate).toISOString().slice(0, 7)
-    }));
-    res.status(200).json(employeesWithMonth);
 });
 
 // Get single employee by ID (with /trash workaround)
