@@ -161,6 +161,7 @@ export default {
             const payDates = [];
             let backendContributions = this.allTaxContributions[this.currentEmployee.id] || [];
 
+            // Generate pay dates
             let currentDate = hireDate.clone().startOf('month');
             while (currentDate.isSameOrBefore(today, 'day')) {
                 const month = currentDate.month();
@@ -179,13 +180,17 @@ export default {
                 currentDate.add(1, 'month').startOf('month');
             }
 
-            this.taxContributions = payDates.map(payDate => {
+            // Aggregate contributions by unique position periods
+            const positionPeriods = [];
+            let currentPeriod = null;
+
+            payDates.forEach(payDate => {
                 const positionAtDate = this.getActivePositionForDate(this.currentEmployee.positionHistory, payDate);
                 const salary = positionAtDate.salary;
                 const salaryMonth = moment(payDate).format('YYYY-MM');
                 const existing = backendContributions.find(c => moment(c.payDate).isSame(payDate, 'day')) || {};
 
-                return {
+                const contribution = {
                     payDate,
                     position: positionAtDate.position,
                     salary: salary,
@@ -196,19 +201,47 @@ export default {
                     salaryMonth,
                     employeeId: this.currentEmployee.id
                 };
+
+                if (!currentPeriod || currentPeriod.position !== positionAtDate.position) {
+                    if (currentPeriod) {
+                        positionPeriods.push(currentPeriod);
+                    }
+                    currentPeriod = {
+                        position: positionAtDate.position,
+                        salary: salary,
+                        startDate: payDate,
+                        endDate: null,
+                        contributions: [contribution]
+                    };
+                } else {
+                    currentPeriod.contributions.push(contribution);
+                    currentPeriod.endDate = payDate; // Update end date to the latest pay date
+                }
             });
 
+            if (currentPeriod) {
+                positionPeriods.push(currentPeriod);
+            }
+
+            // Flatten contributions for display, but keep track of periods
+            this.taxContributions = positionPeriods.flatMap(period => period.contributions);
+            this.positionPeriods = positionPeriods; // Store periods for potential use in the template
             this.filterTaxContributions();
         },
 
         filterTaxContributions() {
             if (!this.selectedMonth) {
                 this.filteredTaxContributions = [...this.taxContributions];
+                this.filteredPositionPeriods = [...this.positionPeriods];
             } else {
                 const filterMonth = moment(this.selectedMonth, 'YYYY-MM');
                 this.filteredTaxContributions = this.taxContributions.filter(entry =>
                     moment(entry.payDate).isSame(filterMonth, 'month')
                 );
+                this.filteredPositionPeriods = this.positionPeriods.map(period => ({
+                    ...period,
+                    contributions: period.contributions.filter(c => moment(c.payDate).isSame(filterMonth, 'month'))
+                })).filter(period => period.contributions.length > 0);
             }
         },
 
@@ -427,8 +460,7 @@ export default {
                 </div>
 
                 <transition name="modal-fade">
-                    <div v-if="showTaxModal"
-                        class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div v-if="showTaxModal" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
                         <div class="bg-white p-5 rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-y-auto">
                             <div class="flex justify-between items-center mb-4">
                                 <h2 class="text-lg font-bold text-gray-800">
@@ -453,7 +485,7 @@ export default {
                                         <tr>
                                             <th
                                                 class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                Pay Date</th>
+                                                Period</th>
                                             <th
                                                 class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                                 Position</th>
@@ -478,29 +510,37 @@ export default {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr v-for="entry in filteredTaxContributions" :key="entry.payDate"
+                                        <tr v-for="period in filteredPositionPeriods" :key="period.startDate"
                                             class="hover:bg-gray-50">
-                                            <td class="border px-4 py-2 text-sm text-gray-900">{{
-                                                formatDate(entry.payDate) }}</td>
-                                            <td class="border px-4 py-2 text-sm text-gray-900">{{ entry.position }}</td>
+                                            <td class="border px-4 py-2 text-sm text-gray-900">
+                                                {{ formatDate(period.startDate) }} - {{ period.endDate ?
+                                                formatDate(period.endDate) : 'Present' }}
+                                            </td>
+                                            <td class="border px-4 py-2 text-sm text-gray-900">{{ period.position }}
+                                            </td>
                                             <td class="border px-4 py-2 text-sm text-gray-900">₱{{
-                                                entry.salary.toLocaleString() }}</td>
+                                                period.salary.toLocaleString() }}</td>
                                             <td class="border px-4 py-2 text-sm text-gray-900">₱{{
-                                                entry.sss.toLocaleString() }}</td>
+                                                period.contributions.reduce((sum, c) => sum + c.sss, 0).toLocaleString()
+                                                }}</td>
                                             <td class="border px-4 py-2 text-sm text-gray-900">₱{{
-                                                entry.philhealth.toLocaleString() }}</td>
+                                                period.contributions.reduce((sum, c) => sum + c.philhealth,
+                                                0).toLocaleString() }}</td>
                                             <td class="border px-4 py-2 text-sm text-gray-900">₱{{
-                                                entry.hdmf.toLocaleString() }}</td>
+                                                period.contributions.reduce((sum, c) => sum + c.hdmf,
+                                                0).toLocaleString() }}</td>
                                             <td class="border px-4 py-2 text-sm text-gray-900">₱{{
-                                                entry.withholdingTax.toLocaleString() }}</td>
+                                                period.contributions.reduce((sum, c) => sum + c.withholdingTax,
+                                                0).toLocaleString() }}</td>
                                             <td class="border px-4 py-2 text-sm text-gray-900 font-semibold">
-                                                ₱{{ (entry.sss + entry.philhealth + entry.hdmf +
-                                                entry.withholdingTax).toLocaleString() }}
+                                                ₱{{period.contributions.reduce((sum, c) => sum + c.sss + c.philhealth +
+                                                    c.hdmf + c.withholdingTax, 0).toLocaleString() }}
                                             </td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
+
                             <div v-else class="text-center text-gray-500 py-4">
                                 No tax contributions available{{ selectedMonth ? ` for ${selectedMonth}` : '' }}.
                             </div>
