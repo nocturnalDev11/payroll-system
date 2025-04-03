@@ -128,26 +128,26 @@ export default {
                 };
             }
 
-            const targetDate = moment(date);
+            const targetDate = new Date(date);
             const sortedHistory = [...positionHistory].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
-            // Find the position that was active on the target date
-            for (let i = sortedHistory.length - 1; i >= 0; i--) {
-                const history = sortedHistory[i];
-                const startDate = moment(history.startDate);
-                const endDate = history.endDate ? moment(history.endDate) : moment('9999-12-31');
-                if (targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day')) {
-                    return {
+            let activePosition = null;
+            for (const history of sortedHistory) {
+                const startDate = new Date(history.startDate);
+                const endDate = history.endDate ? new Date(history.endDate) : new Date('9999-12-31');
+
+                if (targetDate >= startDate && targetDate <= endDate) {
+                    activePosition = {
                         position: history.position,
                         salary: history.salary,
                         startDate: history.startDate,
                         endDate: history.endDate
                     };
+                    break;
                 }
             }
 
-            // If no position matches, return the earliest position as a fallback
-            return {
+            return activePosition || {
                 position: sortedHistory[0].position,
                 salary: sortedHistory[0].salary,
                 startDate: sortedHistory[0].startDate,
