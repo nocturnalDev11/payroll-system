@@ -126,6 +126,16 @@ router.get('/:employeeId', async (req, res) => {
     }
 });
 
+router.get('/', async (req, res) => {
+    try {
+        const contributions = await Contribution.find().lean();
+        res.status(200).json(contributions);
+    } catch (error) {
+        console.error('Error fetching all contributions:', error);
+        res.status(500).json({ error: 'Failed to fetch contributions' });
+    }
+});
+
 // Helper functions to calculate contributions
 function calculatePagIBIGContribution(salary) {
     // Pag-IBIG: 2% of monthly salary (employee contribution), capped at ₱5,000 salary

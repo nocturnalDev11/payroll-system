@@ -231,10 +231,10 @@ export default {
                 this.employees = [];
             }
         },
-        
+
         async fetchAllTaxContributions() {
             try {
-                const response = await axios.get(`${BASE_API_URL}/api/tax-contributions`, {
+                const response = await axios.get(`${BASE_API_URL}/api/employee-contributions`, {
                     headers: { 'user-role': 'admin' },
                 });
                 this.allTaxContributions = response.data.reduce((acc, contribution) => {
@@ -250,6 +250,7 @@ export default {
                 this.allTaxContributions = {};
             }
         },
+
         openTaxModal(emp) {
             this.currentEmployee = emp;
             this.selectedMonth = ''; // Reset filter
