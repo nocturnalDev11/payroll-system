@@ -34,13 +34,13 @@ if (process.env.NODE_ENV !== 'production') {
 /* PRODUCTION ONLY (optional manual CORS) */
 // Uncomment this block if corsOptions in config/cors.js is insufficient for production.
 // In local dev, corsOptions handles CORS dynamically.
-// app.use((req, res, next) => {
-//   res.setHeader('Access-Control-Allow-Origin', 'https://payroll-system-frontend-pied.vercel.app');
-//   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
-//   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, user-role, user-id');
-//   res.setHeader('Access-Control-Allow-Credentials', 'true');
-//   next();
-// });
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://payroll-system-frontend-pied.vercel.app');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, user-role, user-id');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  next();
+});
 
 // Middleware (used in both local and production)
 app.use(express.json());
