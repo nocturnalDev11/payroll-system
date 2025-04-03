@@ -167,9 +167,11 @@ export default {
                     .map(emp => ({
                         ...emp,
                         id: emp.id,
+                        _id: emp._id,
                         hourlyRate: emp.hourlyRate || (emp.salary / (8 * 22)),
                         empNo: emp.empNo || `EMP-${String(emp.id).padStart(4, '0')}`,
                         hireDate: new Date(emp.hireDate).toISOString().slice(0, 10),
+                        payheads: Array.isArray(emp.payheads) ? emp.payheads : [], // Ensure payheads is an array
                         positionHistory: Array.isArray(emp.positionHistory) ? emp.positionHistory : [{
                             position: emp.position || 'N/A',
                             salary: emp.salary || 0,
@@ -241,6 +243,7 @@ export default {
         },
 
         editEmployee(employee) {
+            console.log('Editing employee:', employee);
             this.selectedEmployee = {
                 ...employee,
                 hireDate: new Date(employee.hireDate).toISOString().slice(0, 10),
@@ -260,9 +263,14 @@ export default {
         },
 
         async updateEmployee() {
+            if (!this.selectedEmployee._id || typeof this.selectedEmployee._id !== 'string') {
+                this.showErrorMessage('Invalid employee _id');
+                return;
+            }
+
             const requiredFields = [
                 'empNo', 'firstName', 'lastName', 'position', 'salary',
-                'email', 'contactInfo', 'username' // Removed 'password'
+                'email', 'contactInfo', 'username'
             ];
 
             const missingFields = requiredFields.filter(field => {
@@ -282,10 +290,9 @@ export default {
                 return;
             }
 
-            // Rest of the method remains unchanged
             this.isUpdating = true;
             try {
-                const originalEmployee = this.employees.find(emp => emp.id === this.selectedEmployee.id);
+                const originalEmployee = this.employees.find(emp => emp._id === this.selectedEmployee._id);
                 const positionChanged = originalEmployee.position !== this.selectedEmployee.position;
 
                 if (positionChanged) {
@@ -306,9 +313,26 @@ export default {
                     this.selectedEmployee.positionHistory = updatedPositionHistory;
                 }
 
+                // Clean and validate payheads
+                const cleanedEmployee = { ...this.selectedEmployee };
+                if (!Array.isArray(cleanedEmployee.payheads)) {
+                    cleanedEmployee.payheads = [];
+                } else {
+                    cleanedEmployee.payheads = cleanedEmployee.payheads.filter(id => {
+                        const isValidObjectId = typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id);
+                        if (!isValidObjectId) {
+                            console.warn(`Invalid payhead ID filtered out: ${id}`);
+                        }
+                        return isValidObjectId;
+                    });
+                }
+
+                console.log('Cleaned employee data for update:', cleanedEmployee);
+                console.log('Payheads after cleaning:', cleanedEmployee.payheads);
+
                 const response = await axios.put(
-                    `${BASE_API_URL}/api/employees/${this.selectedEmployee._id}`,
-                    this.selectedEmployee,
+                    `${BASE_API_URL}/api/employees/update/${this.selectedEmployee._id}`,
+                    cleanedEmployee,
                     {
                         headers: {
                             Authorization: `Bearer ${this.authStore.accessToken}`,
@@ -318,8 +342,8 @@ export default {
                 );
 
                 if (response.status === 200) {
-                    const index = this.employees.findIndex(emp => emp.id === this.selectedEmployee.id);
-                    if (index !== -1) this.employees[index] = { ...this.selectedEmployee };
+                    const index = this.employees.findIndex(emp => emp._id === this.selectedEmployee._id);
+                    if (index !== -1) this.employees[index] = { ...cleanedEmployee };
                     this.showEditModal = false;
                     this.showSuccessMessage('Employee updated successfully');
                 }
@@ -339,14 +363,19 @@ export default {
         async moveToTrash(id) {
             this.isDeleting = true;
             try {
-                const response = await axios.delete(`${BASE_API_URL}/api/employees/${id}`, {
+                const employee = this.employees.find(emp => emp.id === id);
+                if (!employee || !employee._id) {
+                this.showErrorMessage('Invalid employee _id');
+                return;
+                }
+                const response = await axios.delete(`${BASE_API_URL}/api/employees/${employee._id}`, {
                     headers: {
                         Authorization: `Bearer ${this.authStore.accessToken}`,
                         'user-role': this.authStore.userRole,
                     },
                 });
                 if (response.status === 200 || response.status === 204) {
-                    this.employees = this.employees.filter(emp => emp.id !== id); // Filter by custom id
+                    this.employees = this.employees.filter(emp => emp._id !== employee._id);
                     this.showDeleteModal = false;
                     this.showSuccessMessage('Employee moved to trash successfully');
                 }
