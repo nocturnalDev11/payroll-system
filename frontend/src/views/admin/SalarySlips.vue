@@ -662,8 +662,8 @@ export default {
                         ...employee,
                         id: employee._id,
                         name,
-                        position: latestPosition.position,
-                        salary: latestPosition.salary,
+                        position: latestPosition.position, // Use the latest position
+                        salary: latestPosition.salary, // Use the latest salary
                         positionHistory: Array.isArray(employee.positionHistory) && employee.positionHistory.length > 0 ? employee.positionHistory : [{
                             position: employee.position || 'N/A',
                             salary: employee.salary || 0,
@@ -950,13 +950,15 @@ export default {
                 };
             }
             const targetDate = moment(date);
-            const activePosition = positionHistory.find(history => {
+            // Sort position history by startDate to ensure chronological order
+            const sortedHistory = [...positionHistory].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            // Find the position that was active on the target date
+            const activePosition = sortedHistory.find(history => {
                 const startDate = moment(history.startDate);
-                // If endDate is null, the position is active indefinitely into the future
-                const endDate = history.endDate ? moment(history.endDate) : moment('9999-12-31');
+                const endDate = history.endDate ? moment(history.endDate) : moment('9999-12-31'); // Treat null endDate as ongoing
                 return targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day');
             });
-            return activePosition || positionHistory[positionHistory.length - 1];
+            return activePosition || sortedHistory[sortedHistory.length - 1]; // Fallback to the most recent position
         },
         async generatePayslipNow(employee) {
             this.payslipGenerationStatus.generating = true;
