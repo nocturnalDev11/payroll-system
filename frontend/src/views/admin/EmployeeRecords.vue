@@ -1,3 +1,389 @@
+<script>
+import axios from 'axios';
+import moment from 'moment';
+import { useAuthStore } from '@/stores/auth.store';
+import { BASE_API_URL } from '@/utils/constants';
+
+export default {
+    name: 'EmployeeRecords',
+    data() {
+        return {
+            employees: [],
+            currentEmployee: null,
+            selectedMonth: '',
+            errorMessage: '',
+            statusMessage: '',
+            showTaxModal: false,
+            taxContributions: [],
+            filteredTaxContributions: [],
+            allTaxContributions: {},
+            currentDate: new Date('2025-03-19'),
+            showUpdateModal: false,
+            selectedEmployeeForUpdate: '',
+            newPosition: '',
+            newSalary: ''
+        };
+    },
+    mounted() {
+        this.fetchEmployeeData();
+    },
+    methods: {
+        async fetchEmployeeData() {
+            const authStore = useAuthStore();
+            try {
+                const response = await axios.get(`${BASE_API_URL}/api/employees`, {
+                    headers: {
+                        'Authorization': `Bearer ${authStore.accessToken}`,
+                        'user-role': authStore.userRole || 'admin',
+                        'user-id': authStore.admin?.id || authStore.employee?.id || '1',
+                    },
+                });
+
+                console.log('API Response:', response.data);
+
+                if (!response.data || typeof response.data !== 'object') {
+                    throw new Error('Invalid response from server: Data is not an object');
+                }
+
+                if (response.data.error) {
+                    throw new Error(response.data.error || 'API returned an error');
+                }
+
+                const employeeData = Array.isArray(response.data) ? response.data : response.data.employees || [];
+                if (employeeData.length === 0) {
+                    this.errorMessage = 'No employee records found.';
+                    this.employees = [];
+                    return;
+                }
+
+                this.employees = employeeData.map(emp => ({
+                    ...emp,
+                    positionHistory: Array.isArray(emp.positionHistory) && emp.positionHistory.length > 0
+                        ? emp.positionHistory
+                        : [{
+                            position: emp.position || 'N/A',
+                            salary: emp.salary || 0,
+                            startDate: emp.hireDate || this.currentDate.toISOString().split('T')[0],
+                            endDate: null
+                        }],
+                    name: emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unnamed Employee',
+                    position: this.getLatestPosition(emp).position,
+                    salary: this.getLatestPosition(emp).salary,
+                    salaryMonth: emp.salaryMonth || moment(emp.hireDate).format('YYYY-MM')
+                }));
+                await this.fetchAllTaxContributions();
+                this.errorMessage = '';
+            } catch (error) {
+                console.error('Error fetching employee data:', error);
+                this.errorMessage = `Failed to load employee records: ${error.message || 'Unknown error'}. Please check your connection or try again later.`;
+                this.employees = [];
+            }
+        },
+
+        async fetchAllTaxContributions() {
+            try {
+                const response = await axios.get(`${BASE_API_URL}/api/employee-contributions`, {
+                    headers: { 'user-role': 'admin' },
+                });
+                this.allTaxContributions = response.data.reduce((acc, contribution) => {
+                    if (!acc[contribution.employeeId]) {
+                        acc[contribution.employeeId] = [];
+                    }
+                    acc[contribution.employeeId].push(contribution);
+                    return acc;
+                }, {});
+            } catch (error) {
+                console.error('Error fetching tax contributions:', error);
+                this.showErrorMessage('Failed to load tax contributions. Generating locally.');
+                this.allTaxContributions = {};
+            }
+        },
+
+        openTaxModal(emp) {
+            this.currentEmployee = emp;
+            console.log('Current Employee Position History:', emp.positionHistory);
+            this.selectedMonth = '';
+            this.calculateTaxContributions();
+            this.showTaxModal = true;
+        },
+
+        getLatestPosition(employee) {
+            if (!Array.isArray(employee.positionHistory) || employee.positionHistory.length === 0) {
+                return {
+                    position: employee.position || 'N/A',
+                    salary: employee.salary || 0,
+                    startDate: employee.hireDate || this.currentDate.toISOString().split('T')[0]
+                };
+            }
+            const sortedHistory = [...employee.positionHistory].sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+            return sortedHistory.find(h => !h.endDate) || sortedHistory[0];
+        },
+
+        getActivePositionForDate(positionHistory, date) {
+            if (!Array.isArray(positionHistory) || positionHistory.length === 0) {
+                return {
+                    position: 'N/A',
+                    salary: 0,
+                    startDate: this.currentEmployee?.hireDate || this.currentDate.toISOString().split('T')[0]
+                };
+            }
+
+            const targetDate = moment(date);
+            console.log('Target Date for Position Check:', targetDate.format('YYYY-MM-DD'));
+
+            const sortedHistory = [...positionHistory].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+            sortedHistory.forEach((history, index) => {
+                console.log(`History Entry ${index}:`, {
+                    position: history.position,
+                    salary: history.salary,
+                    startDate: history.startDate,
+                    endDate: history.endDate
+                });
+            });
+
+            const activePosition = sortedHistory.find(history => {
+                const startDate = moment(history.startDate);
+                const endDate = history.endDate ? moment(history.endDate) : moment('9999-12-31');
+                return targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day');
+            });
+
+            if (activePosition) {
+                console.log('Active Position Found:', activePosition);
+                return activePosition;
+            }
+
+            const pastPositions = sortedHistory.filter(history => moment(history.startDate).isSameOrBefore(targetDate, 'day'));
+            const fallbackPosition = pastPositions.length > 0 ? pastPositions[pastPositions.length - 1] : sortedHistory[0];
+            console.log('Fallback Position:', fallbackPosition);
+            return fallbackPosition;
+        },
+
+        calculateTaxContributions() {
+            if (!this.currentEmployee) return;
+
+            const hireDate = moment(this.currentEmployee.hireDate);
+            const today = moment(this.currentDate);
+            const payDates = [];
+            let backendContributions = this.allTaxContributions[this.currentEmployee.id] || [];
+
+            let currentDate = hireDate.clone().startOf('month');
+            while (currentDate.isSameOrBefore(today, 'day')) {
+                const month = currentDate.month();
+                const year = currentDate.year();
+
+                const midMonth = moment({ year, month, date: 15 });
+                if (midMonth.isSameOrAfter(hireDate, 'day') && midMonth.isSameOrBefore(today, 'day')) {
+                    payDates.push(midMonth.toDate());
+                }
+
+                const lastDay = currentDate.clone().endOf('month');
+                if (lastDay.isSameOrAfter(hireDate, 'day') && lastDay.isSameOrBefore(today, 'day')) {
+                    payDates.push(lastDay.toDate());
+                }
+
+                currentDate.add(1, 'month').startOf('month');
+            }
+
+            this.taxContributions = payDates.map(payDate => {
+                const positionAtDate = this.getActivePositionForDate(this.currentEmployee.positionHistory, payDate);
+                const salary = positionAtDate.salary;
+                const salaryMonth = moment(payDate).format('YYYY-MM');
+                const existing = backendContributions.find(c => moment(c.payDate).isSame(payDate, 'day')) || {};
+
+                return {
+                    payDate,
+                    position: positionAtDate.position,
+                    salary: salary,
+                    sss: existing.sss || this.calculateSSSContribution(salary),
+                    philhealth: existing.philhealth || this.calculatePhilHealthContribution(salary),
+                    hdmf: existing.hdmf || this.calculatePagIBIGContribution(salary),
+                    withholdingTax: existing.withholdingTax || this.calculateWithholdingTax({ ...this.currentEmployee, salary }),
+                    salaryMonth,
+                    employeeId: this.currentEmployee.id
+                };
+            });
+
+            this.filterTaxContributions();
+        },
+
+        filterTaxContributions() {
+            if (!this.selectedMonth) {
+                this.filteredTaxContributions = [...this.taxContributions];
+            } else {
+                const filterMonth = moment(this.selectedMonth, 'YYYY-MM');
+                this.filteredTaxContributions = this.taxContributions.filter(entry =>
+                    moment(entry.payDate).isSame(filterMonth, 'month')
+                );
+            }
+        },
+
+        async saveTaxContributions() {
+            if (!this.taxContributions.length) {
+                this.showErrorMessage('No tax contributions to save.');
+                return;
+            }
+
+            try {
+                const payload = this.taxContributions.map(contribution => ({
+                    employeeId: Number(contribution.employeeId),
+                    payDate: moment(contribution.payDate).format('YYYY-MM-DD'),
+                    sss: Number(contribution.sss),
+                    philhealth: Number(contribution.philhealth),
+                    hdmf: Number(contribution.hdmf),
+                    withholdingTax: Number(contribution.withholdingTax),
+                    position: contribution.position,
+                    salary: Number(contribution.salary),
+                    salaryMonth: contribution.salaryMonth
+                }));
+
+                const response = await axios.post(`${BASE_API_URL}/api/tax-contributions`, payload, {
+                    headers: { 'user-role': 'admin' },
+                });
+
+                if (response.status === 201 || response.status === 200) {
+                    this.allTaxContributions[this.currentEmployee.id] = this.taxContributions;
+                    this.showSuccessMessage('Tax contributions saved successfully!');
+                }
+            } catch (error) {
+                console.error('Error saving tax contributions:', error);
+                this.showErrorMessage(`Failed to save tax contributions: ${error.message}`);
+            }
+        },
+
+        generateCSV() {
+            if (!this.filteredTaxContributions.length) {
+                this.showErrorMessage('No tax contributions available to export.');
+                return;
+            }
+
+            const headers = ['Pay Date', 'Position', 'Salary', 'SSS', 'PhilHealth', 'HDMF', 'Withholding Tax', 'Total'];
+            const rows = this.filteredTaxContributions.map(entry => [
+                moment(entry.payDate).format('YYYY-MM-DD'),
+                entry.position,
+                entry.salary,
+                entry.sss,
+                entry.philhealth,
+                entry.hdmf,
+                entry.withholdingTax,
+                entry.sss + entry.philhealth + entry.hdmf + entry.withholdingTax
+            ]);
+
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.join(','))
+            ].join('\n');
+
+            const filename = this.selectedMonth
+                ? `Tax_Contributions_${this.currentEmployee.name}_${this.selectedMonth}.csv`
+                : `Tax_Contributions_${this.currentEmployee.name}_All_Periods.csv`;
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            this.showSuccessMessage('CSV file generated successfully!');
+        },
+
+        async updateEmployeePosition() {
+            if (!this.selectedEmployeeForUpdate || !this.newPosition || !this.newSalary) {
+                this.showErrorMessage('Please fill all fields.');
+                return;
+            }
+
+            try {
+                const employee = this.employees.find(emp => emp.id === this.selectedEmployeeForUpdate);
+                const today = moment(this.currentDate).format('YYYY-MM-DD');
+
+                const updatedPositionHistory = employee.positionHistory.map(history => {
+                    if (!history.endDate) {
+                        return { ...history, endDate: today };
+                    }
+                    return history;
+                });
+                updatedPositionHistory.push({
+                    position: this.newPosition,
+                    salary: Number(this.newSalary),
+                    startDate: today,
+                    endDate: null
+                });
+
+                const response = await axios.put(`${BASE_API_URL}/api/employees/${employee.id}`, {
+                    ...employee,
+                    position: this.newPosition,
+                    salary: Number(this.newSalary),
+                    positionHistory: updatedPositionHistory
+                }, {
+                    headers: { 'user-role': 'admin' }
+                });
+
+                if (response.status === 200) {
+                    employee.position = this.newPosition;
+                    employee.salary = Number(this.newSalary);
+                    employee.positionHistory = updatedPositionHistory;
+                    this.showSuccessMessage(`Position updated for ${employee.name} to ${this.newPosition}!`);
+                    this.showUpdateModal = false;
+
+                    this.currentEmployee = employee;
+                    this.calculateTaxContributions();
+                    await this.saveTaxContributions();
+                }
+            } catch (error) {
+                console.error('Error updating position:', error);
+                this.showErrorMessage(`Failed to update position: ${error.message}`);
+            }
+        },
+
+        calculateSSSContribution(salary) {
+            const monthlySalaryCredit = Math.min(Math.max(salary || 0, 5000), 35000) || 0;
+            const employeeShareRate = 0.045;
+            return Math.round(monthlySalaryCredit * employeeShareRate) || 0;
+        },
+
+        calculatePhilHealthContribution(salary) {
+            const rate = 0.05;
+            const monthlySalary = Math.min(salary || 0, 100000) || 0;
+            return Math.round((monthlySalary * rate) / 2) || 0;
+        },
+
+        calculatePagIBIGContribution(salary) {
+            const rate = 0.02;
+            const cappedSalary = Math.min(salary || 0, 10000) || 0;
+            return Math.round(cappedSalary * rate) || 0;
+        },
+
+        calculateWithholdingTax(employee) {
+            const taxableIncome = employee.salary || 0;
+            if (taxableIncome <= 20833) return 0;
+            if (taxableIncome <= 33333) return Math.round((taxableIncome - 20833) * 0.15) || 0;
+            if (taxableIncome <= 66667) return Math.round(1875 + (taxableIncome - 33333) * 0.20) || 0;
+            if (taxableIncome <= 166667) return Math.round(13541.80 + (taxableIncome - 66667) * 0.25) || 0;
+            if (taxableIncome <= 666667) return Math.round(90841.80 + (taxableIncome - 166667) * 0.30) || 0;
+            return Math.round(408841.80 + (taxableIncome - 666667) * 0.35) || 0;
+        },
+
+        formatDate(date) {
+            return moment(date).format('MMM DD, YYYY');
+        },
+
+        showSuccessMessage(message) {
+            this.statusMessage = message;
+            setTimeout(() => (this.statusMessage = ''), 3000);
+        },
+
+        showErrorMessage(message) {
+            this.statusMessage = message;
+            setTimeout(() => (this.statusMessage = ''), 3000);
+        }
+    }
+};
+</script>
+
 <template>
     <div class="min-h-screen p-1">
         <div class="max-w-8xl mx-auto">
@@ -148,358 +534,6 @@
     </div>
 </template>
 
-<script>
-import axios from 'axios';
-import moment from 'moment';
-import { useAuthStore } from '@/stores/auth.store';
-import { BASE_API_URL } from '@/utils/constants';
-
-export default {
-    name: 'EmployeeRecords',
-    data() {
-        return {
-            employees: [],
-            currentEmployee: null,
-            selectedMonth: '',
-            errorMessage: '',
-            statusMessage: '',
-            showTaxModal: false,
-            taxContributions: [], // All contributions
-            filteredTaxContributions: [], // Filtered based on selectedMonth
-            allTaxContributions: {}, // Store tax contributions per employee
-            currentDate: new Date('2025-03-19'), // Matches your context
-            showUpdateModal: false,
-            selectedEmployeeForUpdate: '',
-            newPosition: '',
-            newSalary: ''
-        };
-    },
-    mounted() {
-        this.fetchEmployeeData();
-    },
-    methods: {
-        async fetchEmployeeData() {
-            const authStore = useAuthStore();
-            try {
-                const response = await axios.get(`${BASE_API_URL}/api/employees`, {
-                    headers: {
-                        'Authorization': `Bearer ${authStore.accessToken}`,
-                        'user-role': authStore.userRole || 'admin',
-                        'user-id': authStore.admin?.id || authStore.employee?.id || '1',
-                    },
-                });
-
-                // Log the raw response for debugging
-                console.log('API Response:', response.data);
-
-                if (!response.data || typeof response.data !== 'object') {
-                    throw new Error('Invalid response from server: Data is not an object');
-                }
-
-                // Handle error responses from the API
-                if (response.data.error) {
-                    throw new Error(response.data.error || 'API returned an error');
-                }
-
-                const employeeData = Array.isArray(response.data) ? response.data : response.data.employees || [];
-                if (employeeData.length === 0) {
-                    this.errorMessage = 'No employee records found.';
-                    this.employees = [];
-                    return;
-                }
-
-                this.employees = employeeData.map(emp => ({
-                    ...emp,
-                    positionHistory: Array.isArray(emp.positionHistory) && emp.positionHistory.length > 0
-                        ? emp.positionHistory
-                        : [{
-                            position: emp.position || 'N/A',
-                            salary: emp.salary || 0,
-                            startDate: emp.hireDate || this.currentDate.toISOString().split('T')[0],
-                            endDate: null
-                        }],
-                    name: emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unnamed Employee',
-                    position: this.getLatestPosition(emp).position,
-                    salary: this.getLatestPosition(emp).salary,
-                    salaryMonth: emp.salaryMonth || moment(emp.hireDate).format('YYYY-MM')
-                }));
-                await this.fetchAllTaxContributions();
-                this.errorMessage = '';
-            } catch (error) {
-                console.error('Error fetching employee data:', error);
-                this.errorMessage = `Failed to load employee records: ${error.message || 'Unknown error'}. Please check your connection or try again later.`;
-                this.employees = [];
-            }
-        },
-
-        async fetchAllTaxContributions() {
-            try {
-                const response = await axios.get(`${BASE_API_URL}/api/employee-contributions`, {
-                    headers: { 'user-role': 'admin' },
-                });
-                this.allTaxContributions = response.data.reduce((acc, contribution) => {
-                    if (!acc[contribution.employeeId]) {
-                        acc[contribution.employeeId] = [];
-                    }
-                    acc[contribution.employeeId].push(contribution);
-                    return acc;
-                }, {});
-            } catch (error) {
-                console.error('Error fetching tax contributions:', error);
-                this.showErrorMessage('Failed to load tax contributions. Generating locally.');
-                this.allTaxContributions = {};
-            }
-        },
-
-        openTaxModal(emp) {
-            this.currentEmployee = emp;
-            this.selectedMonth = ''; // Reset filter
-            this.calculateTaxContributions();
-            this.showTaxModal = true;
-        },
-        getLatestPosition(employee) {
-            if (!Array.isArray(employee.positionHistory) || employee.positionHistory.length === 0) {
-                return {
-                    position: employee.position || 'N/A',
-                    salary: employee.salary || 0,
-                    startDate: employee.hireDate || this.currentDate.toISOString().split('T')[0]
-                };
-            }
-            const sortedHistory = [...employee.positionHistory].sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
-            return sortedHistory.find(h => !h.endDate) || sortedHistory[0];
-        },
-        getActivePositionForDate(positionHistory, date) {
-            if (!Array.isArray(positionHistory) || positionHistory.length === 0) {
-                return {
-                    position: 'N/A',
-                    salary: 0,
-                    startDate: this.currentEmployee?.hireDate || this.currentDate.toISOString().split('T')[0]
-                };
-            }
-            const targetDate = moment(date);
-            const activePosition = positionHistory.find(history => {
-                const startDate = moment(history.startDate);
-                const endDate = history.endDate ? moment(history.endDate) : moment(this.currentDate);
-                return targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day');
-            });
-            return activePosition || positionHistory[positionHistory.length - 1];
-        },
-        calculateTaxContributions() {
-            if (!this.currentEmployee) return;
-
-            const hireDate = moment(this.currentEmployee.hireDate);
-            const today = moment(this.currentDate);
-            const payDates = [];
-            let backendContributions = this.allTaxContributions[this.currentEmployee.id] || [];
-
-            // Generate semi-monthly pay dates from hire date to today
-            let currentDate = hireDate.clone().startOf('month');
-            while (currentDate.isSameOrBefore(today, 'day')) {
-                const month = currentDate.month();
-                const year = currentDate.year();
-
-                const midMonth = moment({ year, month, date: 15 });
-                if (midMonth.isSameOrAfter(hireDate, 'day') && midMonth.isSameOrBefore(today, 'day')) {
-                    payDates.push(midMonth.toDate());
-                }
-
-                const lastDay = currentDate.clone().endOf('month');
-                if (lastDay.isSameOrAfter(hireDate, 'day') && lastDay.isSameOrBefore(today, 'day')) {
-                    payDates.push(lastDay.toDate());
-                }
-
-                currentDate.add(1, 'month').startOf('month');
-            }
-
-            this.taxContributions = payDates.map(payDate => {
-                const positionAtDate = this.getActivePositionForDate(this.currentEmployee.positionHistory, payDate);
-                const salary = positionAtDate.salary;
-                const salaryMonth = moment(payDate).format('YYYY-MM');
-                const existing = backendContributions.find(c => moment(c.payDate).isSame(payDate, 'day')) || {};
-
-                return {
-                    payDate,
-                    position: positionAtDate.position,
-                    salary: salary, // Add salary to the entry
-                    sss: existing.sss || this.calculateSSSContribution(salary),
-                    philhealth: existing.philhealth || this.calculatePhilHealthContribution(salary),
-                    hdmf: existing.hdmf || this.calculatePagIBIGContribution(salary),
-                    withholdingTax: existing.withholdingTax || this.calculateWithholdingTax({ ...this.currentEmployee, salary }),
-                    salaryMonth,
-                    employeeId: this.currentEmployee.id
-                };
-            });
-
-            this.filterTaxContributions();
-        },
-        filterTaxContributions() {
-            if (!this.selectedMonth) {
-                this.filteredTaxContributions = [...this.taxContributions];
-            } else {
-                const filterMonth = moment(this.selectedMonth, 'YYYY-MM');
-                this.filteredTaxContributions = this.taxContributions.filter(entry =>
-                    moment(entry.payDate).isSame(filterMonth, 'month')
-                );
-            }
-        },
-        async saveTaxContributions() {
-            if (!this.taxContributions.length) {
-                this.showErrorMessage('No tax contributions to save.');
-                return;
-            }
-
-            try {
-                const payload = this.taxContributions.map(contribution => ({
-                    employeeId: Number(contribution.employeeId),
-                    payDate: moment(contribution.payDate).format('YYYY-MM-DD'),
-                    sss: Number(contribution.sss),
-                    philhealth: Number(contribution.philhealth),
-                    hdmf: Number(contribution.hdmf),
-                    withholdingTax: Number(contribution.withholdingTax),
-                    position: contribution.position,
-                    salary: Number(contribution.salary), // Include salary in the payload
-                    salaryMonth: contribution.salaryMonth
-                }));
-
-                const response = await axios.post(` ${BASE_API_URL}/api/tax-contributions`, payload, {
-                    headers: { 'user-role': 'admin' },
-                });
-
-                if (response.status === 201 || response.status === 200) {
-                    this.allTaxContributions[this.currentEmployee.id] = this.taxContributions;
-                    this.showSuccessMessage('Tax contributions saved successfully!');
-                }
-            } catch (error) {
-                console.error('Error saving tax contributions:', error);
-                this.showErrorMessage(`Failed to save tax contributions: ${error.message}`);
-            }
-        },
-        generateCSV() {
-            if (!this.filteredTaxContributions.length) {
-                this.showErrorMessage('No tax contributions available to export.');
-                return;
-            }
-
-            const headers = ['Pay Date', 'Position', 'Salary', 'SSS', 'PhilHealth', 'HDMF', 'Withholding Tax', 'Total'];
-            const rows = this.filteredTaxContributions.map(entry => [
-                moment(entry.payDate).format('YYYY-MM-DD'),
-                entry.position,
-                entry.salary,
-                entry.sss,
-                entry.philhealth,
-                entry.hdmf,
-                entry.withholdingTax,
-                entry.sss + entry.philhealth + entry.hdmf + entry.withholdingTax
-            ]);
-
-            const csvContent = [
-                headers.join(','),
-                ...rows.map(row => row.join(','))
-            ].join('\n');
-
-            const filename = this.selectedMonth
-                ? `Tax_Contributions_${this.currentEmployee.name}_${this.selectedMonth}.csv`
-                : `Tax_Contributions_${this.currentEmployee.name}_All_Periods.csv`;
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', filename);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-
-            this.showSuccessMessage('CSV file generated successfully!');
-        },
-        async updateEmployeePosition() {
-            if (!this.selectedEmployeeForUpdate || !this.newPosition || !this.newSalary) {
-                this.showErrorMessage('Please fill all fields.');
-                return;
-            }
-
-            try {
-                const employee = this.employees.find(emp => emp.id === this.selectedEmployeeForUpdate);
-                const today = moment(this.currentDate).format('YYYY-MM-DD');
-
-                const updatedPositionHistory = employee.positionHistory.map(history => {
-                    if (!history.endDate) {
-                        return { ...history, endDate: today };
-                    }
-                    return history;
-                });
-                updatedPositionHistory.push({
-                    position: this.newPosition,
-                    salary: Number(this.newSalary),
-                    startDate: today,
-                    endDate: null
-                });
-
-                const response = await axios.put(`/api/employees/${employee.id}`, {
-                    ...employee,
-                    position: this.newPosition,
-                    salary: Number(this.newSalary),
-                    positionHistory: updatedPositionHistory
-                }, {
-                    headers: { 'user-role': 'admin' }
-                });
-
-                if (response.status === 200) {
-                    employee.position = this.newPosition;
-                    employee.salary = Number(this.newSalary);
-                    employee.positionHistory = updatedPositionHistory;
-                    this.showSuccessMessage(`Position updated for ${employee.name} to ${this.newPosition}!`);
-                    this.showUpdateModal = false;
-
-                    // Recalculate and save tax contributions
-                    this.currentEmployee = employee;
-                    this.calculateTaxContributions();
-                    await this.saveTaxContributions();
-                }
-            } catch (error) {
-                console.error('Error updating position:', error);
-                this.showErrorMessage(`Failed to update position: ${error.message}`);
-            }
-        },
-        // Tax calculation methods from SalarySlips.vue
-        calculateSSSContribution(salary) {
-            const monthlySalaryCredit = Math.min(Math.max(salary || 0, 5000), 35000) || 0;
-            const employeeShareRate = 0.045;
-            return Math.round(monthlySalaryCredit * employeeShareRate) || 0;
-        },
-        calculatePhilHealthContribution(salary) {
-            const rate = 0.05;
-            const monthlySalary = Math.min(salary || 0, 100000) || 0;
-            return Math.round((monthlySalary * rate) / 2) || 0;
-        },
-        calculatePagIBIGContribution(salary) {
-            const rate = 0.02;
-            const cappedSalary = Math.min(salary || 0, 10000) || 0;
-            return Math.round(cappedSalary * rate) || 0;
-        },
-        calculateWithholdingTax(employee) {
-            const taxableIncome = employee.salary || 0; // Simplified
-            if (taxableIncome <= 20833) return 0;
-            if (taxableIncome <= 33333) return Math.round((taxableIncome - 20833) * 0.15) || 0;
-            if (taxableIncome <= 66667) return Math.round(1875 + (taxableIncome - 33333) * 0.20) || 0;
-            if (taxableIncome <= 166667) return Math.round(13541.80 + (taxableIncome - 66667) * 0.25) || 0;
-            if (taxableIncome <= 666667) return Math.round(90841.80 + (taxableIncome - 166667) * 0.30) || 0;
-            return Math.round(408841.80 + (taxableIncome - 666667) * 0.35) || 0;
-        },
-        formatDate(date) {
-            return moment(date).format('MMM DD, YYYY');
-        },
-        showSuccessMessage(message) {
-            this.statusMessage = message;
-            setTimeout(() => (this.statusMessage = ''), 3000);
-        },
-        showErrorMessage(message) {
-            this.statusMessage = message;
-            setTimeout(() => (this.statusMessage = ''), 3000);
-        }
-    }
-};
-</script>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined');
