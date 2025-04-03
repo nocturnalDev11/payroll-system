@@ -4,8 +4,8 @@
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "dev": "node --env-file=.env server.js",
-    "start": "nodemon --env-file=.env server.js",
+    "dev": "node server.js",
+    "start": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "seed": "node -r dotenv/config seeders/employeeSeeder.js && node -r dotenv/config seeders/positionSeeder.js && node -r dotenv/config seeders/adminSeeder.js"
   },
