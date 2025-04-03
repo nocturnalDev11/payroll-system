@@ -66,7 +66,6 @@ app.use('/api/positions', positionRoutes);
 app.use('/api/pending-requests', pendingRequestRoutes);
 app.use('/api/positionHistory', positionHistoryRoutes);
 app.use('/api/employee-contributions', contributionRoutes);
-// app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Health Check Route (useful for monitoring in both environments)
 app.get('/api/health', (req, res) => {
