@@ -129,34 +129,30 @@ export default {
             }
 
             const targetDate = moment(date);
-            console.log('Target Date for Position Check:', targetDate.format('YYYY-MM-DD'));
-
             const sortedHistory = [...positionHistory].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
-            sortedHistory.forEach((history, index) => {
-                console.log(`History Entry ${index}:`, {
-                    position: history.position,
-                    salary: history.salary,
-                    startDate: history.startDate,
-                    endDate: history.endDate
-                });
-            });
-
-            const activePosition = sortedHistory.find(history => {
+            // Find the position that was active on the target date
+            for (let i = sortedHistory.length - 1; i >= 0; i--) {
+                const history = sortedHistory[i];
                 const startDate = moment(history.startDate);
                 const endDate = history.endDate ? moment(history.endDate) : moment('9999-12-31');
-                return targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day');
-            });
-
-            if (activePosition) {
-                console.log('Active Position Found:', activePosition);
-                return activePosition;
+                if (targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day')) {
+                    return {
+                        position: history.position,
+                        salary: history.salary,
+                        startDate: history.startDate,
+                        endDate: history.endDate
+                    };
+                }
             }
 
-            const pastPositions = sortedHistory.filter(history => moment(history.startDate).isSameOrBefore(targetDate, 'day'));
-            const fallbackPosition = pastPositions.length > 0 ? pastPositions[pastPositions.length - 1] : sortedHistory[0];
-            console.log('Fallback Position:', fallbackPosition);
-            return fallbackPosition;
+            // If no position matches, return the earliest position as a fallback
+            return {
+                position: sortedHistory[0].position,
+                salary: sortedHistory[0].salary,
+                startDate: sortedHistory[0].startDate,
+                endDate: sortedHistory[0].endDate
+            };
         },
 
         calculateTaxContributions() {
@@ -400,7 +396,7 @@ export default {
                             <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Position
                             </th>
                             <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Salary
-                            </th> <!-- New Column -->
+                            </th>
                             <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Hire Date
                             </th>
                             <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period
@@ -414,19 +410,16 @@ export default {
                             <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.name }}</td>
                             <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.position }}</td>
                             <td class="border px-4 py-2 text-sm text-gray-900">₱{{ emp.salary.toLocaleString() }}</td>
-                            <!-- Display Salary -->
                             <td class="border px-4 py-2 text-sm text-gray-900">{{ formatDate(emp.hireDate) }}</td>
                             <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.salaryMonth }}</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <!-- Loading/Error State -->
                 <div v-else class="text-center py-8 text-gray-500">
                     {{ errorMessage || 'Loading employee data...' }}
                 </div>
 
-                <!-- Tax Contributions Modal -->
                 <transition name="modal-fade">
                     <div v-if="showTaxModal"
                         class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -441,7 +434,6 @@ export default {
                                 </button>
                             </div>
 
-                            <!-- Date Filter Inside Modal -->
                             <div class="mb-4">
                                 <label class="text-sm font-medium text-gray-700">Filter by Month (optional):</label>
                                 <input v-model="selectedMonth" type="month"
@@ -461,7 +453,7 @@ export default {
                                                 Position</th>
                                             <th
                                                 class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                Salary</th> <!-- New Column -->
+                                                Salary</th>
                                             <th
                                                 class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                                 SSS</th>
@@ -486,7 +478,7 @@ export default {
                                                 formatDate(entry.payDate) }}</td>
                                             <td class="border px-4 py-2 text-sm text-gray-900">{{ entry.position }}</td>
                                             <td class="border px-4 py-2 text-sm text-gray-900">₱{{
-                                                entry.salary.toLocaleString() }}</td> <!-- Display Salary -->
+                                                entry.salary.toLocaleString() }}</td>
                                             <td class="border px-4 py-2 text-sm text-gray-900">₱{{
                                                 entry.sss.toLocaleString() }}</td>
                                             <td class="border px-4 py-2 text-sm text-gray-900">₱{{
@@ -497,7 +489,7 @@ export default {
                                                 entry.withholdingTax.toLocaleString() }}</td>
                                             <td class="border px-4 py-2 text-sm text-gray-900 font-semibold">
                                                 ₱{{ (entry.sss + entry.philhealth + entry.hdmf +
-                                                entry.withholdingTax).toLocaleString() }}
+                                                    entry.withholdingTax).toLocaleString() }}
                                             </td>
                                         </tr>
                                     </tbody>
@@ -507,7 +499,6 @@ export default {
                                 No tax contributions available{{ selectedMonth ? ` for ${selectedMonth}` : '' }}.
                             </div>
 
-                            <!-- Modal Actions -->
                             <div class="mt-4 flex justify-end gap-3">
                                 <button @click="generateCSV"
                                     class="py-1 px-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 flex items-center gap-1">
@@ -523,7 +514,6 @@ export default {
                     </div>
                 </transition>
 
-                <!-- Status Message -->
                 <div v-if="statusMessage"
                     :class="statusMessage.includes('successfully') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'"
                     class="mt-4 p-3 rounded-lg text-center">
@@ -533,7 +523,6 @@ export default {
         </div>
     </div>
 </template>
-
 
 <style scoped>
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined');
