@@ -27,17 +27,8 @@ const {
     deleteEmployeeById
 } = require('../controllers/employee/employee.controller');
 
-const storage = multer.diskStorage({
-    destination: './public/uploads/profile-pictures',
-    filename: (req, file, cb) => {
-        const fileExtension = path.extname(file.originalname);
-        const fileName = `${req.employeeId || req.adminId}-${Date.now()}${fileExtension}`;
-        cb(null, fileName);
-    }
-});
-
 const upload = multer({
-    storage,
+    storage: multer.memoryStorage(),
     fileFilter: (req, file, cb) => {
         const filetypes = /jpeg|jpg|png/;
         const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
