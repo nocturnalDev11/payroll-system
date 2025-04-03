@@ -729,8 +729,8 @@ export default {
                 }]
             };
 
-            const today = moment(this.currentDate);
             const hireDate = moment(this.selectedEmployee.hireDate || this.currentDate);
+            const today = moment(this.currentDate);
             let backendPayslips = [];
             try {
                 const response = await axios.get(`${BASE_API_URL}/api/payslips/${this.selectedEmployee.id}`, {
@@ -746,41 +746,79 @@ export default {
             }
 
             const payslipHistory = [];
-            let currentPayDate = hireDate.clone();
+            let currentDate = hireDate.clone().startOf('month');
 
-            while (currentPayDate.isSameOrBefore(today, 'day')) {
-                const salaryMonth = currentPayDate.format('YYYY-MM');
-                const expectedPaydays = this.getExpectedPayday(hireDate.toDate(), salaryMonth);
-                const payDate = currentPayDate.clone();
-                const positionAtPayDate = this.getActivePositionForDate(this.selectedEmployee.positionHistory, payDate);
-                const paydayType = payDate.date() === 15 ? 'mid-month' : 'end-of-month'; // Adjusted to match backend expectation
-                const existingPayslip = backendPayslips.find(p =>
-                    p.salaryMonth === salaryMonth && p.paydayType === paydayType && moment(p.payDate).isSame(payDate, 'day')
-                ) || {};
+            // Step 1: Generate all mid-month and end-of-month pay dates
+            while (currentDate.isSameOrBefore(today, 'day')) {
+                const month = currentDate.month();
+                const year = currentDate.year();
+                const salaryMonth = currentDate.format('YYYY-MM');
 
-                const payslip = {
-                    salaryMonth,
-                    paydayType,
-                    payDate: payDate.format('YYYY-MM-DD'),
-                    position: positionAtPayDate.position,
-                    salary: positionAtPayDate.salary,
-                    totalSalary: existingPayslip.salary ? this.calculateNetSalary({ ...this.selectedEmployee, position: positionAtPayDate.position, salary: positionAtPayDate.salary }) : null,
-                    payslipDataUrl: existingPayslip.payslipData ? `data:application/pdf;base64,${existingPayslip.payslipData}` : null,
-                    employee: {
-                        ...this.selectedEmployee,
+                // Mid-month (15th)
+                const midMonth = moment({ year, month, date: 15 });
+                if (midMonth.isSameOrAfter(hireDate, 'day') && midMonth.isSameOrBefore(today, 'day')) {
+                    const positionAtPayDate = this.getActivePositionForDate(this.selectedEmployee.positionHistory, midMonth.toDate());
+                    const expectedPaydays = this.getExpectedPayday(hireDate.toDate(), salaryMonth);
+                    const existingPayslip = backendPayslips.find(p =>
+                        p.salaryMonth === salaryMonth && p.paydayType === 'mid-month' && moment(p.payDate).isSame(midMonth, 'day')
+                    ) || {};
+
+                    const payslip = {
+                        salaryMonth,
+                        paydayType: 'mid-month',
+                        payDate: midMonth.format('YYYY-MM-DD'),
                         position: positionAtPayDate.position,
                         salary: positionAtPayDate.salary,
-                        salaryMonth: payDate.format('YYYY-MM-DD')
-                    },
-                    expectedPaydays,
-                };
-                payslipHistory.push(payslip);
+                        totalSalary: existingPayslip.salary ? this.calculateNetSalary({ ...this.selectedEmployee, position: positionAtPayDate.position, salary: positionAtPayDate.salary }) : null,
+                        payslipDataUrl: existingPayslip.payslipData ? `data:application/pdf;base64,${existingPayslip.payslipData}` : null,
+                        employee: {
+                            ...this.selectedEmployee,
+                            position: positionAtPayDate.position,
+                            salary: positionAtPayDate.salary,
+                            salaryMonth: midMonth.format('YYYY-MM-DD')
+                        },
+                        expectedPaydays,
+                    };
+                    payslipHistory.push(payslip);
 
-                if (!payslip.payslipDataUrl && today.isSameOrAfter(payDate, 'day')) {
-                    await this.generatePayslip(payslip);
+                    if (!payslip.payslipDataUrl && today.isSameOrAfter(midMonth, 'day')) {
+                        await this.generatePayslip(payslip);
+                    }
                 }
 
-                currentPayDate.add(15, 'days');
+                // End-of-month (last day)
+                const lastDay = currentDate.clone().endOf('month');
+                if (lastDay.isSameOrAfter(hireDate, 'day') && lastDay.isSameOrBefore(today, 'day')) {
+                    const positionAtPayDate = this.getActivePositionForDate(this.selectedEmployee.positionHistory, lastDay.toDate());
+                    const expectedPaydays = this.getExpectedPayday(hireDate.toDate(), salaryMonth);
+                    const existingPayslip = backendPayslips.find(p =>
+                        p.salaryMonth === salaryMonth && p.paydayType === 'end-of-month' && moment(p.payDate).isSame(lastDay, 'day')
+                    ) || {};
+
+                    const payslip = {
+                        salaryMonth,
+                        paydayType: 'end-of-month',
+                        payDate: lastDay.format('YYYY-MM-DD'),
+                        position: positionAtPayDate.position,
+                        salary: positionAtPayDate.salary,
+                        totalSalary: existingPayslip.salary ? this.calculateNetSalary({ ...this.selectedEmployee, position: positionAtPayDate.position, salary: positionAtPayDate.salary }) : null,
+                        payslipDataUrl: existingPayslip.payslipData ? `data:application/pdf;base64,${existingPayslip.payslipData}` : null,
+                        employee: {
+                            ...this.selectedEmployee,
+                            position: positionAtPayDate.position,
+                            salary: positionAtPayDate.salary,
+                            salaryMonth: lastDay.format('YYYY-MM-DD')
+                        },
+                        expectedPaydays,
+                    };
+                    payslipHistory.push(payslip);
+
+                    if (!payslip.payslipDataUrl && today.isSameOrAfter(lastDay, 'day')) {
+                        await this.generatePayslip(payslip);
+                    }
+                }
+
+                currentDate.add(1, 'month').startOf('month');
             }
 
             this.allPayslipHistories[this.selectedEmployee.id] = payslipHistory;
@@ -815,7 +853,7 @@ export default {
             }
 
             const positionHistory = Array.isArray(employee.positionHistory) ? employee.positionHistory : [];
-            const activePosition = this.getActivePositionForDate(positionHistory, payDate);
+            const activePosition = this.getActivePositionForDate(positionHistory, payDate.toDate());
             if (!activePosition || !activePosition.position || activePosition.salary === undefined) {
                 this.showErrorMessage('Invalid position or salary for this date.');
                 console.error('Invalid activePosition:', activePosition, 'Position History:', positionHistory);
@@ -839,7 +877,8 @@ export default {
                     salaryMonth: payslip.salaryMonth,
                     paydayType: payslip.paydayType,
                     position: activePosition.position,
-                    salary: Number(activePosition.salary)
+                    salary: Number(activePosition.salary),
+                    payDate: payDate.format('YYYY-MM-DD')
                 };
 
                 console.log('Sending payload to backend:', payload);
@@ -1190,8 +1229,13 @@ export default {
                     const employee = this.employees.find(e => e.id === empId);
                     const payslip = empData.latestPayslip;
                     const payDate = moment(`${payslip.salaryMonth}-${payslip.paydayType === 'mid-month' ? '15' : moment(payslip.salaryMonth).daysInMonth()}`, 'YYYY-MM-DD');
-                    const activePosition = this.getActivePositionForDate(employee.positionHistory, payDate);
-                    const updatedEmployee = { ...employee, position: activePosition.position, salary: activePosition.salary };
+                    const activePosition = this.getActivePositionForDate(employee.positionHistory, payDate.toDate());
+                    const updatedEmployee = {
+                        ...employee,
+                        position: activePosition.position,
+                        salary: activePosition.salary,
+                        salaryMonth: payDate.format('YYYY-MM-DD')
+                    };
 
                     const payslipData = this.createPayslipData(updatedEmployee);
                     await this.generatePdf(payslipData, doc);
