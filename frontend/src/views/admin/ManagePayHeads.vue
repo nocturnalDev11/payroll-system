@@ -230,6 +230,7 @@
 <script>
 import axios from 'axios';
 import { BASE_API_URL } from '@/utils/constants';
+import { useAuthStore } from '@/stores/auth.store.js';
 import PayHeadModal from './partials/payheads/PayHeadModal.vue';
 import PayHeadTable from './partials/payheads/PayHeadTable.vue';
 import EmployeePayrollTable from './partials/payheads/EmployeePayrollTable.vue';
@@ -370,9 +371,14 @@ export default {
     methods: {
         async fetchPayHeads() {
             this.isLoading = true;
+            const authStore = useAuthStore();
             try {
                 const response = await axios.get(`${BASE_API_URL}/api/payheads`, {
-                    headers: { 'user-role': 'admin' },
+                    headers: {
+                        'Authorization': `Bearer ${authStore.accessToken}`,
+                        'user-role': 'admin',
+                        'user-id': authStore.admin?.id || authStore.employee?.id, // Optional, based on backend needs
+                    },
                 });
                 this.payHeads = response.data.map(item => ({
                     _id: item._id,
@@ -396,9 +402,19 @@ export default {
 
         async fetchEmployees() {
             this.isLoading = true;
+            const authStore = useAuthStore();
+            console.log('Auth State:', {
+                token: authStore.accessToken,
+                role: authStore.userRole,
+                id: authStore.admin?.id || authStore.employee?.id,
+            });
             try {
                 const response = await axios.get(`${BASE_API_URL}/api/employees`, {
-                    headers: { 'user-role': 'admin' },
+                    headers: {
+                        'Authorization': `Bearer ${authStore.accessToken}`,
+                        'user-role': 'admin',
+                        'user-id': authStore.admin?.id || authStore.employee?.id,
+                    },
                 });
                 this.employees = response.data.map(emp => {
                     const payheads = (emp.payheads || []).map(ph => ({
@@ -582,34 +598,36 @@ export default {
         async savePayheads() {
             try {
                 this.isLoading = true;
+                const authStore = useAuthStore();
                 const payheadsForBackend = this.selectedEmployeePayheads.map(ph => ph._id).filter(id => id);
                 const updatedEmployee = {
-                    id: this.selectedEmployee.id,
                     payheads: payheadsForBackend,
-                    totalEarnings: this.calculateEarnings(this.selectedEmployeePayheads),
-                    totalDeduction: this.calculateDeductions(this.selectedEmployeePayheads),
-                    totalRecurringDeduction: this.calculateRecurringDeductions(this.selectedEmployeePayheads),
-                    totalSalary: Number(this.selectedEmployee.salary || 0) +
+                    salary: Number(this.selectedEmployee.salary || 0) +
                         this.calculateEarnings(this.selectedEmployeePayheads) -
                         this.calculateDeductions(this.selectedEmployeePayheads) -
                         this.calculateRecurringDeductions(this.selectedEmployeePayheads),
                 };
 
+                console.log('Saving payheads for employee:', this.selectedEmployee._id, updatedEmployee);
+
                 await axios.put(
-                    `${BASE_API_URL}/api/employees/${this.selectedEmployee.id}`,
+                    `${BASE_API_URL}/api/employees/update/${this.selectedEmployee._id}`,
                     updatedEmployee,
-                    { headers: { 'user-role': 'admin' } }
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${authStore.accessToken}`,
+                            'user-role': 'admin',
+                            'user-id': authStore.admin?.id || authStore.employee?.id,
+                        }
+                    }
                 );
 
-                const employeeIndex = this.employees.findIndex(e => e.id === this.selectedEmployee.id);
+                const employeeIndex = this.employees.findIndex(e => e._id === this.selectedEmployee._id);
                 if (employeeIndex !== -1) {
                     this.employees[employeeIndex] = {
                         ...this.employees[employeeIndex],
                         payheads: [...this.selectedEmployeePayheads],
-                        totalEarnings: updatedEmployee.totalEarnings,
-                        totalDeduction: updatedEmployee.totalDeduction,
-                        totalRecurringDeduction: updatedEmployee.totalRecurringDeduction,
-                        totalSalary: updatedEmployee.totalSalary,
+                        salary: updatedEmployee.salary,
                     };
                 }
 
@@ -626,8 +644,9 @@ export default {
         async saveRecurringDeductions(selectedDeductions, selectedEmployees) {
             try {
                 this.isLoading = true;
+                const authStore = useAuthStore();
                 for (const employee of selectedEmployees) {
-                    const existingPayheads = this.employees.find(e => e.id === employee.id)?.payheads || [];
+                    const existingPayheads = this.employees.find(e => e._id === employee._id)?.payheads || [];
                     const updatedPayheads = [...existingPayheads];
 
                     for (const deduction of selectedDeductions) {
@@ -647,38 +666,39 @@ export default {
 
                     const payheadsForBackend = updatedPayheads.map(ph => ph._id).filter(id => id);
                     const updatedEmployee = {
-                        id: employee.id,
                         payheads: payheadsForBackend,
-                        totalEarnings: this.calculateEarnings(updatedPayheads),
-                        totalDeduction: this.calculateDeductions(updatedPayheads),
-                        totalRecurringDeduction: this.calculateRecurringDeductions(updatedPayheads),
-                        totalSalary: Number(employee.salary || 0) +
+                        salary: Number(employee.salary || 0) +
                             this.calculateEarnings(updatedPayheads) -
                             this.calculateDeductions(updatedPayheads) -
                             this.calculateRecurringDeductions(updatedPayheads),
                     };
 
+                    console.log('Saving recurring deductions for employee:', employee._id, updatedEmployee);
+
                     await axios.put(
-                        `${BASE_API_URL}/api/employees/${employee.id}`,
+                        `${BASE_API_URL}/api/employees/update/${employee._id}`,
                         updatedEmployee,
-                        { headers: { 'user-role': 'admin' } }
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${authStore.accessToken}`,
+                                'user-role': 'admin',
+                                'user-id': authStore.admin?.id || authStore.employee?.id,
+                            }
+                        }
                     );
 
-                    const employeeIndex = this.employees.findIndex(e => e.id === employee.id);
+                    const employeeIndex = this.employees.findIndex(e => e._id === employee._id);
                     if (employeeIndex !== -1) {
                         this.employees[employeeIndex] = {
                             ...this.employees[employeeIndex],
                             payheads: updatedPayheads,
-                            totalEarnings: updatedEmployee.totalEarnings,
-                            totalDeduction: updatedEmployee.totalDeduction,
-                            totalRecurringDeduction: updatedEmployee.totalRecurringDeduction,
-                            totalSalary: updatedEmployee.totalSalary,
+                            salary: updatedEmployee.salary,
                         };
                     }
                 }
                 this.showRecurringDeductionModal = false;
                 this.showSuccessMessage('Recurring deductions saved successfully!');
-                await this.fetchPayHeads(); // Refresh payheads after saving
+                await this.fetchPayHeads();
             } catch (error) {
                 console.error('Error saving recurring deductions:', error.response?.data || error.message);
                 this.showErrorMessage('Failed to save recurring deductions: ' + (error.response?.data?.message || error.message));
