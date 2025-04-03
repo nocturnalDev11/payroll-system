@@ -183,7 +183,6 @@ exports.getAllEmployees = asyncHandler(async (req, res) => {
 exports.getEmployeeById = asyncHandler(async (req, res) => {
     const employeeId = req.params.id;
 
-    // Handle the /trash case
     if (employeeId === 'trash') {
         const trashed = await Employee.find({ status: 'trashed' }).select('-password');
         return res.status(200).json(trashed);

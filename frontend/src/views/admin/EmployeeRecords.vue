@@ -39,8 +39,6 @@ export default {
                     },
                 });
 
-                console.log('API Response:', response.data);
-
                 if (!response.data || typeof response.data !== 'object') {
                     throw new Error('Invalid response from server: Data is not an object');
                 }
@@ -56,21 +54,34 @@ export default {
                     return;
                 }
 
-                this.employees = employeeData.map(emp => ({
-                    ...emp,
-                    positionHistory: Array.isArray(emp.positionHistory) && emp.positionHistory.length > 0
-                        ? emp.positionHistory
+                this.employees = employeeData.map(emp => {
+                    // Ensure positionHistory is properly formatted
+                    const positionHistory = Array.isArray(emp.positionHistory) && emp.positionHistory.length > 0
+                        ? emp.positionHistory.map(history => ({
+                            position: history.position || 'N/A',
+                            salary: Number(history.salary) || 0,
+                            startDate: history.startDate ? new Date(history.startDate).toISOString().split('T')[0] : emp.hireDate || this.currentDate.toISOString().split('T')[0],
+                            endDate: history.endDate ? new Date(history.endDate).toISOString().split('T')[0] : null
+                        }))
                         : [{
                             position: emp.position || 'N/A',
-                            salary: emp.salary || 0,
-                            startDate: emp.hireDate || this.currentDate.toISOString().split('T')[0],
+                            salary: Number(emp.salary) || 0,
+                            startDate: emp.hireDate ? new Date(emp.hireDate).toISOString().split('T')[0] : this.currentDate.toISOString().split('T')[0],
                             endDate: null
-                        }],
-                    name: emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unnamed Employee',
-                    position: this.getLatestPosition(emp).position,
-                    salary: this.getLatestPosition(emp).salary,
-                    salaryMonth: emp.salaryMonth || moment(emp.hireDate).format('YYYY-MM')
-                }));
+                        }];
+
+                    const latestPosition = this.getLatestPosition({ positionHistory });
+
+                    return {
+                        ...emp,
+                        positionHistory,
+                        name: emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unnamed Employee',
+                        position: latestPosition.position,
+                        salary: latestPosition.salary,
+                        salaryMonth: emp.salaryMonth || moment(emp.hireDate).format('YYYY-MM')
+                    };
+                });
+
                 await this.fetchAllTaxContributions();
                 this.errorMessage = '';
             } catch (error) {
@@ -114,10 +125,11 @@ export default {
             if (!Array.isArray(employee.positionHistory) || employee.positionHistory.length === 0) {
                 return {
                     position: employee.position || 'N/A',
-                    salary: employee.salary || 0,
-                    startDate: employee.hireDate || this.currentDate.toISOString().split('T')[0]
+                    salary: Number(employee.salary) || 0,
+                    startDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : this.currentDate.toISOString().split('T')[0]
                 };
             }
+
             const sortedHistory = [...employee.positionHistory].sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
             return sortedHistory.find(h => !h.endDate) || sortedHistory[0];
         },
@@ -127,16 +139,17 @@ export default {
                 return {
                     position: 'N/A',
                     salary: 0,
-                    startDate: this.currentEmployee?.hireDate || this.currentDate.toISOString().split('T')[0]
+                    startDate: this.currentEmployee?.hireDate ? new Date(this.currentEmployee.hireDate).toISOString().split('T')[0] : this.currentDate.toISOString().split('T')[0]
                 };
             }
 
-            const targetDate = moment(date);
+            const targetDate = new Date(date);
             const activePosition = positionHistory.find(history => {
-                const startDate = moment(history.startDate);
-                const endDate = history.endDate ? moment(history.endDate) : moment(this.currentDate);
-                return targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day');
+                const startDate = new Date(history.startDate);
+                const endDate = history.endDate ? new Date(history.endDate) : new Date('9999-12-31');
+                return targetDate >= startDate && targetDate <= endDate;
             });
+
             return activePosition || positionHistory[positionHistory.length - 1];
         },
 
