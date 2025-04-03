@@ -81,9 +81,13 @@ export default {
         },
 
         async fetchAllTaxContributions() {
+            const authStore = useAuthStore();
             try {
                 const response = await axios.get(`${BASE_API_URL}/api/employee-contributions`, {
-                    headers: { 'user-role': 'admin' },
+                    headers: {
+                        'Authorization': `Bearer ${authStore.accessToken}`,
+                        'user-role': authStore.userRole || 'admin'
+                    },
                 });
                 this.allTaxContributions = response.data.reduce((acc, contribution) => {
                     if (!acc[contribution.employeeId]) {
@@ -101,7 +105,6 @@ export default {
 
         openTaxModal(emp) {
             this.currentEmployee = emp;
-            console.log('Current Employee Position History:', emp.positionHistory);
             this.selectedMonth = '';
             this.calculateTaxContributions();
             this.showTaxModal = true;
@@ -128,31 +131,13 @@ export default {
                 };
             }
 
-            const targetDate = new Date(date);
-            const sortedHistory = [...positionHistory].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-
-            let activePosition = null;
-            for (const history of sortedHistory) {
-                const startDate = new Date(history.startDate);
-                const endDate = history.endDate ? new Date(history.endDate) : new Date('9999-12-31');
-
-                if (targetDate >= startDate && targetDate <= endDate) {
-                    activePosition = {
-                        position: history.position,
-                        salary: history.salary,
-                        startDate: history.startDate,
-                        endDate: history.endDate
-                    };
-                    break;
-                }
-            }
-
-            return activePosition || {
-                position: sortedHistory[0].position,
-                salary: sortedHistory[0].salary,
-                startDate: sortedHistory[0].startDate,
-                endDate: sortedHistory[0].endDate
-            };
+            const targetDate = moment(date);
+            const activePosition = positionHistory.find(history => {
+                const startDate = moment(history.startDate);
+                const endDate = history.endDate ? moment(history.endDate) : moment(this.currentDate);
+                return targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day');
+            });
+            return activePosition || positionHistory[positionHistory.length - 1];
         },
 
         calculateTaxContributions() {
@@ -220,6 +205,7 @@ export default {
                 return;
             }
 
+            const authStore = useAuthStore();
             try {
                 const payload = this.taxContributions.map(contribution => ({
                     employeeId: Number(contribution.employeeId),
@@ -234,7 +220,10 @@ export default {
                 }));
 
                 const response = await axios.post(`${BASE_API_URL}/api/tax-contributions`, payload, {
-                    headers: { 'user-role': 'admin' },
+                    headers: {
+                        'Authorization': `Bearer ${authStore.accessToken}`,
+                        'user-role': authStore.userRole || 'admin'
+                    },
                 });
 
                 if (response.status === 201 || response.status === 200) {
@@ -292,6 +281,7 @@ export default {
                 return;
             }
 
+            const authStore = useAuthStore();
             try {
                 const employee = this.employees.find(emp => emp.id === this.selectedEmployeeForUpdate);
                 const today = moment(this.currentDate).format('YYYY-MM-DD');
@@ -315,7 +305,10 @@ export default {
                     salary: Number(this.newSalary),
                     positionHistory: updatedPositionHistory
                 }, {
-                    headers: { 'user-role': 'admin' }
+                    headers: {
+                        'Authorization': `Bearer ${authStore.accessToken}`,
+                        'user-role': authStore.userRole || 'admin'
+                    }
                 });
 
                 if (response.status === 200) {
@@ -489,7 +482,7 @@ export default {
                                                 entry.withholdingTax.toLocaleString() }}</td>
                                             <td class="border px-4 py-2 text-sm text-gray-900 font-semibold">
                                                 ₱{{ (entry.sss + entry.philhealth + entry.hdmf +
-                                                    entry.withholdingTax).toLocaleString() }}
+                                                entry.withholdingTax).toLocaleString() }}
                                             </td>
                                         </tr>
                                     </tbody>
