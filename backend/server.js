@@ -24,12 +24,12 @@ connectDB();
 /* LOCAL DEVELOPMENT ONLY */
 // Start the server locally when not running on Vercel.
 // Vercel handles the server start in production, so this is skipped there.
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 7777;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
+// if (process.env.NODE_ENV !== 'production') {
+//   const PORT = process.env.PORT || 7777;
+//   app.listen(PORT, () => {
+//     console.log(`Server running on port ${PORT}`);
+//   });
+// }
 
 /* PRODUCTION ONLY (optional manual CORS) */
 // Uncomment this block if corsOptions in config/cors.js is insufficient for production.
