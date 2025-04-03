@@ -470,6 +470,22 @@ export default {
         return { authStore };
     },
     computed: {
+        filteredEmployees() {
+            return this.employees.filter((employee) => {
+                const name = employee && employee.name ? employee.name : '';
+                return name.toLowerCase().includes(this.searchQuery.toLowerCase());
+            });
+        },
+        totalPages() {
+            return Math.ceil(this.filteredEmployees.length / this.itemsPerPage) || 1;
+        },
+        paginatedEmployees() {
+            const start = (this.currentPage - 1) * this.itemsPerPage;
+            const end = start + this.itemsPerPage;
+            return this.filteredEmployees.slice(start, end).sort((a, b) => {
+                return a.position.localeCompare(b.position);
+            });
+        },
         sortedPositionHistory() {
             if (!this.selectedEmployee || !this.selectedEmployee.positionHistory) {
                 return [{
@@ -493,13 +509,9 @@ export default {
             return this.sortedPositionHistory.length > 1;
         },
         sortedPreviousPayslips() {
-            // Previous payslips are those before the latest position's start date
-            const latestPositionStart = this.hasUpdatedPosition ? moment(this.latestPosition.startDate, 'YYYY-MM-DD') : moment('9999-12-31');
-            const previousPayslips = this.payslipHistory.filter(payslip => {
-                const payDate = moment(payslip.payDate, 'YYYY-MM-DD');
-                return payDate.isBefore(latestPositionStart, 'day');
-            });
-
+            const previousPayslips = this.payslipHistory.filter(payslip =>
+                payslip.position === this.initialPosition.position
+            );
             return previousPayslips.sort((a, b) => {
                 if (this.sortPreviousField === 'payDate') {
                     const dateA = moment(a.paydayType === 'mid-month' ? a.expectedPaydays.midMonthPayday : a.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
@@ -514,13 +526,11 @@ export default {
             });
         },
         sortedNewPayslips() {
-            // New payslips are those on or after the latest position's start date
-            const latestPositionStart = this.hasUpdatedPosition ? moment(this.latestPosition.startDate, 'YYYY-MM-DD') : moment('9999-12-31');
-            const newPayslips = this.payslipHistory.filter(payslip => {
-                const payDate = moment(payslip.payDate, 'YYYY-MM-DD');
-                return this.hasUpdatedPosition && payDate.isSameOrAfter(latestPositionStart, 'day');
-            });
-
+            const newPayslips = this.payslipHistory.filter(payslip =>
+                payslip.position === this.latestPosition.position &&
+                this.hasUpdatedPosition &&
+                moment(payslip.salaryMonth, 'YYYY-MM').isSameOrAfter(moment(this.latestPosition.startDate, 'YYYY-MM-DD'), 'month')
+            );
             return newPayslips.sort((a, b) => {
                 if (this.sortNewField === 'payDate') {
                     const dateA = moment(a.paydayType === 'mid-month' ? a.expectedPaydays.midMonthPayday : a.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
@@ -663,14 +673,10 @@ export default {
                         createdAt: employee.createdAt || employee.hireDate,
                         updatedAt: employee.updatedAt
                     };
-                    // Log the employee data for debugging
-                    console.log(`Employee ${mappedEmployee.id}:`, {
-                        name: mappedEmployee.name,
-                        position: mappedEmployee.position,
-                        salary: mappedEmployee.salary,
-                        positionHistory: mappedEmployee.positionHistory,
-                        hireDate: mappedEmployee.hireDate
-                    });
+                    // Log the positionHistory for the employee in question
+                    if (employee._id === '67e4d967fc64c58822e13774') {
+                        console.log('Position history for employee 67e4d967fc64c58822e13774:', mappedEmployee.positionHistory);
+                    }
                     return mappedEmployee;
                 });
                 this.showSuccessMessage('Employees loaded successfully!');
@@ -981,30 +987,19 @@ export default {
         getActivePositionForDate(positionHistory, date) {
             if (!Array.isArray(positionHistory) || positionHistory.length === 0) {
                 return {
-                    position: this.selectedEmployee?.position || 'N/A',
-                    salary: this.selectedEmployee?.salary || 0,
+                    position: 'N/A',
+                    salary: 0,
                     startDate: this.selectedEmployee?.hireDate || this.currentDate.toISOString().split('T')[0]
                 };
             }
-
             const targetDate = moment(date);
-            const sortedHistory = [...positionHistory].sort((a, b) => moment(a.startDate).diff(moment(b.startDate)));
-            const activePosition = sortedHistory.find(history => {
+            const activePosition = positionHistory.find(history => {
                 const startDate = moment(history.startDate);
+                // If endDate is null, the position is active indefinitely into the future
                 const endDate = history.endDate ? moment(history.endDate) : moment('9999-12-31');
                 return targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day');
             });
-
-            // If the target date is before the first position, use the employee's initial position
-            if (!activePosition && targetDate.isBefore(moment(sortedHistory[0].startDate), 'day')) {
-                return {
-                    position: this.selectedEmployee?.position || 'N/A',
-                    salary: this.selectedEmployee?.salary || 0,
-                    startDate: this.selectedEmployee?.hireDate || this.currentDate.toISOString().split('T')[0]
-                };
-            }
-
-            return activePosition || sortedHistory[sortedHistory.length - 1];
+            return activePosition || positionHistory[positionHistory.length - 1];
         },
         async generatePayslipNow(employee) {
             this.payslipGenerationStatus.generating = true;
