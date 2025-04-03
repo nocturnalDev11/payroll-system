@@ -17,7 +17,7 @@ export default {
             taxContributions: [],
             filteredTaxContributions: [],
             allTaxContributions: {},
-            currentDate: new Date('2025-03-19'),
+            currentDate: new Date('2025-04-15'),
             showUpdateModal: false,
             selectedEmployeeForUpdate: '',
             newPosition: '',
@@ -156,40 +156,42 @@ export default {
         calculateTaxContributions() {
             if (!this.currentEmployee) return;
 
-            const backendContributions = this.allTaxContributions[this.currentEmployee.id] || [];
+            const hireDate = moment(this.currentEmployee.hireDate);
+            const today = moment(this.currentDate);
+            const payDates = [];
+            let backendContributions = this.allTaxContributions[this.currentEmployee.id] || [];
 
-            // Step 1: Extract distinct positions and their periods from positionHistory
-            const positionHistory = this.currentEmployee.positionHistory || [];
-            const distinctPositions = [];
-            const seenPositions = new Set();
+            // Step 1: Generate all mid-month and end-of-month pay dates
+            let currentDate = hireDate.clone().startOf('month');
+            while (currentDate.isSameOrBefore(today, 'day')) {
+                const month = currentDate.month();
+                const year = currentDate.year();
 
-            // Sort positionHistory by startDate to process in chronological order
-            const sortedHistory = [...positionHistory].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-
-            sortedHistory.forEach(history => {
-                const position = history.position;
-                if (!seenPositions.has(position)) {
-                    seenPositions.add(position);
-                    distinctPositions.push(history);
+                // Mid-month (15th)
+                const midMonth = moment({ year, month, date: 15 });
+                if (midMonth.isSameOrAfter(hireDate, 'day') && midMonth.isSameOrBefore(today, 'day')) {
+                    payDates.push(midMonth.toDate());
                 }
-            });
 
-            // Step 2: Calculate the midpoint date for each distinct position period
-            this.taxContributions = distinctPositions.map(history => {
-                const startDate = new Date(history.startDate);
-                const endDate = history.endDate ? new Date(history.endDate) : new Date(this.currentDate);
+                // End-of-month (last day)
+                const lastDay = currentDate.clone().endOf('month');
+                if (lastDay.isSameOrAfter(hireDate, 'day') && lastDay.isSameOrBefore(today, 'day')) {
+                    payDates.push(lastDay.toDate());
+                }
 
-                // Calculate midpoint date
-                const midPointMs = startDate.getTime() + (endDate.getTime() - startDate.getTime()) / 2;
-                const midPointDate = new Date(midPointMs);
+                currentDate.add(1, 'month').startOf('month');
+            }
 
-                const salary = history.salary;
-                const salaryMonth = moment(midPointDate).format('YYYY-MM');
-                const existing = backendContributions.find(c => moment(c.payDate).isSame(midPointDate, 'day')) || {};
+            // Step 2: Map each pay date to its active position and calculate contributions
+            this.taxContributions = payDates.map(payDate => {
+                const positionAtDate = this.getActivePositionForDate(this.currentEmployee.positionHistory, payDate);
+                const salary = positionAtDate.salary;
+                const salaryMonth = moment(payDate).format('YYYY-MM');
+                const existing = backendContributions.find(c => moment(c.payDate).isSame(payDate, 'day')) || {};
 
                 return {
-                    payDate: midPointDate,
-                    position: history.position,
+                    payDate,
+                    position: positionAtDate.position,
                     salary: salary,
                     sss: existing.sss || this.calculateSSSContribution(salary),
                     philhealth: existing.philhealth || this.calculatePhilHealthContribution(salary),
