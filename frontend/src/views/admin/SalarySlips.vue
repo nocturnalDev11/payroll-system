@@ -470,22 +470,6 @@ export default {
         return { authStore };
     },
     computed: {
-        filteredEmployees() {
-            return this.employees.filter((employee) => {
-                const name = employee && employee.name ? employee.name : '';
-                return name.toLowerCase().includes(this.searchQuery.toLowerCase());
-            });
-        },
-        totalPages() {
-            return Math.ceil(this.filteredEmployees.length / this.itemsPerPage) || 1;
-        },
-        paginatedEmployees() {
-            const start = (this.currentPage - 1) * this.itemsPerPage;
-            const end = start + this.itemsPerPage;
-            return this.filteredEmployees.slice(start, end).sort((a, b) => {
-                return a.position.localeCompare(b.position);
-            });
-        },
         sortedPositionHistory() {
             if (!this.selectedEmployee || !this.selectedEmployee.positionHistory) {
                 return [{
@@ -509,9 +493,13 @@ export default {
             return this.sortedPositionHistory.length > 1;
         },
         sortedPreviousPayslips() {
-            const previousPayslips = this.payslipHistory.filter(payslip =>
-                payslip.position === this.initialPosition.position
-            );
+            // Previous payslips are those before the latest position's start date
+            const latestPositionStart = this.hasUpdatedPosition ? moment(this.latestPosition.startDate, 'YYYY-MM-DD') : moment('9999-12-31');
+            const previousPayslips = this.payslipHistory.filter(payslip => {
+                const payDate = moment(payslip.payDate, 'YYYY-MM-DD');
+                return payDate.isBefore(latestPositionStart, 'day');
+            });
+
             return previousPayslips.sort((a, b) => {
                 if (this.sortPreviousField === 'payDate') {
                     const dateA = moment(a.paydayType === 'mid-month' ? a.expectedPaydays.midMonthPayday : a.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
@@ -526,11 +514,13 @@ export default {
             });
         },
         sortedNewPayslips() {
-            const newPayslips = this.payslipHistory.filter(payslip =>
-                payslip.position === this.latestPosition.position &&
-                this.hasUpdatedPosition &&
-                moment(payslip.salaryMonth, 'YYYY-MM').isSameOrAfter(moment(this.latestPosition.startDate, 'YYYY-MM-DD'), 'month')
-            );
+            // New payslips are those on or after the latest position's start date
+            const latestPositionStart = this.hasUpdatedPosition ? moment(this.latestPosition.startDate, 'YYYY-MM-DD') : moment('9999-12-31');
+            const newPayslips = this.payslipHistory.filter(payslip => {
+                const payDate = moment(payslip.payDate, 'YYYY-MM-DD');
+                return this.hasUpdatedPosition && payDate.isSameOrAfter(latestPositionStart, 'day');
+            });
+
             return newPayslips.sort((a, b) => {
                 if (this.sortNewField === 'payDate') {
                     const dateA = moment(a.paydayType === 'mid-month' ? a.expectedPaydays.midMonthPayday : a.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
@@ -673,10 +663,14 @@ export default {
                         createdAt: employee.createdAt || employee.hireDate,
                         updatedAt: employee.updatedAt
                     };
-                    // Log the positionHistory for the employee in question
-                    if (employee._id === '67e4d967fc64c58822e13774') {
-                        console.log('Position history for employee 67e4d967fc64c58822e13774:', mappedEmployee.positionHistory);
-                    }
+                    // Log the employee data for debugging
+                    console.log(`Employee ${mappedEmployee.id}:`, {
+                        name: mappedEmployee.name,
+                        position: mappedEmployee.position,
+                        salary: mappedEmployee.salary,
+                        positionHistory: mappedEmployee.positionHistory,
+                        hireDate: mappedEmployee.hireDate
+                    });
                     return mappedEmployee;
                 });
                 this.showSuccessMessage('Employees loaded successfully!');
@@ -729,6 +723,9 @@ export default {
                 }]
             };
 
+            // Log the positionHistory for debugging
+            console.log(`Position history for employee ${this.selectedEmployee.id}:`, this.selectedEmployee.positionHistory);
+
             const hireDate = moment(this.selectedEmployee.hireDate || this.currentDate);
             const today = moment(this.currentDate);
             let backendPayslips = [];
@@ -748,7 +745,6 @@ export default {
             const payslipHistory = [];
             let currentDate = hireDate.clone().startOf('month');
 
-            // Step 1: Generate all mid-month and end-of-month pay dates
             while (currentDate.isSameOrBefore(today, 'day')) {
                 const month = currentDate.month();
                 const year = currentDate.year();
@@ -758,6 +754,7 @@ export default {
                 const midMonth = moment({ year, month, date: 15 });
                 if (midMonth.isSameOrAfter(hireDate, 'day') && midMonth.isSameOrBefore(today, 'day')) {
                     const positionAtPayDate = this.getActivePositionForDate(this.selectedEmployee.positionHistory, midMonth.toDate());
+                    console.log(`Pay date ${midMonth.format('YYYY-MM-DD')}: Position = ${positionAtPayDate.position}, Salary = ${positionAtPayDate.salary}`);
                     const expectedPaydays = this.getExpectedPayday(hireDate.toDate(), salaryMonth);
                     const existingPayslip = backendPayslips.find(p =>
                         p.salaryMonth === salaryMonth && p.paydayType === 'mid-month' && moment(p.payDate).isSame(midMonth, 'day')
@@ -790,6 +787,7 @@ export default {
                 const lastDay = currentDate.clone().endOf('month');
                 if (lastDay.isSameOrAfter(hireDate, 'day') && lastDay.isSameOrBefore(today, 'day')) {
                     const positionAtPayDate = this.getActivePositionForDate(this.selectedEmployee.positionHistory, lastDay.toDate());
+                    console.log(`Pay date ${lastDay.format('YYYY-MM-DD')}: Position = ${positionAtPayDate.position}, Salary = ${positionAtPayDate.salary}`);
                     const expectedPaydays = this.getExpectedPayday(hireDate.toDate(), salaryMonth);
                     const existingPayslip = backendPayslips.find(p =>
                         p.salaryMonth === salaryMonth && p.paydayType === 'end-of-month' && moment(p.payDate).isSame(lastDay, 'day')
@@ -983,19 +981,30 @@ export default {
         getActivePositionForDate(positionHistory, date) {
             if (!Array.isArray(positionHistory) || positionHistory.length === 0) {
                 return {
-                    position: 'N/A',
-                    salary: 0,
+                    position: this.selectedEmployee?.position || 'N/A',
+                    salary: this.selectedEmployee?.salary || 0,
                     startDate: this.selectedEmployee?.hireDate || this.currentDate.toISOString().split('T')[0]
                 };
             }
+
             const targetDate = moment(date);
-            const activePosition = positionHistory.find(history => {
+            const sortedHistory = [...positionHistory].sort((a, b) => moment(a.startDate).diff(moment(b.startDate)));
+            const activePosition = sortedHistory.find(history => {
                 const startDate = moment(history.startDate);
-                // If endDate is null, the position is active indefinitely into the future
                 const endDate = history.endDate ? moment(history.endDate) : moment('9999-12-31');
                 return targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day');
             });
-            return activePosition || positionHistory[positionHistory.length - 1];
+
+            // If the target date is before the first position, use the employee's initial position
+            if (!activePosition && targetDate.isBefore(moment(sortedHistory[0].startDate), 'day')) {
+                return {
+                    position: this.selectedEmployee?.position || 'N/A',
+                    salary: this.selectedEmployee?.salary || 0,
+                    startDate: this.selectedEmployee?.hireDate || this.currentDate.toISOString().split('T')[0]
+                };
+            }
+
+            return activePosition || sortedHistory[sortedHistory.length - 1];
         },
         async generatePayslipNow(employee) {
             this.payslipGenerationStatus.generating = true;
