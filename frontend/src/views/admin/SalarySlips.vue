@@ -655,30 +655,31 @@ export default {
                         'user-id': userId,
                     },
                 });
-                this.employees = response.data.map((employee) => {
-                    const latestPosition = this.getLatestPosition(employee);
-                    const name = `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Unnamed Employee';
-                    const mappedEmployee = {
-                        ...employee,
-                        id: employee._id,
-                        name,
-                        position: latestPosition.position, // Use the latest position
-                        salary: latestPosition.salary, // Use the latest salary
-                        positionHistory: Array.isArray(employee.positionHistory) && employee.positionHistory.length > 0 ? employee.positionHistory : [{
-                            position: employee.position || 'N/A',
-                            salary: employee.salary || 0,
-                            startDate: employee.hireDate || this.currentDate.toISOString().split('T')[0],
-                            endDate: null
-                        }],
-                        createdAt: employee.createdAt || employee.hireDate,
-                        updatedAt: employee.updatedAt
-                    };
-                    // Log the positionHistory for the employee in question
-                    if (employee._id === '67e4d967fc64c58822e13774') {
-                        console.log('Position history for employee 67e4d967fc64c58822e13774:', mappedEmployee.positionHistory);
-                    }
-                    return mappedEmployee;
-                });
+                this.employees = response.data
+                    .filter(employee => employee.status !== 'pending' && employee.status !== 'trashed') // Filter out pending and trashed
+                    .map((employee) => {
+                        const latestPosition = this.getLatestPosition(employee);
+                        const name = `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Unnamed Employee';
+                        const mappedEmployee = {
+                            ...employee,
+                            id: employee._id,
+                            name,
+                            position: latestPosition.position,
+                            salary: latestPosition.salary,
+                            positionHistory: Array.isArray(employee.positionHistory) && employee.positionHistory.length > 0 ? employee.positionHistory : [{
+                                position: employee.position || 'N/A',
+                                salary: employee.salary || 0,
+                                startDate: employee.hireDate || this.currentDate.toISOString().split('T')[0],
+                                endDate: null
+                            }],
+                            createdAt: employee.createdAt || employee.hireDate,
+                            updatedAt: employee.updatedAt
+                        };
+                        if (employee._id === '67e4d967fc64c58822e13774') {
+                            console.log('Position history for employee 67e4d967fc64c58822e13774:', mappedEmployee.positionHistory);
+                        }
+                        return mappedEmployee;
+                    });
                 this.showSuccessMessage('Employees loaded successfully!');
             } catch (error) {
                 console.error('Error fetching employees:', error);

@@ -416,32 +416,34 @@ export default {
                         'user-id': authStore.admin?.id || authStore.employee?.id,
                     },
                 });
-                this.employees = response.data.map(emp => {
-                    const payheads = (emp.payheads || []).map(ph => ({
-                        _id: ph._id,
-                        id: ph.id || -1,
-                        name: ph.name || 'Unknown',
-                        amount: Number(ph.amount || 0),
-                        type: ph.type || 'Earnings',
-                        isRecurring: ph.isRecurring || false,
-                        appliedThisCycle: ph.appliedThisCycle || false,
-                        uniqueId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    }));
-                    return {
-                        ...emp,
-                        name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unknown Employee',
-                        position: emp.position || 'N/A',
-                        salary: Number(emp.salary || 0),
-                        payheads,
-                        totalEarnings: this.calculateEarnings(payheads),
-                        totalDeduction: this.calculateDeductions(payheads),
-                        totalRecurringDeduction: this.calculateRecurringDeductions(payheads),
-                        totalSalary: Number(emp.salary || 0) +
-                            this.calculateEarnings(payheads) -
-                            this.calculateDeductions(payheads) -
-                            this.calculateRecurringDeductions(payheads),
-                    };
-                });
+                this.employees = response.data
+                    .filter(emp => emp.status !== 'pending' && emp.status !== 'trashed') // Filter out pending and trashed
+                    .map(emp => {
+                        const payheads = (emp.payheads || []).map(ph => ({
+                            _id: ph._id,
+                            id: ph.id || -1,
+                            name: ph.name || 'Unknown',
+                            amount: Number(ph.amount || 0),
+                            type: ph.type || 'Earnings',
+                            isRecurring: ph.isRecurring || false,
+                            appliedThisCycle: ph.appliedThisCycle || false,
+                            uniqueId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        }));
+                        return {
+                            ...emp,
+                            name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unknown Employee',
+                            position: emp.position || 'N/A',
+                            salary: Number(emp.salary || 0),
+                            payheads,
+                            totalEarnings: this.calculateEarnings(payheads),
+                            totalDeduction: this.calculateDeductions(payheads),
+                            totalRecurringDeduction: this.calculateRecurringDeductions(payheads),
+                            totalSalary: Number(emp.salary || 0) +
+                                this.calculateEarnings(payheads) -
+                                this.calculateDeductions(payheads) -
+                                this.calculateRecurringDeductions(payheads),
+                        };
+                    });
                 console.log('Fetched employees:', this.employees);
                 this.showSuccessMessage('Data loaded successfully!');
             } catch (error) {
