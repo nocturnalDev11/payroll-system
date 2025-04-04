@@ -135,6 +135,11 @@
         }
     };
 
+    const generateEmployeeId = () => {
+        const randomNum = Math.floor(1000000 + Math.random() * 9000000); // Generates a 7-digit number
+        newRequest.value.employeeIdNumber = `EMP-${randomNum}`;
+    };
+
     const updateSalaryFromPosition = () => {
         const selectedPosition = adminPositions.value.find((pos) => pos.name === newRequest.value.position);
         if (selectedPosition) {
@@ -241,6 +246,7 @@
     // Lifecycle
     onMounted(() => {
         fetchPositions();
+        generateEmployeeId();
     });
 </script>
 
@@ -263,10 +269,11 @@
                     <h3 class="text-base font-semibold text-gray-800 mb-3">Basic Information</h3>
                     <div class="grid grid-cols-3 gap-4">
                         <div class="space-y-1">
-                            <label for="employeeIdNumber" class="text-sm font-medium text-gray-700">Employee ID Number</label>
-                            <input v-model="newRequest.employeeIdNumber" type="text" id="employeeIdNumber"
-                                class="block w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ease-in-out hover:border-blue-300"
-                                placeholder="Enter your employee ID" required />
+                            <label for="employeeIdNumber" class="text-sm font-medium text-gray-700">Employee ID
+                                Number</label>
+                            <p class="block w-full p-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700">
+                                {{ newRequest.employeeIdNumber }}
+                            </p>
                         </div>
                         <div class="space-y-1">
                             <label for="firstName" class="text-sm font-medium text-gray-700">First Name</label>
@@ -291,7 +298,8 @@
                             <input v-model="newRequest.email" type="email" id="email"
                                 class="block w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 ease-in-out hover:border-blue-300"
                                 placeholder="Enter your email" required @input="validateEmail" />
-                            <p v-if="emailError" class="text-red-500 text-xs mt-1 animate-pulse-fast">{{ emailError }}</p>
+                            <p v-if="emailError" class="text-red-500 text-xs mt-1 animate-pulse-fast">{{ emailError }}
+                            </p>
                         </div>
                         <div class="space-y-1">
                             <label for="contactInfo" class="text-sm font-medium text-gray-700">Contact Number</label>
@@ -300,7 +308,8 @@
                                 placeholder="09123456789" required pattern="\d{11}"
                                 title="Please enter an 11-digit phone number (e.g., 09123456789)"
                                 @input="validatePhoneNumber" />
-                            <p v-if="phoneError" class="text-red-500 text-xs mt-1 animate-pulse-fast">{{ phoneError }}</p>
+                            <p v-if="phoneError" class="text-red-500 text-xs mt-1 animate-pulse-fast">{{ phoneError }}
+                            </p>
                         </div>
                         <div class="space-y-1">
                             <label for="position" class="text-sm font-medium text-gray-700">Position</label>
@@ -312,7 +321,8 @@
                                     {{ position.name }}
                                 </option>
                             </select>
-                            <p v-if="adminPositions.length === 0" class="text-red-500 text-xs mt-1">No positions available.
+                            <p v-if="adminPositions.length === 0" class="text-red-500 text-xs mt-1">No positions
+                                available.
                                 Contact your admin.</p>
                         </div>
                         <div class="space-y-1">
@@ -376,37 +386,43 @@
                         <div class="space-y-1">
                             <label for="password" class="text-sm font-medium text-gray-700">Password</label>
                             <div class="relative">
-                                <input v-model="newRequest.password" :type="showPassword ? 'text' : 'password'" id="password"
+                                <input v-model="newRequest.password" :type="showPassword ? 'text' : 'password'"
+                                    id="password"
                                     class="block w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 transition-all duration-300 ease-in-out hover:border-blue-300"
                                     placeholder="Choose a password" required minlength="8" @input="validatePassword" />
                                 <button type="button" @click="togglePasswordVisibility"
                                     class="absolute inset-y-0 right-0 pr-3 flex items-center transition-transform duration-300 hover:scale-110">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                                        stroke="currentColor" class="w-5 h-5 text-gray-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                        stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-gray-500">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
                                 </button>
                             </div>
                             <div class="text-sm text-gray-600 mt-2">
                                 Password strength: <span :class="passwordStrengthClass">{{ passwordStrength }}</span>
                             </div>
-                            <p v-if="passwordError" class="text-red-500 text-xs mt-1 animate-pulse-fast">{{ passwordError }}</p>
+                            <p v-if="passwordError" class="text-red-500 text-xs mt-1 animate-pulse-fast">{{
+                                passwordError }}</p>
                         </div>
                         <div class="space-y-1">
-                            <label for="confirmPassword" class="text-sm font-medium text-gray-700">Confirm Password</label>
+                            <label for="confirmPassword" class="text-sm font-medium text-gray-700">Confirm
+                                Password</label>
                             <div class="relative">
-                                <input v-model="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" id="confirmPassword"
+                                <input v-model="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'"
+                                    id="confirmPassword"
                                     class="block w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 transition-all duration-300 ease-in-out hover:border-blue-300"
                                     placeholder="Confirm your password" required @input="validatePassword" />
                                 <button type="button" @click="toggleConfirmPasswordVisibility"
                                     class="absolute inset-y-0 right-0 pr-3 flex items-center transition-transform duration-300 hover:scale-110">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                                        stroke="currentColor" class="w-5 h-5 text-gray-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                        stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-gray-500">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     </svg>
                                 </button>
                             </div>
