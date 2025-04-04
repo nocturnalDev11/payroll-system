@@ -2,7 +2,6 @@
 import { defineProps, defineEmits } from 'vue';
 import Modal from '@/components/Modal.vue';
 
-// Define props
 const props = defineProps({
     show: {
         type: Boolean,
@@ -14,7 +13,6 @@ const props = defineProps({
     },
 });
 
-// Define emits
 const emit = defineEmits(['close', 'open']);
 
 // Format time function
@@ -24,6 +22,15 @@ const formatTime = (time) => {
     const period = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
     return `${displayHours}:${minutes} ${period}`;
+};
+
+// Get earliest sign-in and latest sign-out
+const getSignInTime = (record) => {
+    return record.morningTimeIn || record.afternoonTimeIn || 'N/A';
+};
+
+const getSignOutTime = (record) => {
+    return record.afternoonTimeOut || record.morningTimeOut || 'N/A';
 };
 
 // Status class function
@@ -36,24 +43,25 @@ const getStatusClass = (status) => {
             return 'text-yellow-600 font-medium';
         case 'absent':
             return 'text-red-600 font-medium';
+        case 'early departure':
+            return 'text-orange-600 font-medium';
+        case 'half day':
+            return 'text-blue-600 font-medium';
         default:
             return 'text-gray-600';
     }
 };
 
-// Emit 'open' when the visibility button is clicked
 const openModal = () => {
     emit('open');
 };
 </script>
 
 <template>
-    <!-- Visibility button to trigger the modal -->
     <button @click="openModal" class="text-blue-600 hover:text-blue-800 transition cursor-pointer" title="View Details">
         <span class="material-icons">visibility</span>
     </button>
 
-    <!-- Modal for employee details -->
     <Modal :show="show" @close="emit('close')">
         <div class="p-6 border-b border-gray-200 flex justify-between items-center">
             <h2 class="text-xl font-bold text-gray-900 flex items-center">
@@ -76,16 +84,16 @@ const openModal = () => {
                 </div>
             </div>
             <p>
-                <strong>ID:</strong> {{ employee.employeeId?.empNo || employee.employeeId || 'N/A' }}
+                <strong>ID:</strong> {{ employee.employeeId?.empNo || 'N/A' }}
             </p>
             <p>
                 <strong>Name:</strong> {{ employee.employeeId?.firstName || '' }} {{ employee.employeeId?.lastName || ''
                 }}
             </p>
             <p><strong>Position:</strong> {{ employee.employeeId?.position || 'N/A' }}</p>
-            <p><strong>Email:</strong> {{ employee.employeeId?.email || employee.email || 'N/A' }}</p>
-            <p><strong>Sign In Time:</strong> {{ formatTime(employee.timeIn || employee.signInTime) }}</p>
-            <p><strong>Sign Out Time:</strong> {{ formatTime(employee.timeOut || employee.signOutTime) }}</p>
+            <p><strong>Email:</strong> {{ employee.employeeId?.email || 'N/A' }}</p>
+            <p><strong>Sign In Time:</strong> {{ formatTime(getSignInTime(employee)) }}</p>
+            <p><strong>Sign Out Time:</strong> {{ formatTime(getSignOutTime(employee)) }}</p>
             <p>
                 <strong>Status: </strong>
                 <span :class="getStatusClass(employee.status)">{{ employee.status || 'Absent' }}</span>
