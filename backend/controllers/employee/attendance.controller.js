@@ -279,7 +279,7 @@ exports.createAttendance = asyncHandler(async (req, res) => {
 
     await newAttendance.save();
     const populatedAttendance = await Attendance.findById(newAttendance._id)
-        .populate('employeeId', 'name position email employeeIdNumber');
+        .populate('employeeId', 'name position email empNo');
 
     res.status(201).json(populatedAttendance);
 });
@@ -293,7 +293,7 @@ exports.getAllAttendance = asyncHandler(async (req, res) => {
         const attendanceRecords = await Attendance.find()
             .populate({
                 path: 'employeeId',
-                select: 'firstName lastName position email employeeIdNumber',
+                select: 'firstName lastName position email empNo',
                 match: { status: { $ne: 'pending' } }
             });
         
@@ -337,7 +337,7 @@ exports.getTodayAttendance = asyncHandler(async (req, res) => {
             $or: [{ morningTimeIn: { $ne: null } }, { afternoonTimeIn: { $ne: null } }],
         }).populate({
             path: 'employeeId',
-            select: 'firstName lastName position email employeeIdNumber',
+            select: 'firstName lastName position email empNo',
             match: { status: { $ne: 'pending' } },
         });
 
