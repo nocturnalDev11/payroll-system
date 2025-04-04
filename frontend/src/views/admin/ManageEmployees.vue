@@ -196,11 +196,7 @@ export default {
                         'user-role': this.authStore.userRole,
                     },
                 });
-                this.pendingRequests = (response.data || []).map(req => ({
-                    ...req,
-                    id: req._id, // Map _id to id for consistency
-                    _id: req._id,
-                }));
+                this.pendingRequests = (response.data || []).map(req => ({ ...req, _id: req._id }));
             } catch (error) {
                 console.error('Error fetching pending requests:', error);
                 this.showErrorMessage('Failed to load pending requests');
@@ -406,20 +402,10 @@ export default {
         },
 
         async saveRequestChanges() {
-            const requiredFields = [
-                'firstName', 'lastName', 'position', 'salary', 'email', 'contactInfo'
-            ];
-
+            const requiredFields = ['firstName', 'lastName', 'position', 'salary', 'email', 'contactInfo'];
             const missingFields = requiredFields.filter(field => {
                 const value = this.selectedRequest[field];
-                if (value === undefined || value === null) return true;
-                if (['firstName', 'lastName', 'position', 'email', 'contactInfo'].includes(field)) {
-                    return typeof value !== 'string' || value.trim() === '';
-                }
-                if (field === 'salary') {
-                    return typeof value !== 'number' || value < 0;
-                }
-                return false;
+                return value === undefined || value === null || (typeof value === 'string' && value.trim() === '') || (field === 'salary' && (typeof value !== 'number' || value < 0));
             });
 
             if (missingFields.length > 0) {
@@ -429,11 +415,7 @@ export default {
 
             this.isUpdating = true;
             try {
-                const updatedRequest = {
-                    ...this.selectedRequest,
-                    hireDate: this.selectedRequest.hireDate
-                };
-
+                const updatedRequest = { ...this.selectedRequest, hireDate: this.selectedRequest.hireDate };
                 const response = await axios.put(
                     `${BASE_API_URL}/api/employees/pending-requests/${this.selectedRequest._id}`,
                     updatedRequest,
@@ -446,7 +428,7 @@ export default {
                 );
 
                 if (response.status === 200) {
-                    const index = this.pendingRequests.findIndex(req => req.id === this.selectedRequest.id);
+                    const index = this.pendingRequests.findIndex(req => req._id === this.selectedRequest._id);
                     if (index !== -1) this.pendingRequests[index] = { ...this.selectedRequest };
                     this.showSuccessMessage('Request updated successfully');
                     this.isEditingRequest = false;
@@ -1050,7 +1032,7 @@ export default {
                     <div class="space-y-4">
                         <div>
                             <h3 class="text-base font-semibold text-gray-800 mb-2">Personal Information</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3"> -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Employee Number *</label>
                                     <input v-model="selectedRequest.empNo"
