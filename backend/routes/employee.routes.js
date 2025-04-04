@@ -10,20 +10,21 @@ const {
     resetPassword,
 } = require('../controllers/employee/auth/employeeAuth.controller');
 const { 
-    createEmployee,
-    deleteEmployee,
-    deleteEmployeeById,
-    getProfile,
-    getSalaryData,
-    getAllEmployees,
-    getEmployeeById,
     getTotalEmployees,
-    getTrashedEmployees,
-    permanentDeleteEmployee,
-    updatePendingRequest,
+    getProfile,
     uploadProfilePicture,
     updateEmployeeDetails,
-    restoreEmployee
+    deleteEmployee,
+    getTrashedEmployees,
+    restoreEmployee,
+    permanentDeleteEmployee,
+    getAllEmployees,
+    getEmployeeById,
+    getSalaryData,
+    createEmployee,
+    updatePendingRequest,
+    deleteEmployeeById,
+    getPendingEmployees
 } = require('../controllers/employee/employee.controller');
 
 const upload = multer({
