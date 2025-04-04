@@ -487,7 +487,7 @@ export default {
             });
         },
         sortedPositionHistory() {
-            if (!this.selectedEmployee || !this.selectedEmployee.positionHistory) {
+            if (!this.selectedEmployee || !Array.isArray(this.selectedEmployee.positionHistory) || this.selectedEmployee.positionHistory.length === 0) {
                 return [{
                     position: this.selectedEmployee?.position || 'N/A',
                     salary: this.selectedEmployee?.salary || 0,
@@ -495,55 +495,70 @@ export default {
                     endDate: null
                 }];
             }
-            return [...this.selectedEmployee.positionHistory].sort((a, b) =>
-                new Date(a.startDate) - new Date(b.startDate)
-            );
+            return [...this.selectedEmployee.positionHistory].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
         },
-        initialPosition() {
-            return this.sortedPositionHistory[0];
-        },
-        latestPosition() {
-            return this.sortedPositionHistory[this.sortedPositionHistory.length - 1];
-        },
+        // initialPosition() {
+        //     return this.sortedPositionHistory[0];
+        // },
+        // latestPosition() {
+        //     return this.sortedPositionHistory[this.sortedPositionHistory.length - 1];
+        // },
         hasUpdatedPosition() {
             return this.sortedPositionHistory.length > 1;
         },
-        sortedPreviousPayslips() {
-            const previousPayslips = this.payslipHistory.filter(payslip =>
-                payslip.position === this.initialPosition.position
-            );
-            return previousPayslips.sort((a, b) => {
-                if (this.sortPreviousField === 'payDate') {
+        // sortedPreviousPayslips() {
+        //     const previousPayslips = this.payslipHistory.filter(payslip =>
+        //         payslip.position === this.initialPosition.position
+        //     );
+        //     return previousPayslips.sort((a, b) => {
+        //         if (this.sortPreviousField === 'payDate') {
+        //             const dateA = moment(a.paydayType === 'mid-month' ? a.expectedPaydays.midMonthPayday : a.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
+        //             const dateB = moment(b.paydayType === 'mid-month' ? b.expectedPaydays.midMonthPayday : b.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
+        //             return this.sortPreviousAsc ? dateA - dateB : dateB - dateA;
+        //         } else if (this.sortPreviousField === 'position') {
+        //             const posA = this.getPositionName(a.position);
+        //             const posB = this.getPositionName(b.position);
+        //             return this.sortPreviousAsc ? posA.localeCompare(posB) : posB.localeCompare(posA);
+        //         }
+        //         return 0;
+        //     });
+        // },
+        // sortedNewPayslips() {
+        //     const newPayslips = this.payslipHistory.filter(payslip =>
+        //         payslip.position === this.latestPosition.position &&
+        //         this.hasUpdatedPosition &&
+        //         moment(payslip.salaryMonth, 'YYYY-MM').isSameOrAfter(moment(this.latestPosition.startDate, 'YYYY-MM-DD'), 'month')
+        //     );
+        //     return newPayslips.sort((a, b) => {
+        //         if (this.sortNewField === 'payDate') {
+        //             const dateA = moment(a.paydayType === 'mid-month' ? a.expectedPaydays.midMonthPayday : a.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
+        //             const dateB = moment(b.paydayType === 'mid-month' ? b.expectedPaydays.midMonthPayday : b.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
+        //             return this.sortNewAsc ? dateA - dateB : dateB - dateA;
+        //         } else if (this.sortNewField === 'position') {
+        //             const posA = this.getPositionName(a.position);
+        //             const posB = this.getPositionName(b.position);
+        //             return this.sortNewAsc ? posA.localeCompare(posB) : posB.localeCompare(posA);
+        //         }
+        //         return 0;
+        //     });
+        // }
+        payslipsByPosition() {
+            const grouped = {};
+            this.payslipHistory.forEach(payslip => {
+                if (!grouped[payslip.position]) {
+                    grouped[payslip.position] = [];
+                }
+                grouped[payslip.position].push(payslip);
+            });
+            Object.keys(grouped).forEach(position => {
+                grouped[position].sort((a, b) => {
                     const dateA = moment(a.paydayType === 'mid-month' ? a.expectedPaydays.midMonthPayday : a.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
                     const dateB = moment(b.paydayType === 'mid-month' ? b.expectedPaydays.midMonthPayday : b.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
                     return this.sortPreviousAsc ? dateA - dateB : dateB - dateA;
-                } else if (this.sortPreviousField === 'position') {
-                    const posA = this.getPositionName(a.position);
-                    const posB = this.getPositionName(b.position);
-                    return this.sortPreviousAsc ? posA.localeCompare(posB) : posB.localeCompare(posA);
-                }
-                return 0;
+                });
             });
+            return grouped;
         },
-        sortedNewPayslips() {
-            const newPayslips = this.payslipHistory.filter(payslip =>
-                payslip.position === this.latestPosition.position &&
-                this.hasUpdatedPosition &&
-                moment(payslip.salaryMonth, 'YYYY-MM').isSameOrAfter(moment(this.latestPosition.startDate, 'YYYY-MM-DD'), 'month')
-            );
-            return newPayslips.sort((a, b) => {
-                if (this.sortNewField === 'payDate') {
-                    const dateA = moment(a.paydayType === 'mid-month' ? a.expectedPaydays.midMonthPayday : a.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
-                    const dateB = moment(b.paydayType === 'mid-month' ? b.expectedPaydays.midMonthPayday : b.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
-                    return this.sortNewAsc ? dateA - dateB : dateB - dateA;
-                } else if (this.sortNewField === 'position') {
-                    const posA = this.getPositionName(a.position);
-                    const posB = this.getPositionName(b.position);
-                    return this.sortNewAsc ? posA.localeCompare(posB) : posB.localeCompare(posA);
-                }
-                return 0;
-            });
-        }
     },
     async created() {
         if (!this.authStore.isAuthenticated) {
@@ -703,6 +718,7 @@ export default {
                 this.isLoading = false;
             }
         },
+        // In SalarySlips.vue <script> methods section
         async showPayslipHistory(employee) {
             this.isLoading = true;
             if (!employee || !employee.id || !employee.empNo) {
