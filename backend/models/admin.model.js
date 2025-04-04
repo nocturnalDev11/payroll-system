@@ -42,6 +42,9 @@ const adminSchema = new Schema({
         type: String,
         default: 'admin',
     },
+    resetToken: { type: String },
+    verificationCode: { type: String },
+    resetTokenExpires: { type: Date }
 });
 
 module.exports = model('Admin', adminSchema);
