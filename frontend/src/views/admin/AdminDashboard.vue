@@ -9,7 +9,6 @@ const router = useRouter();
 const attendanceStore = useAttendanceStore();
 const totalEmployees = ref(0);
 const isLoading = ref(false);
-const isProcessingPayroll = ref(false);
 const showModals = ref({});
 
 // Fetch total employees
@@ -75,7 +74,7 @@ const exportAttendance = () => {
         ['Date', 'Employee ID', 'Name', 'Position', 'Sign In Time', 'Sign Out Time', 'Status'],
         ...attendanceStore.attendanceRecords.map(record => [
             currentDate,
-            record.employeeId?.employeeIdNumber || 'N/A',
+            record.employeeId?.empNo || 'N/A',
             `${record.employeeId?.firstName} ${record.employeeId?.lastName}`,
             record.employeeId?.position || 'N/A',
             formatTime(getSignInTime(record)),
@@ -95,17 +94,6 @@ const exportAttendance = () => {
     document.body.removeChild(link);
 };
 
-// Process payroll
-const processPayroll = async () => {
-    isProcessingPayroll.value = true;
-    try {
-        console.log('Processing payroll...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-    } finally {
-        isProcessingPayroll.value = false;
-    }
-};
-
 // Delete attendance
 const deleteAttendance = async (id) => {
     if (confirm('Are you sure you want to delete this attendance record?')) {
@@ -120,13 +108,6 @@ const deleteAttendance = async (id) => {
             console.error('Failed to delete attendance:', error);
         }
     }
-};
-
-// Logout
-const logout = () => {
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userRole');
-    router.push('/login');
 };
 
 // Modal controls
@@ -238,12 +219,6 @@ onMounted(() => {
                     :disabled="isLoading">
                     <span class="material-icons">download</span>
                     <span>Export CSV</span>
-                </button>
-                <button @click="processPayroll"
-                    class="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
-                    :disabled="isProcessingPayroll">
-                    <span class="material-icons">payment</span>
-                    <span>{{ isProcessingPayroll ? 'Processing...' : 'Process Payroll' }}</span>
                 </button>
             </div>
 

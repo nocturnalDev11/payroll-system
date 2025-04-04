@@ -76,7 +76,7 @@ const openModal = () => {
                 </div>
             </div>
             <p>
-                <strong>ID:</strong> {{ employee.employeeId?.employeeIdNumber || employee.employeeId || 'N/A' }}
+                <strong>ID:</strong> {{ employee.employeeId?.empNo || employee.employeeId || 'N/A' }}
             </p>
             <p>
                 <strong>Name:</strong> {{ employee.employeeId?.firstName || '' }} {{ employee.employeeId?.lastName || ''
