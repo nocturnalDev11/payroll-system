@@ -365,16 +365,20 @@ export default {
             try {
                 const employee = this.employees.find(emp => emp.id === id);
                 if (!employee || !employee._id) {
-                this.showErrorMessage('Invalid employee _id');
-                return;
+                    this.showErrorMessage('Invalid employee _id');
+                    return;
                 }
-                const response = await axios.delete(`${BASE_API_URL}/api/employees/${employee._id}`, {
-                    headers: {
-                        Authorization: `Bearer ${this.authStore.accessToken}`,
-                        'user-role': this.authStore.userRole,
-                    },
-                });
-                if (response.status === 200 || response.status === 204) {
+                const response = await axios.put(
+                    `${BASE_API_URL}/api/employees/${employee._id}/trash`,
+                    {},
+                    {
+                        headers: {
+                            Authorization: `Bearer ${this.authStore.accessToken}`,
+                            'user-role': this.authStore.userRole,
+                        },
+                    }
+                );
+                if (response.status === 200) {
                     this.employees = this.employees.filter(emp => emp._id !== employee._id);
                     this.showDeleteModal = false;
                     this.showSuccessMessage('Employee moved to trash successfully');

@@ -59,8 +59,9 @@ router.post('/', restrictToAdmin, createEmployee);
 router.put('/update/:id', verifyToken, updateEmployeeDetails);
 router.put('/pending-requests/:id', restrictToAdmin, updatePendingRequest);
 router.get('/trash', restrictToAdmin, getTrashedEmployees);
+router.put('/:id/trash', restrictToAdmin, deleteEmployee);
 router.delete('/:id', restrictToAdmin, deleteEmployeeById);
 router.put('/trash/:id/restore', restrictToAdmin, restoreEmployee);
 router.delete('/trash/:id', restrictToAdmin, permanentDeleteEmployee);
 
-module.exports = router;
+module.exports = router; 

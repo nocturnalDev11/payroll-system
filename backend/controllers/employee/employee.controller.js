@@ -89,11 +89,9 @@ exports.deleteEmployee = asyncHandler(async (req, res) => {
     const employee = await Employee.findById(id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
-    // Explicitly set status to 'trashed' and save
     employee.status = 'trashed';
     employee.trashedAt = new Date();
-    await employee.save({ validateBeforeSave: true }); // Ensure it persists
-    console.log(`Employee ${id} moved to trash:`, employee);
+    await employee.save({ validateBeforeSave: true });
 
     res.status(200).json({ message: 'Employee moved to trash successfully', employeeId: id });
 });
