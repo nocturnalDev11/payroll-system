@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'; // Added computed
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAttendanceStore } from '@/stores/attendance.store.js';
 import { BASE_API_URL } from '@/utils/constants.js';
@@ -16,10 +16,7 @@ const showModals = ref({});
 const fetchTotalEmployees = async () => {
     try {
         const response = await fetch(`${BASE_API_URL}/api/employees/total`, {
-            method: 'GET',
-            headers: { 
-                'Content-Type': 'application/json' 
-            },
+            headers: { 'Content-Type': 'application/json' },
         });
         if (!response.ok) throw new Error('Failed to fetch total employees');
         const data = await response.json();
@@ -38,11 +35,27 @@ const formatTime = (time) => {
     return `${displayHours}:${minutes} ${period}`;
 };
 
+// Get earliest time-in (morning or afternoon)
+const getSignInTime = (record) => {
+    return record.morningTimeIn || record.afternoonTimeIn || '--';
+};
+
+// Get latest time-out (morning or afternoon)
+const getSignOutTime = (record) => {
+    return record.afternoonTimeOut || record.morningTimeOut || '--';
+};
+
 // Refresh attendance
 const refreshAttendance = async () => {
     isLoading.value = true;
     try {
-        await attendanceStore.fetchAttendance();
+        const todayStart = new Date().setHours(0, 0, 0, 0);
+        const response = await fetch(`${BASE_API_URL}/api/attendance/today`, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to fetch today’s attendance');
+        const data = await response.json();
+        attendanceStore.attendanceRecords = data;
     } catch (error) {
         console.error('Failed to refresh attendance:', error);
     } finally {
@@ -55,19 +68,18 @@ const exportAttendance = () => {
     const currentDate = new Date().toLocaleDateString('en-US', {
         year: 'numeric',
         month: '2-digit',
-        day: '2-digit'
+        day: '2-digit',
     });
 
     const csvContent = [
-        // Header
         ['Date', 'Employee ID', 'Name', 'Position', 'Sign In Time', 'Sign Out Time', 'Status'],
         ...attendanceStore.attendanceRecords.map(record => [
             currentDate,
             record.employeeId?.employeeIdNumber || 'N/A',
             `${record.employeeId?.firstName} ${record.employeeId?.lastName}`,
             record.employeeId?.position || 'N/A',
-            formatTime(record.timeIn),
-            formatTime(record.timeOut),
+            formatTime(getSignInTime(record)),
+            formatTime(getSignOutTime(record)),
             record.status || 'N/A',
         ]),
     ]
@@ -103,7 +115,7 @@ const deleteAttendance = async (id) => {
                 headers: { 'Content-Type': 'application/json' },
             });
             if (!response.ok) throw new Error('Failed to delete attendance');
-            await attendanceStore.fetchAttendance();
+            await refreshAttendance();
         } catch (error) {
             console.error('Failed to delete attendance:', error);
         }
@@ -126,27 +138,29 @@ const closeModal = (recordId) => {
     showModals.value[recordId] = false;
 };
 
-// Computed property to dynamically determine absent count
+// Computed properties for stats
+const presentCount = computed(() => {
+    return attendanceStore.attendanceRecords.filter(r => r.status === 'On Time' || r.status === 'Present').length;
+});
+
+const lateCount = computed(() => {
+    return attendanceStore.attendanceRecords.filter(r => r.status === 'Late').length;
+});
+
 const absentCount = computed(() => {
+    const todayStart = new Date().setHours(0, 0, 0, 0);
     const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false });
     const CUTOFF_TIME = "13:00:00";
-
     if (currentTime > CUTOFF_TIME) {
-        // After cutoff, count employees without time-in as absent
-        const presentEmployeeIds = attendanceStore.attendanceRecords
-            .filter(record => record.timeIn && record.status !== "Absent")
-            .map(record => record.employeeId._id.toString());
-        const totalIds = attendanceStore.attendanceRecords.map(record => record.employeeId._id.toString());
-        const uniqueAbsentIds = [...new Set(totalIds.filter(id => !presentEmployeeIds.includes(id)))];
-
-        return uniqueAbsentIds.length;
+        const presentIds = new Set(attendanceStore.attendanceRecords.map(r => r.employeeId._id.toString()));
+        return totalEmployees.value - presentIds.size;
     }
-    return attendanceStore.attendanceRecords.filter(r => r.status === "Absent").length;
+    return 0; // Before cutoff, only show absent if explicitly marked
 });
 
 onMounted(() => {
     fetchTotalEmployees();
-    attendanceStore.fetchAttendance();
+    refreshAttendance();
 });
 </script>
 
@@ -177,9 +191,7 @@ onMounted(() => {
                         </div>
                         <div>
                             <p class="text-sm font-medium text-gray-600">Present Today</p>
-                            <h3 class="text-2xl font-bold text-gray-900">
-                                {{attendanceStore.attendanceRecords.filter(r => r.status === 'On Time').length}}
-                            </h3>
+                            <h3 class="text-2xl font-bold text-gray-900">{{ presentCount }}</h3>
                         </div>
                     </div>
                 </div>
@@ -192,9 +204,7 @@ onMounted(() => {
                             </div>
                             <div class="ml-5">
                                 <p class="text-sm font-medium text-gray-600">Late Today</p>
-                                <h3 class="text-2xl font-bold text-gray-900">
-                                    {{attendanceStore.attendanceRecords.filter(r => r.status === 'Late').length}}
-                                </h3>
+                                <h3 class="text-2xl font-bold text-gray-900">{{ lateCount }}</h3>
                             </div>
                         </div>
                     </div>
@@ -208,9 +218,7 @@ onMounted(() => {
                             </div>
                             <div class="ml-5">
                                 <p class="text-sm font-medium text-gray-600">Absent Today</p>
-                                <h3 class="text-2xl font-bold text-gray-900">
-                                    {{ absentCount }}
-                                </h3>
+                                <h3 class="text-2xl font-bold text-gray-900">{{ absentCount }}</h3>
                             </div>
                         </div>
                     </div>
@@ -253,42 +261,42 @@ onMounted(() => {
                             <tr>
                                 <th
                                     class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 justify-center">
                                         <span class="material-icons text-gray-400">badge</span>
                                         <span>Employee</span>
                                     </div>
                                 </th>
                                 <th
                                     class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 justify-center">
                                         <span class="material-icons text-gray-400">work</span>
                                         <span>Position</span>
                                     </div>
                                 </th>
                                 <th
                                     class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 justify-center">
                                         <span class="material-icons text-gray-400">login</span>
                                         <span>Sign In</span>
                                     </div>
                                 </th>
                                 <th
                                     class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 justify-center">
                                         <span class="material-icons text-gray-400">logout</span>
                                         <span>Sign Out</span>
                                     </div>
                                 </th>
                                 <th
                                     class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 justify-center">
                                         <span class="material-icons text-gray-400">info</span>
                                         <span>Status</span>
                                     </div>
                                 </th>
                                 <th
                                     class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 justify-center">
                                         <span class="material-icons text-gray-400">settings</span>
                                         <span>Actions</span>
                                     </div>
@@ -304,8 +312,8 @@ onMounted(() => {
                                 </tr>
                             </template>
                             <template v-else>
-                                <tr v-for="record in attendanceStore.attendanceRecords.filter(r => r.timeIn)"
-                                    :key="record._id" class="hover:bg-gray-50">
+                                <tr v-for="record in attendanceStore.attendanceRecords" :key="record._id"
+                                    class="hover:bg-gray-50">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ record.employeeId?.firstName }} {{ record.employeeId?.lastName }}
                                     </td>
@@ -313,21 +321,22 @@ onMounted(() => {
                                         {{ record.employeeId?.position || 'N/A' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ formatTime(record.timeIn) }}
+                                        {{ formatTime(getSignInTime(record)) }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ formatTime(record.timeOut) }}
+                                        {{ formatTime(getSignOutTime(record)) }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium" :class="{
                                         'text-red-500': record.status === 'Absent',
-                                        'text-green-500': record.status === 'On Time',
+                                        'text-green-500': record.status === 'On Time' || record.status === 'Present',
                                         'text-yellow-500': record.status === 'Late',
                                         'text-orange-500': record.status === 'Early Departure',
+                                        'text-blue-500': record.status === 'Half Day',
                                     }">
                                         {{ record.status || 'N/A' }}
                                     </td>
                                     <td class="px-6 py-4 text-sm">
-                                        <div class="flex space-x-2">
+                                        <div class="flex space-x-2 justify-center">
                                             <EmployeeAttendanceDetails :show="showModals[record._id] || false"
                                                 :employee="record" @open="openModal(record._id)"
                                                 @close="closeModal(record._id)" />

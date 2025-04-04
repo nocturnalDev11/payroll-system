@@ -324,6 +324,31 @@ exports.getAttendanceByEmployeeId = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc Get today's attendance records
+ * @route GET /api/attendance/today
+ */
+exports.getTodayAttendance = asyncHandler(async (req, res) => {
+    try {
+        const todayStart = new Date().setHours(0, 0, 0, 0);
+        const todayEnd = new Date().setHours(23, 59, 59, 999);
+
+        const attendanceRecords = await Attendance.find({
+            date: { $gte: todayStart, $lte: todayEnd },
+            $or: [{ morningTimeIn: { $ne: null } }, { afternoonTimeIn: { $ne: null } }],
+        }).populate({
+            path: 'employeeId',
+            select: 'firstName lastName position email employeeIdNumber',
+            match: { status: { $ne: 'pending' } },
+        });
+
+        const filteredRecords = attendanceRecords.filter(record => record.employeeId !== null);
+        res.status(200).json(filteredRecords);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+/**
  * @desc Delete an attendance record
  * @route DELETE /api/attendance/:id
  */

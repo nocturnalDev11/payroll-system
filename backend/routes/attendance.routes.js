@@ -13,13 +13,15 @@ const {
     getAttendanceByEmployeeId,
     deleteAttendance,
     checkAbsent,
-    updateAttendance
+    updateAttendance,
+    getTodayAttendance
 } = require('../controllers/employee/attendance.controller.js');
 
 router.post('/time-in', timeIn);
 router.post('/time-out', timeOut);
 router.post('/', createAttendance);
 router.get('/', getAllAttendance);
+router.get('/today', getTodayAttendance);
 router.put('/:id', restrictToAdmin, updateAttendance);
 router.get('/:employeeId', getAttendanceByEmployeeId);
 router.delete('/:id', deleteAttendance);
