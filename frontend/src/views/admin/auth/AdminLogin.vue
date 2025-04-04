@@ -136,10 +136,10 @@ export default {
                     </div>
 
                     <div class="flex items-center justify-end">
-                        <button type="button" @click="forgotPassword"
-                            class="text-sm text-indigo-600 hover:text-indigo-700 transition-colors duration-300 hover:underline">
-                            Forgot password?
-                        </button>
+                        <router-link :to="{ name: 'AdminForgotPassword' }"
+                            class="text-sm text-indigo-600 hover:text-indigo-700">
+                            Forgot Password?
+                        </router-link>
                     </div>
 
                     <button type="submit" :disabled="isLoading"
