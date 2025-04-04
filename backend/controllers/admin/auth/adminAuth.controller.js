@@ -1,6 +1,8 @@
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 const Admin = require('../../../models/admin.model.js');
 
 function generateAdminToken(adminId) {
