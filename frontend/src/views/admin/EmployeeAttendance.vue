@@ -366,13 +366,14 @@ export default {
                 this.employees = baseEmployees.map(employee => {
                     const attendance = attendanceMap[employee.id] || {};
                     return {
+                        _id: attendance._id,
                         id: employee.id,
                         firstName: employee.firstName,
                         lastName: employee.lastName,
-                        morningTimeIn: attendance.morningTimeIn !== undefined ? attendance.morningTimeIn : employee.morningTimeIn,
-                        morningTimeOut: attendance.morningTimeOut !== undefined ? attendance.morningTimeOut : employee.morningTimeOut,
-                        afternoonTimeIn: attendance.afternoonTimeIn !== undefined ? attendance.afternoonTimeIn : employee.afternoonTimeIn,
-                        afternoonTimeOut: attendance.afternoonTimeOut !== undefined ? attendance.afternoonTimeOut : employee.afternoonTimeOut,
+                        morningTimeIn: attendance.morningTimeIn || null,
+                        morningTimeOut: attendance.morningTimeOut || null,
+                        afternoonTimeIn: attendance.afternoonTimeIn || null,
+                        afternoonTimeOut: attendance.afternoonTimeOut || null,
                         status: attendance.status || employee.status,
                     };
                 });
@@ -484,14 +485,9 @@ export default {
                 });
 
                 const response = await axios.put(
-                    `${BASE_API_URL}/api/attendance/${employee.id}`,
+                    `${BASE_API_URL}/api/attendance/${employee._id}`,
                     payload,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${token}`, // Add token to headers
-                            'user-role': 'admin',
-                        },
-                    }
+                    { headers: { 'Authorization': `Bearer ${token}`, 'user-role': 'admin' } }
                 );
 
                 if (response.status === 200) {

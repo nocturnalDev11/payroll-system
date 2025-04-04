@@ -169,10 +169,32 @@ exports.checkAbsent = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc Update an attendance record
+ * @route PUT /api/attendance/:id
+ */
+exports.updateAttendance = asyncHandler(async (req, res) => {
+    const { employeeId, date, morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut, status } = req.body;
+
+    const attendance = await Attendance.findOne({ employeeId, date });
+    if (!attendance) {
+        return res.status(404).json({ message: 'Attendance record not found' });
+    }
+
+    attendance.morningTimeIn = morningTimeIn !== undefined ? morningTimeIn : attendance.morningTimeIn || null;
+    attendance.morningTimeOut = morningTimeOut !== undefined ? morningTimeOut : attendance.morningTimeOut || null;
+    attendance.afternoonTimeIn = afternoonTimeIn !== undefined ? afternoonTimeIn : attendance.afternoonTimeIn || null;
+    attendance.afternoonTimeOut = afternoonTimeOut !== undefined ? afternoonTimeOut : attendance.afternoonTimeOut || null;
+    attendance.status = status || attendance.status;
+
+    await attendance.save();
+    res.status(200).json(attendance);
+});
+
+/**
  * @desc Create a new attendance record manually
  * @route POST /api/attendance
  */
-exports.createAttendance = async (req, res) => {
+exports.createAttendance = asyncHandler(async (req, res) => {
     try {
         const { employeeId, date, status } = req.body;
 
@@ -199,13 +221,13 @@ exports.createAttendance = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-};
+});
 
 /**
  * @desc Get all attendance records
  * @route GET /api/attendance
  */
-exports.getAllAttendance = async (req, res) => {
+exports.getAllAttendance = asyncHandler(async (req, res) => {
     try {
         const attendanceRecords = await Attendance.find()
             .populate({
@@ -220,7 +242,7 @@ exports.getAllAttendance = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-};
+});
 
 /**
  * @desc Get attendance by employee ID
@@ -244,7 +266,7 @@ exports.getAttendanceByEmployeeId = asyncHandler(async (req, res) => {
  * @desc Delete an attendance record
  * @route DELETE /api/attendance/:id
  */
-exports.deleteAttendance = async (req, res) => {
+exports.deleteAttendance = asyncHandler(async (req, res) => {
     try {
         const { id } = req.params;
         const attendance = await Attendance.findByIdAndDelete(id);
@@ -257,6 +279,6 @@ exports.deleteAttendance = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-};
+});
 
 module.exports = exports;

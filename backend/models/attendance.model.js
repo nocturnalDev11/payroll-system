@@ -9,9 +9,13 @@ const attendanceSchema = new mongoose.Schema({
     date: { type: Date, required: true },
     timeIn: { type: String, default: null },
     timeOut: { type: String, default: null },
+    morningTimeIn: { type: String, default: null },
+    morningTimeOut: { type: String, default: null },
+    afternoonTimeIn: { type: String, default: null },
+    afternoonTimeOut: { type: String, default: null },
     status: { 
         type: String, 
-        enum: ['On Time', 'Late', 'Absent', 'Early Departure'], 
+        enum: ['On Time', 'Late', 'Absent', 'Early Departure', 'Present', 'Half Day'], 
         default: 'Absent' 
     }
 }, {

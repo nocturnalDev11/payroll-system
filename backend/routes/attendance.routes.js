@@ -12,7 +12,8 @@ const {
     getAllAttendance,
     getAttendanceByEmployeeId,
     deleteAttendance,
-    checkAbsent
+    checkAbsent,
+    updateAttendance
 } = require('../controllers/employee/attendance.controller.js');
 
 // router.get('/late', restrictToAdmin, async (req, res) => {
@@ -133,6 +134,7 @@ router.post('/time-in', timeIn);
 router.post('/time-out', timeOut);
 router.post('/', createAttendance);
 router.get('/', getAllAttendance);
+router.put('/:id', restrictToAdmin, updateAttendance);
 router.get('/:employeeId', getAttendanceByEmployeeId);
 router.delete('/:id', deleteAttendance);
 router.get('/check-absent', checkAbsent);
