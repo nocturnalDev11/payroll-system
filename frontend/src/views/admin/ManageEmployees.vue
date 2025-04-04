@@ -474,13 +474,17 @@ export default {
 
         async rejectRequest(_id) {
             try {
-                const response = await axios.delete(`${BASE_API_URL}/api/pending-requests/${_id}`, {
-                    headers: {
-                        Authorization: `Bearer ${this.authStore.accessToken}`,
-                        'user-role': this.authStore.userRole,
-                    },
-                });
-                if (response.status === 200 || response.status === 204) {
+                const response = await axios.put(
+                    `${BASE_API_URL}/api/pending-requests/${_id}`,
+                    { status: 'rejected' },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${this.authStore.accessToken}`,
+                            'user-role': this.authStore.userRole,
+                        },
+                    }
+                );
+                if (response.status === 200) {
                     this.pendingRequests = this.pendingRequests.filter(req => req._id !== _id);
                     this.showRequestModal = false;
                     this.showSuccessMessage('Application rejected successfully');

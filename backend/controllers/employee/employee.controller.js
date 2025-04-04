@@ -293,6 +293,22 @@ exports.updatePendingRequest = asyncHandler(async (req, res) => {
     res.status(200).json(updatedEmployee);
 });
 
+exports.updatePendingRequestStatus = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid pending request ID' });
+    }
+    const employee = await Employee.findOneAndUpdate(
+        { _id: id, status: 'pending' },
+        { status: 'rejected' },
+        { new: true }
+    );
+    if (!employee) {
+        return res.status(404).json({ message: 'Pending request not found' });
+    }
+    res.status(200).json(employee);
+});
+
 // delete pending request by ID
 exports.deletePendingRequest = asyncHandler(async (req, res) => {
     const { id } = req.params;

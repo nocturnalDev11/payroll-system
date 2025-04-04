@@ -25,7 +25,8 @@ const {
     updatePendingRequest,
     deleteEmployeeById,
     getPendingEmployees,
-    deletePendingRequest
+    deletePendingRequest,
+    updatePendingRequestStatus
 } = require('../controllers/employee/employee.controller');
 
 const upload = multer({
@@ -62,7 +63,7 @@ router.put('/pending-requests/:id', restrictToAdmin, updatePendingRequest);
 router.get('/trash', restrictToAdmin, getTrashedEmployees);
 router.put('/:id/trash', restrictToAdmin, deleteEmployee);
 router.delete('/:id', restrictToAdmin, deleteEmployeeById);
-router.delete('/pending-requests/:id', restrictToAdmin, deletePendingRequest);
+router.put('/pending-requests/:id', restrictToAdmin, updatePendingRequestStatus);
 router.put('/trash/:id/restore', restrictToAdmin, restoreEmployee);
 router.delete('/trash/:id', restrictToAdmin, permanentDeleteEmployee);
 
