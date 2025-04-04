@@ -54,33 +54,35 @@ export default {
                     return;
                 }
 
-                this.employees = employeeData.map(emp => {
-                    // Ensure positionHistory is properly formatted
-                    const positionHistory = Array.isArray(emp.positionHistory) && emp.positionHistory.length > 0
-                        ? emp.positionHistory.map(history => ({
-                            position: history.position || 'N/A',
-                            salary: Number(history.salary) || 0,
-                            startDate: history.startDate ? new Date(history.startDate).toISOString().split('T')[0] : emp.hireDate || this.currentDate.toISOString().split('T')[0],
-                            endDate: history.endDate ? new Date(history.endDate).toISOString().split('T')[0] : null
-                        }))
-                        : [{
-                            position: emp.position || 'N/A',
-                            salary: Number(emp.salary) || 0,
-                            startDate: emp.hireDate ? new Date(emp.hireDate).toISOString().split('T')[0] : this.currentDate.toISOString().split('T')[0],
-                            endDate: null
-                        }];
+                // Filter out 'pending' and 'trashed' employees
+                this.employees = employeeData
+                    .filter(emp => emp.status !== 'pending' && emp.status !== 'trashed')
+                    .map(emp => {
+                        const positionHistory = Array.isArray(emp.positionHistory) && emp.positionHistory.length > 0
+                            ? emp.positionHistory.map(history => ({
+                                position: history.position || 'N/A',
+                                salary: Number(history.salary) || 0,
+                                startDate: history.startDate ? new Date(history.startDate).toISOString().split('T')[0] : emp.hireDate || this.currentDate.toISOString().split('T')[0],
+                                endDate: history.endDate ? new Date(history.endDate).toISOString().split('T')[0] : null
+                            }))
+                            : [{
+                                position: emp.position || 'N/A',
+                                salary: Number(emp.salary) || 0,
+                                startDate: emp.hireDate ? new Date(emp.hireDate).toISOString().split('T')[0] : this.currentDate.toISOString().split('T')[0],
+                                endDate: null
+                            }];
 
-                    const latestPosition = this.getLatestPosition({ positionHistory });
+                        const latestPosition = this.getLatestPosition({ positionHistory });
 
-                    return {
-                        ...emp,
-                        positionHistory,
-                        name: emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unnamed Employee',
-                        position: latestPosition.position,
-                        salary: latestPosition.salary,
-                        salaryMonth: emp.salaryMonth || moment(emp.hireDate).format('YYYY-MM')
-                    };
-                });
+                        return {
+                            ...emp,
+                            positionHistory,
+                            name: emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unnamed Employee',
+                            position: latestPosition.position,
+                            salary: latestPosition.salary,
+                            salaryMonth: emp.salaryMonth || moment(emp.hireDate).format('YYYY-MM')
+                        };
+                    });
 
                 await this.fetchAllTaxContributions();
                 this.errorMessage = '';
