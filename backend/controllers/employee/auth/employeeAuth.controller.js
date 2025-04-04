@@ -29,7 +29,7 @@ transporter.verify((error, success) => {
     }
 });
 
-const registerEmployee = asyncHandler(async (req, res) => {
+exports.registerEmployee = asyncHandler(async (req, res) => {
     const {
         employeeIdNumber, username, password, firstName, middleName, lastName, email,
         contactInfo, civilStatus, position, salary, sss, philhealth, pagibig, tin,
@@ -121,7 +121,7 @@ const registerEmployee = asyncHandler(async (req, res) => {
     });
 });
 
-const loginEmployee = asyncHandler(async (req, res) => {
+exports.loginEmployee = asyncHandler(async (req, res) => {
     const { username, password } = req.body;
 
     const employee = await Employee.findOne({ username });
@@ -172,95 +172,7 @@ const loginEmployee = asyncHandler(async (req, res) => {
     });
 });
 
-const pendingRequest = asyncHandler(async (req, res) => {
-    const { name, positionApplied, salary, email, contactInfo, password } = req.body;
-
-    if (!name || !positionApplied || !salary || !email || !contactInfo || !password) {
-        res.status(400).json({ error: 'Required fields are missing' });
-        return;
-    }
-
-    const [firstName, ...lastNameParts] = name.trim().split(' ');
-    const lastName = lastNameParts.join(' ') || 'Unknown';
-
-    const username = email.split('@')[0];
-
-    const existingEmployee = await Employee.exists({ 
-        $or: [
-            { username: { $regex: username, $options: 'i' } },
-            { email }
-        ]
-    });
-    
-    if (existingEmployee) {
-        res.status(409).json({ error: 'Username or email already in use' });
-        return;
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const lastEmployee = await Employee.findOne().sort({ id: -1 });
-    const newId = lastEmployee ? lastEmployee.id + 1 : 1;
-
-    const employee = await Employee.create({
-        id: newId,
-        firstName,
-        middleName: '',
-        lastName,
-        username,
-        email,
-        password: hashedPassword,
-        empNo: `TEMP-${Date.now()}`,
-        position: positionApplied,
-        salary,
-        contactInfo: contactInfo,
-        sss: '',
-        philhealth: '',
-        pagibig: '',
-        tin: '',
-        earnings: {
-            travelExpenses: 0,
-            otherEarnings: 0
-        },
-        payheads: [],
-        role: 'employee',
-        status: 'pending'
-    });
-
-    const token = generateToken(employee._id);
-
-    res.status(201).json({
-        message: 'Pending request submitted successfully',
-        employee: {
-            id: employee._id,
-            firstName: employee.firstName,
-            middleName: employee.middleName,
-            lastName: employee.lastName,
-            username: employee.username,
-            email: employee.email,
-            empNo: employee.empNo,
-            position: employee.position,
-            salary: employee.salary,
-            contactInfo: employee.contactInfo,
-            status: employee.status
-        },
-        token
-    });
-});
-
-const getPendingEmployees = asyncHandler(async (req, res) => {
-    try {
-        const isAdmin = req.role === 'admin';
-        const selectFields = isAdmin ? '' : '-password';
-        const pending = await Employee.find({ status: 'pending' }).select(selectFields);
-        res.status(200).json(pending);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching pending employees', error: error.message });
-    }
-});
-
-const forgotPassword = asyncHandler(async (req, res) => {
+exports.forgotPassword = asyncHandler(async (req, res) => {
     try {
         const { email } = req.body;
 
@@ -320,7 +232,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     }
 });
 
-const resetPassword = asyncHandler(async (req, res) => {
+exports.resetPassword = asyncHandler(async (req, res) => {
     try {
         const { email, resetToken, verificationCode, newPassword } = req.body;
 
@@ -372,5 +284,3 @@ const resetPassword = asyncHandler(async (req, res) => {
         res.status(500).json({ error: 'Password reset failed', message: error.message });
     }
 });
-
-module.exports = { registerEmployee, loginEmployee, forgotPassword, resetPassword, pendingRequest, getPendingEmployees };
