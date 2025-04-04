@@ -320,16 +320,18 @@ export default {
                     throw new Error(`Employees API failed: ${error.message}`);
                 });
 
-                const baseEmployees = (empResponse.data || []).map(emp => ({
-                    id: parseInt(emp.id),
-                    firstName: emp.firstName || 'Unknown',
-                    lastName: emp.lastName || '',
-                    morningTimeIn: null,
-                    morningTimeOut: null,
-                    afternoonTimeIn: null,
-                    afternoonTimeOut: null,
-                    status: 'Absent',
-                }));
+                const baseEmployees = (empResponse.data || [])
+                    .filter(emp => emp.status !== 'pending' && emp.status !== 'trashed') // Filter out pending and trashed
+                    .map(emp => ({
+                        id: parseInt(emp.id),
+                        firstName: emp.firstName || 'Unknown',
+                        lastName: emp.lastName || '',
+                        morningTimeIn: null,
+                        morningTimeOut: null,
+                        afternoonTimeIn: null,
+                        afternoonTimeOut: null,
+                        status: 'Absent',
+                    }));
 
                 const attResponse = await axios.get(`${BASE_API_URL}/api/attendance`, {
                     params: { date: this.date },

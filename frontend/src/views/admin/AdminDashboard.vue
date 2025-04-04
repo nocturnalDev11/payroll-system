@@ -304,8 +304,8 @@ onMounted(() => {
                                 </tr>
                             </template>
                             <template v-else>
-                                <tr v-for="record in attendanceStore.attendanceRecords" :key="record._id"
-                                    class="hover:bg-gray-50">
+                                <tr v-for="record in attendanceStore.attendanceRecords.filter(r => r.timeIn)"
+                                    :key="record._id" class="hover:bg-gray-50">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ record.employeeId?.firstName }} {{ record.employeeId?.lastName }}
                                     </td>
