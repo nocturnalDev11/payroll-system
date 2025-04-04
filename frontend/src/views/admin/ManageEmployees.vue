@@ -394,11 +394,12 @@ export default {
         viewRequestInfo(request) {
             this.selectedRequest = {
                 ...request,
+                _id: request._id,
                 earnings: {
                     travelExpenses: request.earnings?.travelExpenses || 0,
                     otherEarnings: request.earnings?.otherEarnings || 0
                 },
-                hireDate: request.hireDate ? new Date(request.hireDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10) // Convert to "yyyy-MM-dd"
+                hireDate: request.hireDate ? new Date(request.hireDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)
             };
             this.showRequestModal = true;
             this.isEditingRequest = false;
@@ -434,7 +435,7 @@ export default {
                 };
 
                 const response = await axios.put(
-                    `${BASE_API_URL}/api/employees/pending-requests/${this.selectedRequest._id}`, // Updated endpoint
+                    `${BASE_API_URL}/api/employees/pending-requests/${this.selectedRequest._id}`,
                     updatedRequest,
                     {
                         headers: {
@@ -1049,13 +1050,7 @@ export default {
                     <div class="space-y-4">
                         <div>
                             <h3 class="text-base font-semibold text-gray-800 mb-2">Personal Information</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div class="space-y-1">
-                                    <label class="text-xs font-medium text-gray-600">ID *</label>
-                                    <input v-model.number="selectedRequest.id" type="number"
-                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
-                                        required min="1" />
-                                </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3"> -->
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Employee Number *</label>
                                     <input v-model="selectedRequest.empNo"
@@ -1249,12 +1244,6 @@ export default {
                             <h3 class="text-base font-semibold text-gray-800 mb-2">Personal Information</h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div class="space-y-1">
-                                    <label class="text-xs font-medium text-gray-600">ID *</label>
-                                    <input v-model.number="newEmployee.id" type="number"
-                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
-                                        required min="1" />
-                                </div>
-                                <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Employee Number *</label>
                                     <input v-model="newEmployee.empNo"
                                         class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
@@ -1445,12 +1434,6 @@ export default {
                         <div>
                             <h3 class="text-base font-semibold text-gray-800 mb-2">Personal Information</h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div class="space-y-1">
-                                    <label class="text-xs font-medium text-gray-600">ID *</label>
-                                    <input v-model.number="selectedEmployee.id" type="number"
-                                        class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
-                                        required min="1" />
-                                </div>
                                 <div class="space-y-1">
                                     <label class="text-xs font-medium text-gray-600">Employee Number *</label>
                                     <input v-model="selectedEmployee.empNo"

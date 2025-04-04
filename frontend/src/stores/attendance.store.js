@@ -70,7 +70,8 @@ export const useAttendanceStore = defineStore("attendance", {
                 }
 
                 const data = await response.json();
-                this.attendanceRecords = data; // No need to filter if date query is used
+
+                this.attendanceRecords = data.filter(record => record.timeIn !== null);
             } catch (err) {
                 this.error = err.message || "Failed to fetch attendance records";
                 console.error(this.error);
