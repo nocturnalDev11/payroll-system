@@ -2,20 +2,16 @@
 
 This project consists of two parts:
 
-- **Client**: Vue 3 application using Vite.
-- **Server**: Express.js backend with MongoDB.
+- **Frontend**: Vue 3 application using Vite.
+- **Backend**: Express.js backend with MongoDB.
 
-## Client Setup
+## Frontend Setup
 
 This template should help get you started developing with Vue 3 in Vite.
 
 ### Recommended IDE Setup
 
 [VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-### Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
 
 ### Customize configuration
 
@@ -30,7 +26,7 @@ npm install
 #### Compile and Hot-Reload for Development
 
 ```sh
-npm run client
+npm run dev
 ```
 
 #### Type-Check, Compile and Minify for Production
@@ -55,7 +51,7 @@ This is an Express.js server with MongoDB, using **dotenv** for environment vari
 Navigate to the `server` folder and install dependencies:
 
 ```sh
-cd server
+cd backend
 npm install
 ```
 
@@ -64,12 +60,14 @@ npm install
 Create a `.env` file in the `server` folder and configure the necessary environment variables, such as:
 
 ```
-MONGO_URI=mongodb+srv://your-username:your-password@cluster.mongodb.net/your-database
-
+PORT=
+# MONGO_URI=mongodb://localhost:27017/insert_database_name (MongoDB Compass)
+MONGO_URI=
 # Generate a random string of 32 characters
 # node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-JWT_SECRET=your_jwt_secret
-PORT=5000
+JWT_SECRET=
+EMAIL_USER=
+EMAIL_PASS=
 ```
 
 ### Run the Server
@@ -77,7 +75,7 @@ PORT=5000
 For development with automatic restarts (using **nodemon**):
 
 ```sh
-npm run server
+npm run dev
 ```
 
 For production:
