@@ -2,7 +2,6 @@
 import { useRouter, useRoute } from 'vue-router';
 import Dropdown from '@/components/Dropdown.vue';
 import DropdownLink from '@/components/DropdownLink.vue';
-import ThemeToggle from '@/components/ThemeToggle.vue';
 import { useAuthStore } from '@/stores/auth.store.js';
 import { ref, computed } from 'vue';
 
@@ -87,7 +86,6 @@ const getLinkIcon = (name) => {
                         <span class="ml-1 sm:ml-2 text-xs sm:text-sm font-medium hidden sm:inline">Logout</span>
                     </button>
 
-                    <ThemeToggle />
                 </div>
             </div>
         </header>
