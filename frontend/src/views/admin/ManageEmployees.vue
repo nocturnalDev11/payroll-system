@@ -197,6 +197,7 @@ export default {
                     },
                 });
                 this.pendingRequests = (response.data || []).map(req => ({ ...req, _id: req._id }));
+                console.log('Pending Requests:', this.pendingRequests);
             } catch (error) {
                 console.error('Error fetching pending requests:', error);
                 this.showErrorMessage('Failed to load pending requests');
@@ -471,16 +472,16 @@ export default {
             }
         },
 
-        async rejectRequest(id) {
+        async rejectRequest(_id) {
             try {
-                const response = await axios.delete(`${BASE_API_URL}/api/pending-requests/${id}`, {
+                const response = await axios.delete(`${BASE_API_URL}/api/pending-requests/${_id}`, {
                     headers: {
                         Authorization: `Bearer ${this.authStore.accessToken}`,
                         'user-role': this.authStore.userRole,
                     },
                 });
                 if (response.status === 200 || response.status === 204) {
-                    this.pendingRequests = this.pendingRequests.filter(req => req.id !== id);
+                    this.pendingRequests = this.pendingRequests.filter(req => req._id !== _id);
                     this.showRequestModal = false;
                     this.showSuccessMessage('Application rejected successfully');
                 }
@@ -837,7 +838,7 @@ export default {
                                     title="Approve">
                                     <span class="material-icons text-lg">check_circle</span>
                                 </button>
-                                <button @click="rejectRequest(request.id)"
+                                <button @click="rejectRequest(request._id)"
                                     class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100"
                                     title="Reject">
                                     <span class="material-icons text-lg">cancel</span>
@@ -1201,7 +1202,7 @@ export default {
                         <span class="material-icons">check_circle</span>
                         Approve
                     </button>
-                    <button @click="rejectRequest(selectedRequest.id)"
+                    <button @click="rejectRequest(selectedRequest._id)"
                         class="px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-800 transition-colors flex items-center gap-1"
                         :disabled="isEditingRequest">
                         <span class="material-icons">cancel</span>
