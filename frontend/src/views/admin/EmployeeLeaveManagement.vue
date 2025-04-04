@@ -192,7 +192,7 @@
             <!-- Email-Style Details Modal -->
             <transition name="modal-slide">
                 <div v-if="showDetailsModalVisible"
-                    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                     <div
                         class="bg-white p-6 rounded-xl shadow-lg max-w-2xl w-full transform transition-all duration-300 scale-100">
                         <div class="border-b border-gray-200 pb-4 mb-4">
@@ -222,7 +222,7 @@
                             <p class="text-gray-700"><span class="font-medium text-gray-800">Employee:</span> {{
                                 selectedLeave.employeeName }}</p>
                             <p class="text-gray-700"><span class="font-medium text-gray-800">Employee ID:</span> {{
-                                selectedLeave.employeeId }}</p>
+                                selectedLeave.empNo }}</p>
                             <p class="text-gray-700"><span class="font-medium text-gray-800">Status:</span>
                                 <span :class="getStatusClass(selectedLeave.status)">{{ selectedLeave.status }}</span>
                             </p>
