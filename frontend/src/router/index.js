@@ -43,6 +43,14 @@ const routes = [
             title: 'Forgot Password',
         }
     },
+        {
+        path: '/admin/forgot-password',
+        component: () => import('../views/admin/auth/ForgotPassword.vue'),
+        name: 'AdminForgotPassword',
+        meta: {
+            title: 'Admin - Forgot Password',
+        }
+    },
     {
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
