@@ -127,11 +127,12 @@ exports.resetPassword = asyncHandler(async (req, res) => {
 
     const admin = await Admin.findOne({
         email: trimmedEmail,
-        resetToken: trimmedResetToken
+        resetToken: trimmedResetToken,
+        resetTokenExpires: { $gt: Date.now() }
     });
 
     if (!admin) {
-        return res.status(400).json({ error: 'Invalid reset token' });
+        return res.status(400).json({ error: 'Invalid or expired reset token' });
     }
 
     if (admin.verificationCode !== trimmedVerificationCode) {

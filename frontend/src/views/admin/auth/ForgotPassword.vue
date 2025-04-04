@@ -104,7 +104,6 @@ export default {
                     email: this.email
                 });
                 this.resetToken = response.data.resetToken;
-                console.log('Reset Token:', this.resetToken);
                 this.step = 2;
             } catch (error) {
                 this.error = error.response?.data?.error || 'Failed to send verification code. Please try again.';
