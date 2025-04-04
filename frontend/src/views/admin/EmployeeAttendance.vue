@@ -97,10 +97,12 @@
                                 <td class="px-3 py-2 flex items-center gap-1">
                                     <select v-model="employee.status" @change="updateAttendance(employee, 'status')"
                                         class="w-20 py-1 px-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white">
+                                        <option value="On Time">On Time</option>
+                                        <option value="Late">Late</option>
+                                        <option value="Absent">Absent</option>
+                                        <option value="Early Departure">Early Departure</option>
                                         <option value="Present">Present</option>
                                         <option value="Half Day">Half Day</option>
-                                        <option value="Absent">Absent</option>
-                                        <option value="Late">Late</option>
                                     </select>
                                     <button @click="showDetails(employee)"
                                         class="p-1 bg-indigo-500 text-white rounded hover:bg-indigo-600"
@@ -399,10 +401,12 @@ export default {
         },
         getStatusClass(status) {
             return {
-                Present: 'text-green-600 bg-green-100',
+                'On Time': 'text-green-600 bg-green-100',
+                'Late': 'text-yellow-600 bg-yellow-100',
+                'Absent': 'text-red-600 bg-red-100',
+                'Early Departure': 'text-orange-600 bg-orange-100',
+                'Present': 'text-green-600 bg-green-100',
                 'Half Day': 'text-blue-600 bg-blue-100',
-                Absent: 'text-red-600 bg-red-100',
-                Late: 'text-yellow-600 bg-yellow-100',
             }[status] || 'text-gray-600';
         },
         prevPage() {
@@ -415,10 +419,31 @@ export default {
             this.selectedEmployee = { ...employee };
             this.showDetailsModal = true;
         },
-        calculateStatus({ morningTimeIn, afternoonTimeIn }) {
-            if (morningTimeIn && afternoonTimeIn) return 'Present';
-            if (morningTimeIn && !afternoonTimeIn) return 'Half Day';
-            return 'Absent';
+        calculateStatus({ morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut }) {
+            const MORNING_START = "08:00"; // 8:00 AM
+            const AFTERNOON_START = "13:00"; // 1:00 PM
+            const MORNING_EARLY_CUTOFF = "11:30"; // 11:30 AM
+            const AFTERNOON_END = "17:00"; // 5:00 PM
+
+            if (!morningTimeIn && !afternoonTimeIn) {
+                return "Absent";
+            } else if (morningTimeIn && afternoonTimeIn && morningTimeOut && afternoonTimeOut) {
+                return "Present";
+            } else if ((morningTimeIn && !afternoonTimeIn) || (!morningTimeIn && afternoonTimeIn)) {
+                return "Half Day";
+            } else if (morningTimeIn && morningTimeIn > MORNING_START) {
+                return "Late";
+            } else if (afternoonTimeIn && afternoonTimeIn > AFTERNOON_START) {
+                return "Late";
+            } else if ((morningTimeOut && morningTimeOut < MORNING_EARLY_CUTOFF) ||
+                (afternoonTimeOut && afternoonTimeOut < AFTERNOON_END)) {
+                return "Early Departure";
+            } else if (morningTimeIn && morningTimeIn <= MORNING_START) {
+                return "On Time";
+            } else if (afternoonTimeIn && afternoonTimeIn <= AFTERNOON_START) {
+                return "On Time";
+            }
+            return "Absent";
         },
         async markTime(period) {
             try {

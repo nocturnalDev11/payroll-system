@@ -185,12 +185,44 @@ exports.updateAttendance = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: 'Employee ID mismatch' });
     }
 
+    // Update fields
     attendance.date = date || attendance.date;
     attendance.morningTimeIn = morningTimeIn !== undefined ? morningTimeIn : attendance.morningTimeIn || null;
     attendance.morningTimeOut = morningTimeOut !== undefined ? morningTimeOut : attendance.morningTimeOut || null;
     attendance.afternoonTimeIn = afternoonTimeIn !== undefined ? afternoonTimeIn : attendance.afternoonTimeIn || null;
     attendance.afternoonTimeOut = afternoonTimeOut !== undefined ? afternoonTimeOut : attendance.afternoonTimeOut || null;
-    attendance.status = status || attendance.status;
+
+    // Define time thresholds
+    const MORNING_START = "08:00"; // 8:00 AM
+    const AFTERNOON_START = "13:00"; // 1:00 PM
+    const MORNING_EARLY_CUTOFF = "11:30"; // 11:30 AM
+    const AFTERNOON_END = "17:00"; // 5:00 PM
+
+    // Calculate status if not explicitly provided
+    if (!status) {
+        const { morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut } = attendance;
+
+        if (!morningTimeIn && !afternoonTimeIn) {
+            attendance.status = "Absent";
+        } else if (morningTimeIn && afternoonTimeIn && morningTimeOut && afternoonTimeOut) {
+            attendance.status = "Present";
+        } else if ((morningTimeIn && !afternoonTimeIn) || (!morningTimeIn && afternoonTimeIn)) {
+            attendance.status = "Half Day";
+        } else if (morningTimeIn && morningTimeIn > MORNING_START) {
+            attendance.status = "Late";
+        } else if (afternoonTimeIn && afternoonTimeIn > AFTERNOON_START) {
+            attendance.status = "Late";
+        } else if ((morningTimeOut && morningTimeOut < MORNING_EARLY_CUTOFF) || 
+                  (afternoonTimeOut && afternoonTimeOut < AFTERNOON_END)) {
+            attendance.status = "Early Departure";
+        } else if (morningTimeIn && morningTimeIn <= MORNING_START) {
+            attendance.status = "On Time";
+        } else if (afternoonTimeIn && afternoonTimeIn <= AFTERNOON_START) {
+            attendance.status = "On Time";
+        }
+    } else {
+        attendance.status = status; // Use provided status if given
+    }
 
     await attendance.save();
     res.status(200).json(attendance);
@@ -201,32 +233,55 @@ exports.updateAttendance = asyncHandler(async (req, res) => {
  * @route POST /api/attendance
  */
 exports.createAttendance = asyncHandler(async (req, res) => {
-    try {
-        const { employeeId, date, status } = req.body;
+    const { employeeId, date, morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut, status } = req.body;
 
-        // Check if the employee exists
-        const employee = await Employee.findById(employeeId);
-        if (!employee) {
-            return res.status(404).json({ message: 'Employee not found' });
-        }
-
-        // Create a new attendance record
-        const newAttendance = new Attendance({
-            employeeId,
-            date,
-            status
-        });
-
-        await newAttendance.save();
-
-        // Populate the employee details
-        const populatedAttendance = await Attendance.findById(newAttendance._id)
-            .populate('employeeId', 'name position email employeeIdNumber');
-
-        res.status(201).json(populatedAttendance);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+        return res.status(404).json({ message: 'Employee not found' });
     }
+
+    const newAttendance = new Attendance({
+        employeeId,
+        date,
+        morningTimeIn: morningTimeIn || null,
+        morningTimeOut: morningTimeOut || null,
+        afternoonTimeIn: afternoonTimeIn || null,
+        afternoonTimeOut: afternoonTimeOut || null,
+        status: status || "Absent",
+    });
+
+    // Define time thresholds
+    const MORNING_START = "08:00";
+    const AFTERNOON_START = "13:00";
+    const MORNING_EARLY_CUTOFF = "11:30";
+    const AFTERNOON_END = "17:00";
+
+    if (!status) {
+        if (!morningTimeIn && !afternoonTimeIn) {
+            newAttendance.status = "Absent";
+        } else if (morningTimeIn && afternoonTimeIn && morningTimeOut && afternoonTimeOut) {
+            newAttendance.status = "Present";
+        } else if ((morningTimeIn && !afternoonTimeIn) || (!morningTimeIn && afternoonTimeIn)) {
+            newAttendance.status = "Half Day";
+        } else if (morningTimeIn && morningTimeIn > MORNING_START) {
+            newAttendance.status = "Late";
+        } else if (afternoonTimeIn && afternoonTimeIn > AFTERNOON_START) {
+            newAttendance.status = "Late";
+        } else if ((morningTimeOut && morningTimeOut < MORNING_EARLY_CUTOFF) || 
+                  (afternoonTimeOut && afternoonTimeOut < AFTERNOON_END)) {
+            newAttendance.status = "Early Departure";
+        } else if (morningTimeIn && morningTimeIn <= MORNING_START) {
+            newAttendance.status = "On Time";
+        } else if (afternoonTimeIn && afternoonTimeIn <= AFTERNOON_START) {
+            newAttendance.status = "On Time";
+        }
+    }
+
+    await newAttendance.save();
+    const populatedAttendance = await Attendance.findById(newAttendance._id)
+        .populate('employeeId', 'name position email employeeIdNumber');
+
+    res.status(201).json(populatedAttendance);
 });
 
 /**
