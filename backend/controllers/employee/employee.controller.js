@@ -49,6 +49,11 @@ exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { position, password, payheads, ...otherDetails } = req.body;
 
+    // Validate ID format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ error: 'Invalid employee ID format' });
+    }
+
     const updateData = { ...otherDetails, position };
     if (req.body.deductions) updateData.deductions = req.body.deductions;
     if (req.body.earnings) updateData.earnings = req.body.earnings;
@@ -73,7 +78,7 @@ exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
         { ...updateData, updatedAt: new Date() },
         { new: true, runValidators: true }
     );
-    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+    if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
     const employeeObj = employee.toObject();
     delete employeeObj.password;

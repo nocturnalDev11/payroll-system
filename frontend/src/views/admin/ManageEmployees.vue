@@ -450,7 +450,7 @@ export default {
                     empNo: request.empNo || `EMP-${Date.now()}`,
                 };
                 const response = await axios.put(
-                    `${BASE_API_URL}/api/employees/update/${request.id}`,
+                    `${BASE_API_URL}/api/employees/update/${request._id}`,
                     updatedEmployee,
                     {
                         headers: {
@@ -460,8 +460,7 @@ export default {
                     }
                 );
                 if (response.status === 200) {
-                    // Update local state directly (Options API)
-                    this.pendingRequests = this.pendingRequests.filter(req => req.id !== request.id);
+                    this.pendingRequests = this.pendingRequests.filter(req => req._id !== request._id); // Match _id
                     this.employees.push(response.data.updatedEmployee);
                     this.showRequestModal = false;
                     this.showSuccessMessage('Employee approved successfully');
