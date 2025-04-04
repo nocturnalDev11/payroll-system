@@ -59,11 +59,11 @@ router.get('/:id/salary', verifyToken, getSalaryData);
 // Admin-only routes
 router.post('/', restrictToAdmin, createEmployee);
 router.put('/update/:id', verifyToken, updateEmployeeDetails);
-router.put('/pending-requests/:id', restrictToAdmin, updatePendingRequest);
 router.get('/trash', restrictToAdmin, getTrashedEmployees);
 router.put('/:id/trash', restrictToAdmin, deleteEmployee);
 router.delete('/:id', restrictToAdmin, deleteEmployeeById);
-router.put('/pending-requests/:id', restrictToAdmin, updatePendingRequestStatus);
+router.put('/pending-requests/:id', restrictToAdmin, updatePendingRequest);
+router.put('/pending-requests/:id/reject', restrictToAdmin, updatePendingRequestStatus);
 router.put('/trash/:id/restore', restrictToAdmin, restoreEmployee);
 router.delete('/trash/:id', restrictToAdmin, permanentDeleteEmployee);
 

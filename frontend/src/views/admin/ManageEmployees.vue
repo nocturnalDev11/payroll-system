@@ -475,7 +475,7 @@ export default {
         async rejectRequest(_id) {
             try {
                 const response = await axios.put(
-                    `${BASE_API_URL}/api/pending-requests/${_id}`,
+                    `${BASE_API_URL}/api/pending-requests/${_id}/reject`,
                     { status: 'rejected' },
                     {
                         headers: {
