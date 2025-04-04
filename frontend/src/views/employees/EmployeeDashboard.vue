@@ -9,7 +9,7 @@ const router = useRouter();
 const token = localStorage.getItem('token');
 const employee = ref(null);
 const attendanceRecords = ref([]);
-const todayAttendance = ref([]); // New ref for today's attendance
+const todayAttendance = ref([]); // For admin view
 const isTimedIn = ref(false);
 const isLoading = ref(false);
 const currentPayPeriod = ref('Mar 16 - Mar 31, 2025');
@@ -38,9 +38,9 @@ onMounted(async () => {
     if (authStore.employee?._id) {
         await Promise.all([
             fetchAttendanceRecords(),
-            fetchTodayAttendance(), // Fetch today's attendance
             checkTimedInStatus(),
             fetchSalaryDetails(),
+            authStore.userRole === 'admin' ? fetchTodayAttendance() : Promise.resolve(),
         ]);
     }
 });
@@ -120,16 +120,18 @@ async function fetchTodayAttendance() {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
                 'user-role': authStore.userRole,
+                'user-id': authStore.employee?._id,
             },
         });
         if (response.ok) {
             todayAttendance.value = await response.json();
+        } else if (response.status === 404) {
+            todayAttendance.value = [];
         } else {
             throw new Error(await response.text());
         }
     } catch (error) {
         console.error('Error fetching today\'s attendance:', error);
-        todayAttendance.value = [];
     }
 }
 
@@ -139,8 +141,7 @@ async function checkTimedInStatus() {
         (record) => new Date(record.date).toISOString().split('T')[0] === today
     );
     const latestRecord = todayRecords[todayRecords.length - 1];
-    isTimedIn.value = latestRecord && (latestRecord.morningTimeIn || latestRecord.afternoonTimeIn) &&
-        !(latestRecord.morningTimeOut && latestRecord.afternoonTimeOut);
+    isTimedIn.value = latestRecord && (latestRecord.morningTimeIn || latestRecord.afternoonTimeIn) && !(latestRecord.morningTimeOut && latestRecord.afternoonTimeOut);
 }
 
 async function timeIn() {
@@ -167,8 +168,8 @@ async function timeIn() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.message);
         attendanceRecords.value.push(data);
-        todayAttendance.value.push(data); // Add to today's attendance
         await checkTimedInStatus();
+        if (authStore.userRole === 'admin') await fetchTodayAttendance();
     } catch (error) {
         alert(error.message || 'Failed to time in');
     } finally {
@@ -201,9 +202,8 @@ async function timeOut() {
         if (!response.ok) throw new Error(data.message);
         const index = attendanceRecords.value.findIndex((r) => r._id === data._id);
         if (index !== -1) attendanceRecords.value[index] = data;
-        const todayIndex = todayAttendance.value.findIndex((r) => r._id === data._id);
-        if (todayIndex !== -1) todayAttendance.value[todayIndex] = data;
         await checkTimedInStatus();
+        if (authStore.userRole === 'admin') await fetchTodayAttendance();
     } catch (error) {
         alert(error.message || 'Failed to time out');
     } finally {
@@ -230,7 +230,7 @@ const formatNumber = (value) => {
     });
 };
 
-// Salary Calculations (unchanged for brevity, assume they work as is)
+// Salary Calculations (unchanged, keeping brief)
 const calculateTotalEarnings = () => { /* ... */ };
 const calculatePayheadEarnings = (payheads) => { /* ... */ };
 const calculatePayheadDeductions = (payheads) => { /* ... */ };
@@ -245,13 +245,13 @@ const calculatePhilHealthContribution = (salary) => { /* ... */ };
 const calculatePagIBIGContribution = (salary) => { /* ... */ };
 const calculateWithholdingTax = () => { /* ... */ };
 
+// Computed Properties
 const earningsBreakdown = computed(() => { /* ... */ });
 const deductionsBreakdown = computed(() => { /* ... */ });
 const totalEarnings = computed(() => formatNumber(calculateTotalEarnings()));
 const totalDeductions = computed(() => formatNumber(calculateTotalDeductions()));
 const netSalary = computed(() => formatNumber(calculateNetSalary()));
-const employeeInitials = computed(() => employee.value?.firstName && employee.value?.lastName
-    ? `${employee.value.firstName[0]}${employee.value.lastName[0]}`.toUpperCase() : '');
+const employeeInitials = computed(() => employee.value?.firstName && employee.value?.lastName ? `${employee.value.firstName[0]}${employee.value.lastName[0]}`.toUpperCase() : '');
 
 function formatDate(date) {
     if (!date) return '--';
@@ -313,8 +313,9 @@ function getStatusClass(status) {
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                        <div class="p-6 border-b border-gray-200">
+                    <!-- Today's Attendance (Admin Only) -->
+                    <div v-if="authStore.userRole === 'admin'" class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-6 border-b border-gray-100">
                             <h2 class="text-lg font-semibold text-gray-800">Today's Attendance</h2>
                         </div>
                         <div class="overflow-x-auto">
@@ -357,16 +358,17 @@ function getStatusClass(status) {
                                         </td>
                                     </tr>
                                     <tr v-if="!todayAttendance.length">
-                                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">No one has timed in
-                                            today</td>
+                                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">No employees timed
+                                            in today</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
+                    <!-- My Attendance Records -->
                     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                        <div class="p-6 border-b border-gray-200">
+                        <div class="p-6 border-b border-gray-100">
                             <h2 class="text-lg font-semibold text-gray-800">My Attendance Records</h2>
                         </div>
                         <div class="overflow-x-auto">
