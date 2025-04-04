@@ -125,27 +125,27 @@ exports.resetPassword = asyncHandler(async (req, res) => {
         return res.status(400).json({ error: 'All fields are required' });
     }
 
-    const employee = await Employee.findOne({
+    const admin = await Admin.findOne({
         email: trimmedEmail,
         resetToken: trimmedResetToken
     });
 
-    if (!employee) {
+    if (!admin) {
         return res.status(400).json({ error: 'Invalid reset token' });
     }
 
-    if (employee.verificationCode !== trimmedVerificationCode) {
+    if (admin.verificationCode !== trimmedVerificationCode) {
         return res.status(400).json({ error: 'Invalid verification code' });
     }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(trimmedNewPassword, salt);
 
-    employee.password = hashedPassword;
-    employee.resetToken = undefined;
-    employee.verificationCode = undefined;
-    employee.resetTokenExpires = undefined;
-    await employee.save();
+    admin.password = hashedPassword;
+    admin.resetToken = undefined;
+    admin.verificationCode = undefined;
+    admin.resetTokenExpires = undefined;
+    await admin.save();
 
     res.status(200).json({ message: 'Password reset successful' });
 });
