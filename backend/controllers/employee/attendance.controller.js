@@ -173,13 +173,19 @@ exports.checkAbsent = asyncHandler(async (req, res) => {
  * @route PUT /api/attendance/:id
  */
 exports.updateAttendance = asyncHandler(async (req, res) => {
+    const { id } = req.params;
     const { employeeId, date, morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut, status } = req.body;
 
-    const attendance = await Attendance.findOne({ employeeId, date });
+    const attendance = await Attendance.findById(id);
     if (!attendance) {
         return res.status(404).json({ message: 'Attendance record not found' });
     }
 
+    if (employeeId && attendance.employeeId.toString() !== employeeId) {
+        return res.status(400).json({ message: 'Employee ID mismatch' });
+    }
+
+    attendance.date = date || attendance.date;
     attendance.morningTimeIn = morningTimeIn !== undefined ? morningTimeIn : attendance.morningTimeIn || null;
     attendance.morningTimeOut = morningTimeOut !== undefined ? morningTimeOut : attendance.morningTimeOut || null;
     attendance.afternoonTimeIn = afternoonTimeIn !== undefined ? afternoonTimeIn : attendance.afternoonTimeIn || null;

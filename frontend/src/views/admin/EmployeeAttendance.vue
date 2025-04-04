@@ -308,12 +308,12 @@ export default {
             this.isLoading = true;
             this.statusMessage = 'Loading data...';
             try {
-                const token = this.authStore.accessToken; // Get token from auth store
+                const token = this.authStore.accessToken;
                 if (!token) throw new Error('No access token available. Please log in.');
 
                 const empResponse = await axios.get(`${BASE_API_URL}/api/employees`, {
                     headers: {
-                        'Authorization': `Bearer ${token}`, // Add token to headers
+                        'Authorization': `Bearer ${token}`,
                         'user-role': 'admin',
                     },
                 }).catch(error => {
@@ -321,9 +321,10 @@ export default {
                 });
 
                 const baseEmployees = (empResponse.data || [])
-                    .filter(emp => emp.status !== 'pending' && emp.status !== 'trashed') // Filter out pending and trashed
+                    .filter(emp => emp.status !== 'pending' && emp.status !== 'trashed')
                     .map(emp => ({
-                        id: parseInt(emp.id),
+                        id: parseInt(emp.id), // Custom employee ID
+                        employeeId: emp._id, // MongoDB _id for employee
                         firstName: emp.firstName || 'Unknown',
                         lastName: emp.lastName || '',
                         morningTimeIn: null,
@@ -336,7 +337,7 @@ export default {
                 const attResponse = await axios.get(`${BASE_API_URL}/api/attendance`, {
                     params: { date: this.date },
                     headers: {
-                        'Authorization': `Bearer ${token}`, // Add token to headers
+                        'Authorization': `Bearer ${token}`,
                         'user-role': 'admin',
                     },
                 }).catch(error => {
@@ -346,28 +347,24 @@ export default {
 
                 console.log('Fetched attendance data:', JSON.stringify(attResponse.data, null, 2));
 
-                const attendanceRecords = (attResponse.data || []).map(record => ({
-                    employeeId: parseInt(record.employeeId),
-                    morningTimeIn: record.morningTimeIn || null,
-                    morningTimeOut: record.morningTimeOut || null,
-                    afternoonTimeIn: record.afternoonTimeIn || null,
-                    afternoonTimeOut: record.afternoonTimeOut || null,
-                    status: record.status || this.calculateStatus({
-                        morningTimeIn: record.morningTimeIn,
-                        afternoonTimeIn: record.afternoonTimeIn,
-                    }),
-                }));
-
-                const attendanceMap = attendanceRecords.reduce((map, record) => {
-                    map[record.employeeId] = record;
+                const attendanceMap = (attResponse.data || []).reduce((map, record) => {
+                    map[record.employeeId._id] = {
+                        _id: record._id, // Attendance record _id
+                        morningTimeIn: record.morningTimeIn || null,
+                        morningTimeOut: record.morningTimeOut || null,
+                        afternoonTimeIn: record.afternoonTimeIn || null,
+                        afternoonTimeOut: record.afternoonTimeOut || null,
+                        status: record.status || 'Absent',
+                    };
                     return map;
                 }, {});
 
                 this.employees = baseEmployees.map(employee => {
-                    const attendance = attendanceMap[employee.id] || {};
+                    const attendance = attendanceMap[employee.employeeId] || {};
                     return {
-                        _id: attendance._id,
-                        id: employee.id,
+                        _id: attendance._id, // Attendance _id
+                        id: employee.id, // Custom employee ID
+                        employeeId: employee.employeeId, // Employee _id
                         firstName: employee.firstName,
                         lastName: employee.lastName,
                         morningTimeIn: attendance.morningTimeIn || null,
@@ -378,7 +375,6 @@ export default {
                     };
                 });
 
-                this.employees = [...this.employees]; // Force re-render
                 console.log('Mapped employees after fetch:', JSON.stringify(this.employees, null, 2));
                 this.showSuccessMessage('Data loaded');
             } catch (error) {
@@ -386,8 +382,8 @@ export default {
                 this.showErrorMessage(`Failed to load data: ${error.message}`);
                 this.employees = [];
                 if (error.message.includes('No access token')) {
-                    this.authStore.logout(); // Log out if token is missing
-                    this.$router.push('/login'); // Redirect to login page
+                    this.authStore.logout();
+                    this.$router.push('/login');
                 }
             } finally {
                 this.isLoading = false;
@@ -448,11 +444,11 @@ export default {
         },
         async updateAttendance(employee, changedField) {
             try {
-                const token = this.authStore.accessToken; // Get token from auth store
+                const token = this.authStore.accessToken;
                 if (!token) throw new Error('No access token available. Please log in.');
 
                 console.log('Employee state before update:', JSON.stringify(employee, null, 2));
-                if (!employee || typeof employee.id !== 'number' || isNaN(employee.id)) {
+                if (!employee || !employee.employeeId) {
                     throw new Error('Invalid employee ID');
                 }
                 if (!this.date || !/^\d{4}-\d{2}-\d{2}$/.test(this.date)) {
@@ -467,8 +463,8 @@ export default {
                 employee.status = changedField === 'status' ? employee.status : newStatus;
 
                 const payload = {
+                    employeeId: employee.employeeId, // MongoDB _id of employee
                     date: this.date,
-                    employeeId: parseInt(employee.id),
                     morningTimeIn: employee.morningTimeIn || null,
                     morningTimeOut: employee.morningTimeOut || null,
                     afternoonTimeIn: employee.afternoonTimeIn || null,
@@ -476,27 +472,45 @@ export default {
                     status: employee.status,
                 };
 
-                delete payload.id;
                 console.log('Final payload sent:', JSON.stringify(payload, null, 2));
 
-                console.log('Updating attendance for:', {
-                    url: `${BASE_API_URL}/api/attendance/${employee.id}`,
-                    payload,
-                });
+                let response;
+                if (employee._id) {
+                    // Update existing record
+                    console.log('Updating attendance for:', {
+                        url: `${BASE_API_URL}/api/attendance/${employee._id}`,
+                        payload,
+                    });
+                    response = await axios.put(
+                        `${BASE_API_URL}/api/attendance/${employee._id}`,
+                        payload,
+                        { headers: { 'Authorization': `Bearer ${token}`, 'user-role': 'admin' } }
+                    );
+                } else {
+                    // Create new record if no _id exists
+                    console.log('Creating attendance for:', {
+                        url: `${BASE_API_URL}/api/attendance`,
+                        payload,
+                    });
+                    response = await axios.post(
+                        `${BASE_API_URL}/api/attendance`,
+                        payload,
+                        { headers: { 'Authorization': `Bearer ${token}`, 'user-role': 'admin' } }
+                    );
+                }
 
-                const response = await axios.put(
-                    `${BASE_API_URL}/api/attendance/${employee._id}`,
-                    payload,
-                    { headers: { 'Authorization': `Bearer ${token}`, 'user-role': 'admin' } }
-                );
-
-                if (response.status === 200) {
-                    console.log('PUT response:', JSON.stringify(response.data, null, 2));
+                if (response.status === 200 || response.status === 201) {
+                    console.log('Response:', JSON.stringify(response.data, null, 2));
+                    const updatedEmployee = {
+                        ...employee,
+                        _id: response.data._id, // Set _id if newly created
+                        ...response.data,
+                    };
                     this.employees = this.employees.map(emp =>
-                        emp.id === employee.id ? { ...emp, ...response.data } : emp
+                        emp.id === employee.id ? updatedEmployee : emp
                     );
                     if (employee === this.selectedEmployee) {
-                        this.selectedEmployee = { ...this.selectedEmployee, ...response.data };
+                        this.selectedEmployee = updatedEmployee;
                     }
                     this.showSuccessMessage('Updated successfully');
                 }
@@ -505,8 +519,8 @@ export default {
                 console.error('Response data:', error.response?.data);
                 this.showErrorMessage(`Update failed: ${error.response?.data?.error || error.message}`);
                 if (error.message.includes('No access token')) {
-                    this.authStore.logout(); // Log out if token is missing
-                    this.$router.push('/login'); // Redirect to login page
+                    this.authStore.logout();
+                    this.$router.push('/login');
                 }
             }
         },
