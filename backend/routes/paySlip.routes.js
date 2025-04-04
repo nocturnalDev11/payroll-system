@@ -62,59 +62,51 @@ router.post('/generate', verifyToken, async (req, res) => {
             salaryMonth,
             paydayType,
             position,
-            salary
+            salary,
+            payDate
         } = req.body;
 
         const userRole = req.role;
         const userId = req.employeeId || req.adminId;
 
-        // Validate employeeId format
         if (!mongoose.Types.ObjectId.isValid(employeeId)) {
             return res.status(400).json({ error: 'Invalid employeeId format' });
         }
 
-        // Restrict to admins or the employee themselves
         if (userRole === 'employee' && employeeId !== userId.toString()) {
             return res.status(403).json({ error: 'Employees can only generate their own payslips' });
         }
 
-        // Validate required fields
-        if (!employeeId || !empNo || !payslipData || !salaryMonth || !paydayType || !position || salary === undefined) {
+        if (!employeeId || !empNo || !payslipData || !salaryMonth || !paydayType || !position || salary === undefined || !payDate) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        // Find employee by MongoDB _id
         const employee = await Employee.findById(employeeId);
         if (!employee) {
             return res.status(404).json({ error: 'Employee not found' });
         }
 
-        // Validate salaryMonth format
         const [year, month] = salaryMonth.split('-').map(Number);
         if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
             return res.status(400).json({ error: 'Invalid salaryMonth format. Use YYYY-MM' });
         }
 
-        // Calculate payslip date
-        const payslipDate = new Date(
-            paydayType.toLowerCase() === 'mid-month'
-                ? `${year}-${month}-15`
-                : `${year}-${month}-${new Date(year, month, 0).getDate()}`
-        );
+        const payslipDate = new Date(payDate);
+        if (isNaN(payslipDate.getTime())) {
+            return res.status(400).json({ error: 'Invalid payDate format' });
+        }
 
-        // Ensure payslip date is not before hireDate
         if (payslipDate < new Date(employee.hireDate)) {
             return res.status(400).json({ error: `Payslip date (${payslipDate.toISOString()}) cannot be before hire date (${employee.hireDate.toISOString()})` });
         }
 
-        // Handle positionHistory safely
         const positionHistory = Array.isArray(employee.positionHistory) && employee.positionHistory.length > 0
             ? employee.positionHistory.sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
             : [{ position: employee.position, salary: employee.salary, startDate: employee.hireDate, endDate: null }];
 
         const activePosition = positionHistory.find(history => {
             const startDate = new Date(history.startDate);
-            const endDate = history.endDate ? new Date(history.endDate) : new Date();
+            const endDate = history.endDate ? new Date(history.endDate) : new Date('9999-12-31');
             return payslipDate >= startDate && payslipDate <= endDate;
         }) || positionHistory[positionHistory.length - 1];
 
@@ -122,15 +114,11 @@ router.post('/generate', verifyToken, async (req, res) => {
             return res.status(400).json({ error: 'No active position found for the payslip date' });
         }
 
-        const historyPosition = activePosition.position;
-        const historySalary = activePosition.salary;
-
-        // Normalize salary to number for comparison
-        if (historyPosition !== position || Number(historySalary) !== Number(salary)) {
+        if (activePosition.position !== position || Number(activePosition.salary) !== Number(salary)) {
             return res.status(400).json({
                 error: 'Position or salary mismatch with historical data',
                 details: {
-                    expected: { position: historyPosition, salary: historySalary },
+                    expected: { position: activePosition.position, salary: activePosition.salary },
                     received: { position, salary },
                     payslipDate: payslipDate.toISOString()
                 }
@@ -143,6 +131,7 @@ router.post('/generate', verifyToken, async (req, res) => {
             existingPayslip.payslipData = payslipData;
             existingPayslip.position = position;
             existingPayslip.salary = salary;
+            existingPayslip.payDate = payslipDate;
             await existingPayslip.save();
             return res.status(200).json({
                 success: true,
@@ -154,7 +143,8 @@ router.post('/generate', verifyToken, async (req, res) => {
                     salaryMonth,
                     paydayType,
                     position,
-                    salary
+                    salary,
+                    payDate
                 }
             });
         }
@@ -166,7 +156,8 @@ router.post('/generate', verifyToken, async (req, res) => {
             salaryMonth,
             paydayType,
             position,
-            salary
+            salary,
+            payDate
         });
 
         await payslip.save();
@@ -181,7 +172,8 @@ router.post('/generate', verifyToken, async (req, res) => {
                 salaryMonth,
                 paydayType,
                 position,
-                salary
+                salary,
+                payDate
             }
         });
     } catch (error) {

@@ -721,12 +721,14 @@ export default {
 
             this.selectedEmployee = {
                 ...employee,
-                positionHistory: Array.isArray(employee.positionHistory) && employee.positionHistory.length > 0 ? employee.positionHistory : [{
-                    position: employee.position || 'N/A',
-                    salary: employee.salary || 0,
-                    startDate: employee.hireDate || this.currentDate.toISOString().split('T')[0],
-                    endDate: null
-                }]
+                positionHistory: Array.isArray(employee.positionHistory) && employee.positionHistory.length > 0
+                    ? employee.positionHistory.sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+                    : [{
+                        position: employee.position || 'N/A',
+                        salary: employee.salary || 0,
+                        startDate: employee.hireDate || this.currentDate.toISOString().split('T')[0],
+                        endDate: null
+                    }]
             };
 
             const today = moment(this.currentDate);
@@ -751,7 +753,6 @@ export default {
                 const salaryMonth = currentMonth.format('YYYY-MM');
                 const expectedPaydays = this.getExpectedPayday(hireDate.toDate(), salaryMonth);
 
-                // Mid-month payslip (15th)
                 const midMonthDate = moment(`${salaryMonth}-15`, 'YYYY-MM-DD');
                 const midPosition = this.getActivePositionForDate(this.selectedEmployee.positionHistory, midMonthDate);
                 const midPayslip = backendPayslips.find(p =>
@@ -775,7 +776,6 @@ export default {
                     expectedPaydays
                 });
 
-                // End-month payslip (30th/31st)
                 const endMonthDate = moment(salaryMonth).endOf('month');
                 const endPosition = this.getActivePositionForDate(this.selectedEmployee.positionHistory, endMonthDate);
                 const endPayslip = backendPayslips.find(p =>
@@ -802,7 +802,6 @@ export default {
                 currentMonth.add(1, 'month');
             }
 
-            // Generate pending payslips
             for (const payslip of payslipHistory) {
                 if (!payslip.payslipDataUrl && today.isSameOrAfter(moment(payslip.payDate), 'day')) {
                     await this.generatePayslip(payslip);
@@ -824,6 +823,7 @@ export default {
             const employee = payslip.employee;
             if (!employee || !employee.id || !employee.empNo) {
                 this.showErrorMessage('Employee data is incomplete.');
+                console.error('Invalid employee data:', employee);
                 return;
             }
 
@@ -833,6 +833,7 @@ export default {
 
             if (!activePosition || !activePosition.position || activePosition.salary === undefined) {
                 this.showErrorMessage('Invalid position or salary for this date.');
+                console.error('Invalid activePosition:', activePosition);
                 return;
             }
 
@@ -863,8 +864,10 @@ export default {
                 const response = await axios.post(`${BASE_API_URL}/api/payslips/generate`, payload, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
-                        'user-role': 'admin'
+                        'user-role': 'admin',
+                        'Content-Type': 'application/json'
                     },
+                    validateStatus: status => status < 500
                 });
 
                 if (response.status === 201 || response.status === 200) {
@@ -885,10 +888,15 @@ export default {
                     this.payslipHistory = updatedHistory;
 
                     this.showSuccessMessage(`Payslip generated for ${employee.name} - ${payslip.paydayType === 'mid-month' ? payslip.expectedPaydays.midMonthPayday : payslip.expectedPaydays.endMonthPayday}!`);
+                } else {
+                    throw new Error(`Unexpected status code: ${response.status} - ${response.data.message || response.data.error}`);
                 }
             } catch (error) {
                 console.error('Error generating payslip:', error);
-                this.showErrorMessage(`Failed to generate payslip: ${error.message}`);
+                if (error.response) {
+                    console.error('Backend error response:', error.response.data);
+                }
+                this.showErrorMessage(`Failed to generate payslip: ${error.message}${error.response ? ` - ${error.response.data.message || error.response.data.error}` : ''}`);
             } finally {
                 this.payslipGenerationStatus[key] = { generating: false };
             }
