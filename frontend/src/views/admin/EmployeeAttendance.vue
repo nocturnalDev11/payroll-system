@@ -20,8 +20,8 @@ export default {
             currentPage: 1,
             itemsPerPage: 10,
             statusMessage: '',
-            date: new Date().toISOString().split('T')[0],
-            sortKey: 'id',
+            date: new Date().toISOString().split('T')[0], // Default to today
+            sortKey: 'empNo', // Changed to empNo to match table
             sortDirection: 'asc',
             headers: [
                 { key: 'empNo', label: 'Employee No', icon: 'badge' },
@@ -33,6 +33,7 @@ export default {
                 { key: 'status', label: 'Status', icon: 'check_circle' },
                 { key: 'actions', label: 'Actions', icon: 'settings' },
             ],
+            lastResetDate: null, // Track the last reset
         };
     },
     computed: {
@@ -42,7 +43,7 @@ export default {
                 .filter(employee =>
                     !this.searchQuery ||
                     `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-                    employee.id.toString().toLowerCase().includes(this.searchQuery.toLowerCase())
+                    employee.empNo.toString().toLowerCase().includes(this.searchQuery.toLowerCase())
                 )
                 .sort((a, b) => {
                     const valueA = a[this.sortKey] || '';
@@ -66,9 +67,44 @@ export default {
         },
     },
     mounted() {
+        this.checkAndResetDaily();
         this.fetchEmployeesAndAttendance();
     },
     methods: {
+        checkAndResetDaily() {
+            const today = new Date().toISOString().split('T')[0];
+            const storedDate = localStorage.getItem('lastResetDate') || today;
+
+            if (storedDate !== today) {
+                this.resetAttendanceData();
+                localStorage.setItem('lastResetDate', today);
+            }
+            this.lastResetDate = today;
+
+            // Check every minute for a new day (optional, could use a cron job on backend instead)
+            setInterval(() => {
+                const currentDate = new Date().toISOString().split('T')[0];
+                if (currentDate !== this.lastResetDate) {
+                    this.resetAttendanceData();
+                    localStorage.setItem('lastResetDate', currentDate);
+                    this.lastResetDate = currentDate;
+                    this.fetchEmployeesAndAttendance();
+                }
+            }, 60000); // Check every minute
+        },
+        resetAttendanceData() {
+            this.date = new Date().toISOString().split('T')[0];
+            this.employees = this.employees.map(employee => ({
+                ...employee,
+                morningTimeIn: null,
+                morningTimeOut: null,
+                afternoonTimeIn: null,
+                afternoonTimeOut: null,
+                status: 'Absent',
+                _id: undefined, // Clear attendance record ID to force new creation
+            }));
+            this.showSuccessMessage('Attendance reset for new day');
+        },
         async fetchEmployeesAndAttendance() {
             this.isLoading = true;
             this.statusMessage = 'Loading data...';
@@ -81,8 +117,6 @@ export default {
                         'Authorization': `Bearer ${token}`,
                         'user-role': 'admin',
                     },
-                }).catch(error => {
-                    throw new Error(`Employees API failed: ${error.message}`);
                 });
 
                 const baseEmployees = (empResponse.data || [])
@@ -106,16 +140,11 @@ export default {
                         'Authorization': `Bearer ${token}`,
                         'user-role': 'admin',
                     },
-                }).catch(error => {
-                    console.error('Attendance API response:', error.response?.data);
-                    throw new Error(`Attendance API failed: ${error.message}`);
                 });
-
-                console.log('Fetched attendance data:', JSON.stringify(attResponse.data, null, 2));
 
                 const attendanceMap = (attResponse.data || []).reduce((map, record) => {
                     map[record.employeeId._id] = {
-                        _id: record._id, // Attendance record _id
+                        _id: record._id,
                         morningTimeIn: record.morningTimeIn || null,
                         morningTimeOut: record.morningTimeOut || null,
                         afternoonTimeIn: record.afternoonTimeIn || null,
@@ -142,7 +171,6 @@ export default {
                     };
                 });
 
-                console.log('Mapped employees after fetch:', JSON.stringify(this.employees, null, 2));
                 this.showSuccessMessage('Data loaded');
             } catch (error) {
                 console.error('Error fetching data:', error);
@@ -185,29 +213,20 @@ export default {
             this.showDetailsModal = true;
         },
         calculateStatus({ morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut }) {
-            const MORNING_START = "08:00"; // 8:00 AM
-            const AFTERNOON_START = "13:00"; // 1:00 PM
-            const MORNING_EARLY_CUTOFF = "11:30"; // 11:30 AM
-            const AFTERNOON_END = "17:00"; // 5:00 PM
+            const MORNING_START = "08:00";
+            const AFTERNOON_START = "13:00";
+            const MORNING_EARLY_CUTOFF = "11:30";
+            const AFTERNOON_END = "17:00";
 
-            if (!morningTimeIn && !afternoonTimeIn) {
-                return "Absent";
-            } else if (morningTimeIn && afternoonTimeIn && morningTimeOut && afternoonTimeOut) {
-                return "Present";
-            } else if ((morningTimeIn && !afternoonTimeIn) || (!morningTimeIn && afternoonTimeIn)) {
-                return "Half Day";
-            } else if (morningTimeIn && morningTimeIn > MORNING_START) {
-                return "Late";
-            } else if (afternoonTimeIn && afternoonTimeIn > AFTERNOON_START) {
-                return "Late";
-            } else if ((morningTimeOut && morningTimeOut < MORNING_EARLY_CUTOFF) ||
-                (afternoonTimeOut && afternoonTimeOut < AFTERNOON_END)) {
-                return "Early Departure";
-            } else if (morningTimeIn && morningTimeIn <= MORNING_START) {
-                return "On Time";
-            } else if (afternoonTimeIn && afternoonTimeIn <= AFTERNOON_START) {
-                return "On Time";
-            }
+            if (!morningTimeIn && !afternoonTimeIn) return "Absent";
+            if (morningTimeIn && afternoonTimeIn && morningTimeOut && afternoonTimeOut) return "Present";
+            if ((morningTimeIn && !afternoonTimeIn) || (!morningTimeIn && afternoonTimeIn)) return "Half Day";
+            if (morningTimeIn && morningTimeIn > MORNING_START) return "Late";
+            if (afternoonTimeIn && afternoonTimeIn > AFTERNOON_START) return "Late";
+            if ((morningTimeOut && morningTimeOut < MORNING_EARLY_CUTOFF) ||
+                (afternoonTimeOut && afternoonTimeOut < AFTERNOON_END)) return "Early Departure";
+            if (morningTimeIn && morningTimeIn <= MORNING_START) return "On Time";
+            if (afternoonTimeIn && afternoonTimeIn <= AFTERNOON_START) return "On Time";
             return "Absent";
         },
         async markTime(period) {
@@ -223,7 +242,9 @@ export default {
                     this.selectedEmployee[timeField] = timeValue;
                     this.selectedEmployee.status = this.calculateStatus({
                         morningTimeIn: this.selectedEmployee.morningTimeIn,
+                        morningTimeOut: this.selectedEmployee.morningTimeOut,
                         afternoonTimeIn: this.selectedEmployee.afternoonTimeIn,
+                        afternoonTimeOut: this.selectedEmployee.afternoonTimeOut,
                     });
                     await this.updateAttendance(this.selectedEmployee, timeField);
                 }
@@ -237,23 +258,20 @@ export default {
                 const token = this.authStore.accessToken;
                 if (!token) throw new Error('No access token available. Please log in.');
 
-                console.log('Employee state before update:', JSON.stringify(employee, null, 2));
-                if (!employee || !employee.employeeId) {
-                    throw new Error('Invalid employee ID');
-                }
-                if (!this.date || !/^\d{4}-\d{2}-\d{2}$/.test(this.date)) {
-                    throw new Error('Invalid date format');
-                }
+                if (!employee || !employee.employeeId) throw new Error('Invalid employee ID');
+                if (!this.date || !/^\d{4}-\d{2}-\d{2}$/.test(this.date)) throw new Error('Invalid date format');
 
                 const newStatus = this.calculateStatus({
                     morningTimeIn: employee.morningTimeIn,
+                    morningTimeOut: employee.morningTimeOut,
                     afternoonTimeIn: employee.afternoonTimeIn,
+                    afternoonTimeOut: employee.afternoonTimeOut,
                 });
 
                 employee.status = changedField === 'status' ? employee.status : newStatus;
 
                 const payload = {
-                    employeeId: employee.employeeId, // MongoDB _id of employee
+                    employeeId: employee.employeeId,
                     date: this.date,
                     morningTimeIn: employee.morningTimeIn || null,
                     morningTimeOut: employee.morningTimeOut || null,
@@ -262,26 +280,14 @@ export default {
                     status: employee.status,
                 };
 
-                console.log('Final payload sent:', JSON.stringify(payload, null, 2));
-
                 let response;
                 if (employee._id) {
-                    // Update existing record
-                    console.log('Updating attendance for:', {
-                        url: `${BASE_API_URL}/api/attendance/${employee._id}`,
-                        payload,
-                    });
                     response = await axios.put(
                         `${BASE_API_URL}/api/attendance/${employee._id}`,
                         payload,
                         { headers: { 'Authorization': `Bearer ${token}`, 'user-role': 'admin' } }
                     );
                 } else {
-                    // Create new record if no _id exists
-                    console.log('Creating attendance for:', {
-                        url: `${BASE_API_URL}/api/attendance`,
-                        payload,
-                    });
                     response = await axios.post(
                         `${BASE_API_URL}/api/attendance`,
                         payload,
@@ -290,10 +296,9 @@ export default {
                 }
 
                 if (response.status === 200 || response.status === 201) {
-                    console.log('Response:', JSON.stringify(response.data, null, 2));
                     const updatedEmployee = {
                         ...employee,
-                        _id: response.data._id, // Set _id if newly created
+                        _id: response.data._id,
                         ...response.data,
                     };
                     this.employees = this.employees.map(emp =>
@@ -306,7 +311,6 @@ export default {
                 }
             } catch (error) {
                 console.error('Error updating attendance:', error);
-                console.error('Response data:', error.response?.data);
                 this.showErrorMessage(`Update failed: ${error.response?.data?.error || error.message}`);
                 if (error.message.includes('No access token')) {
                     this.authStore.logout();
@@ -322,7 +326,7 @@ export default {
                 const formattedDate = this.date;
                 const csvHeader = [
                     'Date',
-                    'Employee ID',
+                    'Employee No',
                     'First Name',
                     'Last Name',
                     'Morning Time In',
@@ -334,7 +338,7 @@ export default {
 
                 const csvRows = this.filteredEmployees.map(employee => [
                     formattedDate,
-                    employee.id,
+                    employee.empNo,
                     employee.firstName,
                     employee.lastName,
                     employee.morningTimeIn ? `"${this.formatTime(employee.morningTimeIn)}"` : '""',

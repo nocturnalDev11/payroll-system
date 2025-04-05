@@ -221,7 +221,7 @@ exports.updateAttendance = asyncHandler(async (req, res) => {
             attendance.status = "On Time";
         }
     } else {
-        attendance.status = status; // Use provided status if given
+        attendance.status = status;
     }
 
     await attendance.save();
@@ -289,20 +289,23 @@ exports.createAttendance = asyncHandler(async (req, res) => {
  * @route GET /api/attendance
  */
 exports.getAllAttendance = asyncHandler(async (req, res) => {
-    try {
-        const attendanceRecords = await Attendance.find()
-            .populate({
-                path: 'employeeId',
-                select: 'firstName lastName position email empNo',
-                match: { status: { $ne: 'pending' } }
-            });
-        
-        const filteredRecords = attendanceRecords.filter(record => record.employeeId !== null);
-        
-        res.status(200).json(filteredRecords);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+    const { date } = req.query;
+    let query = {};
+    if (date) {
+        const startOfDay = new Date(date).setHours(0, 0, 0, 0);
+        const endOfDay = new Date(date).setHours(23, 59, 59, 999);
+        query.date = { $gte: startOfDay, $lte: endOfDay };
     }
+
+    const attendanceRecords = await Attendance.find(query)
+        .populate({
+            path: 'employeeId',
+            select: 'firstName lastName position email empNo',
+            match: { status: { $ne: 'pending' } }
+        });
+
+    const filteredRecords = attendanceRecords.filter(record => record.employeeId !== null);
+    res.status(200).json(filteredRecords);
 });
 
 /**
