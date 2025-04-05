@@ -261,8 +261,13 @@ exports.createEmployee = asyncHandler(async (req, res) => {
     const lastEmployee = await Employee.findOne().sort({ id: -1 });
     const newId = lastEmployee ? lastEmployee.id + 1 : 1;
 
+    // Hash the password before saving
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(employeeData.password, salt);
+
     const newEmployee = new Employee({
         ...employeeData,
+        password: hashedPassword,
         id: newId,
         positionHistory: [{
             position: employeeData.position,
@@ -276,7 +281,9 @@ exports.createEmployee = asyncHandler(async (req, res) => {
     });
 
     const savedEmployee = await newEmployee.save();
-    res.status(201).json(savedEmployee);
+    const employeeObj = savedEmployee.toObject();
+    delete employeeObj.password;
+    res.status(201).json(employeeObj);
 });
 
 // Update pending request

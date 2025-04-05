@@ -107,7 +107,7 @@ const toggleSidebar = () => {
                                 {{ getLinkIcon(link.name) }}
                             </span>
                             <span class="ml-3 text-sm font-medium md:block"
-                                :class="{ 'hidden': !isSidebarOpen && !md }">
+                                :class="{ 'hidden': !isSidebarOpen }">
                                 {{ link.name }}
                             </span>
                         </router-link>
@@ -119,7 +119,7 @@ const toggleSidebar = () => {
                             <span
                                 class="material-icons text-xl md:text-lg text-gray-400 group-hover:text-blue-600">event</span>
                             <span class="ml-3 text-sm font-medium md:block"
-                                :class="{ 'hidden': !isSidebarOpen && !md }">Holiday
+                                :class="{ 'hidden': !isSidebarOpen }">Holiday
                                 Selection</span>
                         </router-link>
                     </div>
