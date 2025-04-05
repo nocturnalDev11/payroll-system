@@ -20,6 +20,7 @@ const navigationLinks = ref([
     { path: '/admin/trash', name: 'Trash' },
 ]);
 
+// Computed properties
 const username = computed(() => authStore.admin?.username || 'Admin');
 const adminInitial = computed(() => username.value.charAt(0).toUpperCase());
 
@@ -53,8 +54,7 @@ const toggleSidebar = () => {
             class="sticky top-0 z-[1000] backdrop-blur-sm bg-gradient-to-r from-blue-700/95 to-indigo-700/95 text-white shadow-lg">
             <div class="mx-auto px-2 sm:px-10 py-2 sm:py-3 flex justify-between items-center">
                 <div class="flex items-center gap-4">
-                    <button @click="toggleSidebar"
-                        class="md:hidden p-2 cursor-pointer hover:bg-white/20 flex items-center rounded-lg">
+                    <button @click="toggleSidebar" class="md:hidden p-2 cursor-pointer hover:bg-white/20 flex items-center rounded-lg">
                         <span class="material-icons">menu</span>
                     </button>
                     <div class="bg-white rounded-lg p-1">
@@ -106,8 +106,8 @@ const toggleSidebar = () => {
                             <span class="material-icons text-xl md:text-lg text-gray-400 group-hover:text-blue-600">
                                 {{ getLinkIcon(link.name) }}
                             </span>
-                            <span class="ml-3 text-sm font-medium md:block hidden md:hidden"
-                                :class="{ 'block': isSidebarOpen }">
+                            <span class="ml-3 text-sm font-medium md:block"
+                                :class="{ 'hidden': !isSidebarOpen && !md }">
                                 {{ link.name }}
                             </span>
                         </router-link>
@@ -118,8 +118,9 @@ const toggleSidebar = () => {
                             active-class="bg-blue-50">
                             <span
                                 class="material-icons text-xl md:text-lg text-gray-400 group-hover:text-blue-600">event</span>
-                            <span class="ml-3 text-sm font-medium md:block hidden md:hidden"
-                                :class="{ 'block': isSidebarOpen }">Holiday Selection</span>
+                            <span class="ml-3 text-sm font-medium md:block"
+                                :class="{ 'hidden': !isSidebarOpen && !md }">Holiday
+                                Selection</span>
                         </router-link>
                     </div>
                 </nav>
