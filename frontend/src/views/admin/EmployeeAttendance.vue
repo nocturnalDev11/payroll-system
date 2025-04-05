@@ -376,7 +376,7 @@ export default {
 
 <template>
     <div class="min-h-screen bg-gray-50 p-2">
-        <div class="max-w-7xl mx-auto">
+        <div class="mx-auto">
             <!-- Header -->
             <header
                 class="bg-white rounded-lg shadow p-4 flex flex-col xl:flex-row lg:flex-row md:flex-row sm:flex-col xs:flex-col items-center justify-between gap-4">

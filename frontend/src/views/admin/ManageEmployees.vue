@@ -742,8 +742,8 @@ export default {
         </header>
 
         <!-- Main Content -->
-        <main class="flex-1 p-2">
-            <div class="max-w-screen-xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <main class="flex-1 py-2">
+            <div class="mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <!-- Employee List -->
                 <section class="lg:col-span-2 bg-white rounded-lg shadow-sm overflow-hidden">
                     <div class="p-4 flex justify-between items-center border-b border-gray-300">
