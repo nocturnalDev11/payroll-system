@@ -54,7 +54,8 @@ const toggleSidebar = () => {
             class="sticky top-0 z-[1000] backdrop-blur-sm bg-gradient-to-r from-blue-700/95 to-indigo-700/95 text-white shadow-lg">
             <div class="mx-auto px-2 sm:px-10 py-2 sm:py-3 flex justify-between items-center">
                 <div class="flex items-center gap-4">
-                    <button @click="toggleSidebar" class="md:hidden p-2 cursor-pointer">
+                    <button @click="toggleSidebar"
+                        class="md:hidden p-2 cursor-pointer hover:bg-white/20 flex items-center rounded-lg">
                         <span class="material-icons">menu</span>
                     </button>
                     <div class="bg-white rounded-lg p-1">
