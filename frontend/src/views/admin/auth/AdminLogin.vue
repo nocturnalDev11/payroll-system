@@ -21,7 +21,7 @@ export default {
     mounted() {
         this.authStore.restoreSession();
         if (this.authStore.isAuthenticated && this.authStore.userRole === 'admin') {
-            this.$router.push('admin/');
+            this.$router.push('admin/dashboard');
         }
     },
     methods: {
