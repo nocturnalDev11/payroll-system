@@ -2,6 +2,8 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth.store.js';
 import { BASE_API_URL } from '@/utils/constants.js';
+import EmployeeDetailsModal from './partials/manage-employees/EmployeeDetailsModal.vue';
+import Modal from '@/components/Modal.vue';
 
 export default {
     data() {
@@ -59,6 +61,10 @@ export default {
             newPosition: { name: '', salary: 0 },
             editPositionData: { id: null, name: '', salary: 0 },
         };
+    },
+    components: {
+        EmployeeDetailsModal,
+        Modal,
     },
     setup() {
         const authStore = useAuthStore();
@@ -857,173 +863,8 @@ export default {
         </main>
 
         <!-- Employee Details Modal -->
-        <div v-if="showDetailsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col">
-                <!-- Header -->
-                <div
-                    class="p-4 border-b border-gray-300 flex justify-between items-center sticky top-0 bg-white rounded-t-lg">
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-800">Employee Profile</h2>
-                        <p class="text-xs text-gray-500 mt-0.5">Employee ID: {{ selectedEmployee.empNo }}</p>
-                    </div>
-                    <button @click="showDetailsModal = false"
-                        class="p-1 hover:bg-gray-100 rounded-full transition-colors">
-                        <span class="material-icons">close</span>
-                    </button>
-                </div>
-
-                <!-- Content -->
-                <div class="flex-1 overflow-y-auto p-4 space-y-6">
-                    <!-- Profile Header -->
-                    <div class="flex items-center space-x-4 pb-4 border-b border-gray-300">
-                        <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
-                            <span class="material-icons text-3xl text-indigo-600">account_circle</span>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-semibold text-gray-900">
-                                {{ selectedEmployee.firstName }} {{ selectedEmployee.middleName }} {{
-                                selectedEmployee.lastName }}
-                            </h3>
-                            <p class="text-base text-indigo-600 font-medium">{{ selectedEmployee.position }}</p>
-                            <p class="text-sm text-gray-500 mt-0.5">Joined {{ new
-                                Date(selectedEmployee.hireDate).toLocaleDateString('en-US', {
-                                year: 'numeric', month:
-                                'long', day: 'numeric'
-                                }) }}</p>
-                        </div>
-                    </div>
-
-                    <!-- Grid Layout -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Personal Information Card -->
-                        <div
-                            class="bg-white rounded-lg shadow-sm border border-gray-300 p-4 hover:shadow-md transition-shadow">
-                            <div class="flex items-center mb-3">
-                                <span class="material-icons text-indigo-600 mr-1">person</span>
-                                <h4 class="text-base font-semibold text-gray-800">Personal Information</h4>
-                            </div>
-                            <dl class="grid grid-cols-1 gap-2">
-                                <div class="flex justify-between py-1 border-b border-gray-100">
-                                    <dt class="text-sm text-gray-500">Email</dt>
-                                    <dd class="text-sm text-gray-900 font-medium">{{ selectedEmployee.email }}</dd>
-                                </div>
-                                <div class="flex justify-between py-1 border-b border-gray-100">
-                                    <dt class="text-sm text-gray-500">Contact</dt>
-                                    <dd class="text-sm text-gray-900 font-medium">{{ selectedEmployee.contactInfo }}
-                                    </dd>
-                                </div>
-                                <div class="flex justify-between py-1 border-b border-gray-100">
-                                    <dt class="text-sm text-gray-500">Civil Status</dt>
-                                    <dd class="text-sm text-gray-900 font-medium">{{ selectedEmployee.civilStatus }}
-                                    </dd>
-                                </div>
-                            </dl>
-                        </div>
-
-                        <!-- Financial Information Card -->
-                        <div
-                            class="bg-white rounded-lg shadow-sm border border-gray-300 p-4 hover:shadow-md transition-shadow">
-                            <div class="flex items-center mb-3">
-                                <span class="material-icons text-green-600 mr-1">payments</span>
-                                <h4 class="text-base font-semibold text-gray-800">Financial Information</h4>
-                            </div>
-                            <dl class="space-y-3">
-                                <div class="p-3 bg-green-50 rounded-md">
-                                    <dt class="text-xs text-green-600 mb-0.5">Net Salary</dt>
-                                    <dd class="text-xl font-bold text-green-700">₱{{
-                                        calculateNetSalary(selectedEmployee).toLocaleString() }}</dd>
-                                </div>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div class="p-2 bg-gray-50 rounded-md">
-                                        <dt class="text-xs text-gray-500 mb-0.5">Monthly Salary</dt>
-                                        <dd class="text-base font-semibold text-gray-900">₱{{
-                                            selectedEmployee.salary?.toLocaleString() }}</dd>
-                                    </div>
-                                    <div class="p-2 bg-gray-50 rounded-md">
-                                        <dt class="text-xs text-gray-500 mb-0.5">Hourly Rate</dt>
-                                        <dd class="text-base font-semibold text-gray-900">₱{{
-                                            selectedEmployee.hourlyRate?.toLocaleString() }}</dd>
-                                    </div>
-                                </div>
-                            </dl>
-                        </div>
-
-                        <!-- Government IDs Card -->
-                        <div
-                            class="bg-white rounded-lg shadow-sm border border-gray-300 p-4 hover:shadow-md transition-shadow">
-                            <div class="flex items-center mb-3">
-                                <span class="material-icons text-blue-600 mr-1">badge</span>
-                                <h4 class="text-base font-semibold text-gray-800">Government IDs</h4>
-                            </div>
-                            <dl class="grid grid-cols-1 gap-2">
-                                <div class="flex justify-between py-1 border-b border-gray-100">
-                                    <dt class="text-sm text-gray-500">SSS</dt>
-                                    <dd class="text-sm text-gray-900 font-medium">{{ selectedEmployee.sss }}</dd>
-                                </div>
-                                <div class="flex justify-between py-1 border-b border-gray-100">
-                                    <dt class="text-sm text-gray-500">PhilHealth</dt>
-                                    <dd class="text-sm text-gray-900 font-medium">{{ selectedEmployee.philhealth }}</dd>
-                                </div>
-                                <div class="flex justify-between py-1 border-b border-gray-100">
-                                    <dt class="text-sm text-gray-500">Pag-IBIG</dt>
-                                    <dd class="text-sm text-gray-900 font-medium">{{ selectedEmployee.pagibig }}</dd>
-                                </div>
-                                <div class="flex justify-between py-1 border-b border-gray-100">
-                                    <dt class="text-sm text-gray-500">TIN</dt>
-                                    <dd class="text-sm text-gray-900 font-medium">{{ selectedEmployee.tin }}</dd>
-                                </div>
-                            </dl>
-                        </div>
-
-                        <!-- Position History Card -->
-                        <div
-                            class="bg-white rounded-lg shadow-sm border-gray-300 p-4 hover:shadow-md transition-shadow">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="flex items-center">
-                                    <span class="material-icons text-purple-600 mr-1">history</span>
-                                    <h4 class="text-base font-semibold text-gray-800">Position History</h4>
-                                </div>
-                            </div>
-                            <div class="space-y-3">
-                                <div v-for="(history, index) in sortedPositionHistory" :key="index"
-                                    class="p-3 rounded-md"
-                                    :class="!history.endDate ? 'bg-purple-50 border border-purple-100' : 'bg-gray-50'">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <p class="font-medium text-sm text-gray-900">{{ history.position }}</p>
-                                            <p class="text-xs text-gray-500">₱{{ history.salary.toLocaleString()
-                                                }}/month</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-xs text-gray-500">{{ new
-                                                Date(history.startDate).toLocaleDateString() }}</p>
-                                            <p class="text-xs"
-                                                :class="history.endDate ? 'text-gray-500' : 'text-purple-600 font-medium'">
-                                                {{ history.endDate ? new Date(history.endDate).toLocaleDateString() :
-                                                'Current' }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Footer -->
-                <div class="p-4 border-t border-gray-300 bg-gray-50 flex justify-end gap-2 sticky bottom-0">
-                    <button @click="editEmployee(selectedEmployee)"
-                        class="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-1">
-                        <span class="material-icons">edit</span>
-                        Edit Profile
-                    </button>
-                    <button @click="showDetailsModal = false"
-                        class="px-3 py-1 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors">
-                        Close
-                    </button>
-                </div>
-            </div>
-        </div>
+        <EmployeeDetailsModal :show="showDetailsModal" :employee="selectedEmployee" @close="showDetailsModal = false"
+            @edit="editEmployee" />
 
         <!-- Pending Request Details Modal -->
         <div v-if="showRequestModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
