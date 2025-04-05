@@ -20,7 +20,6 @@ const navigationLinks = ref([
     { path: '/admin/trash', name: 'Trash' },
 ]);
 
-// Computed properties
 const username = computed(() => authStore.admin?.username || 'Admin');
 const adminInitial = computed(() => username.value.charAt(0).toUpperCase());
 
@@ -107,8 +106,8 @@ const toggleSidebar = () => {
                             <span class="material-icons text-xl md:text-lg text-gray-400 group-hover:text-blue-600">
                                 {{ getLinkIcon(link.name) }}
                             </span>
-                            <span class="ml-3 text-sm font-medium md:block"
-                                :class="{ 'hidden': !isSidebarOpen && !md }">
+                            <span class="ml-3 text-sm font-medium md:block hidden md:hidden"
+                                :class="{ 'block': isSidebarOpen }">
                                 {{ link.name }}
                             </span>
                         </router-link>
@@ -119,9 +118,8 @@ const toggleSidebar = () => {
                             active-class="bg-blue-50">
                             <span
                                 class="material-icons text-xl md:text-lg text-gray-400 group-hover:text-blue-600">event</span>
-                            <span class="ml-3 text-sm font-medium md:block"
-                                :class="{ 'hidden': !isSidebarOpen && !md }">Holiday
-                                Selection</span>
+                            <span class="ml-3 text-sm font-medium md:block hidden md:hidden"
+                                :class="{ 'block': isSidebarOpen }">Holiday Selection</span>
                         </router-link>
                     </div>
                 </nav>
