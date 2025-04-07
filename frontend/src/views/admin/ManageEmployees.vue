@@ -109,7 +109,6 @@ export default {
         },
     },
     watch: {
-        'selectedEmployee.salary'(newSalary) { this.selectedEmployee.hourlyRate = newSalary / (8 * 22); },
         'selectedRequest.salary'(newSalary) { this.selectedRequest.hourlyRate = newSalary / (8 * 22); },
         'newEmployee.salary'(newSalary) { this.newEmployee.hourlyRate = newSalary ? newSalary / (8 * 22) : 0; },
     },
@@ -205,13 +204,14 @@ export default {
                         hourlyRate: emp.hourlyRate || (emp.salary / (8 * 22)),
                         empNo: emp.empNo || `EMP-${String(emp.id).padStart(4, '0')}`,
                         hireDate: new Date(emp.hireDate).toISOString().slice(0, 10),
-                        payheads: Array.isArray(emp.payheads) ? emp.payheads : [], // Ensure payheads is an array
+                        payheads: Array.isArray(emp.payheads) ? emp.payheads : [],
                         positionHistory: Array.isArray(emp.positionHistory) ? emp.positionHistory : [{
                             position: emp.position || 'N/A',
                             salary: emp.salary || 0,
                             startDate: new Date(emp.hireDate).toISOString().slice(0, 10),
                             endDate: null,
                         }],
+                        originalPosition: emp.position, // Store original position for comparison
                     }));
             } catch (error) {
                 console.error('Error fetching employees:', error);
@@ -231,7 +231,6 @@ export default {
                     },
                 });
                 this.pendingRequests = (response.data || []).map(req => ({ ...req, _id: req._id }));
-                console.log('Pending Requests:', this.pendingRequests);
             } catch (error) {
                 console.error('Error fetching pending requests:', error);
                 this.showErrorMessage('Failed to load pending requests');
@@ -273,8 +272,7 @@ export default {
             this.showDetailsModal = true;
         },
 
-        editEmployee(employee) {
-            console.log('Editing employee:', employee);
+        openEditModal(employee) {
             this.selectedEmployee = {
                 ...employee,
                 hireDate: new Date(employee.hireDate).toISOString().slice(0, 10),
@@ -289,101 +287,16 @@ export default {
                     endDate: null,
                 }],
             };
-            this.showDetailsModal = false;
             this.showEditModal = true;
         },
 
-        async updateEmployee() {
-            if (!this.selectedEmployee._id || typeof this.selectedEmployee._id !== 'string') {
-                this.showErrorMessage('Invalid employee _id');
-                return;
+        handleUpdateEmployee(updatedEmployee) {
+            const index = this.employees.findIndex(emp => emp._id === updatedEmployee._id);
+            if (index !== -1) {
+                this.employees[index] = { ...updatedEmployee };
             }
-
-            const requiredFields = [
-                'empNo', 'firstName', 'lastName', 'position', 'salary',
-                'email', 'contactInfo', 'username'
-            ];
-
-            const missingFields = requiredFields.filter(field => {
-                const value = this.selectedEmployee[field];
-                if (value === undefined || value === null) return true;
-                if (['firstName', 'lastName', 'position', 'email', 'contactInfo'].includes(field)) {
-                    return typeof value !== 'string' || value.trim() === '';
-                }
-                if (field === 'salary') {
-                    return typeof value !== 'number' || value < 0;
-                }
-                return false;
-            });
-
-            if (missingFields.length > 0) {
-                this.showErrorMessage(`Missing or invalid required fields: ${missingFields.join(', ')}`);
-                return;
-            }
-
-            this.isUpdating = true;
-            try {
-                const originalEmployee = this.employees.find(emp => emp._id === this.selectedEmployee._id);
-                const positionChanged = originalEmployee.position !== this.selectedEmployee.position;
-
-                if (positionChanged) {
-                    const updatedPositionHistory = this.selectedEmployee.positionHistory.map(history => {
-                        if (!history.endDate) {
-                            return { ...history, endDate: new Date().toISOString().slice(0, 10) };
-                        }
-                        return history;
-                    });
-
-                    updatedPositionHistory.push({
-                        position: this.selectedEmployee.position,
-                        salary: this.selectedEmployee.salary,
-                        startDate: new Date().toISOString().slice(0, 10),
-                        endDate: null,
-                    });
-
-                    this.selectedEmployee.positionHistory = updatedPositionHistory;
-                }
-
-                // Clean and validate payheads
-                const cleanedEmployee = { ...this.selectedEmployee };
-                if (!Array.isArray(cleanedEmployee.payheads)) {
-                    cleanedEmployee.payheads = [];
-                } else {
-                    cleanedEmployee.payheads = cleanedEmployee.payheads.filter(id => {
-                        const isValidObjectId = typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id);
-                        if (!isValidObjectId) {
-                            console.warn(`Invalid payhead ID filtered out: ${id}`);
-                        }
-                        return isValidObjectId;
-                    });
-                }
-
-                console.log('Cleaned employee data for update:', cleanedEmployee);
-                console.log('Payheads after cleaning:', cleanedEmployee.payheads);
-
-                const response = await axios.put(
-                    `${BASE_API_URL}/api/employees/update/${this.selectedEmployee._id}`,
-                    cleanedEmployee,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${this.authStore.accessToken}`,
-                            'user-role': this.authStore.userRole,
-                        },
-                    }
-                );
-
-                if (response.status === 200) {
-                    const index = this.employees.findIndex(emp => emp._id === this.selectedEmployee._id);
-                    if (index !== -1) this.employees[index] = { ...cleanedEmployee };
-                    this.showEditModal = false;
-                    this.showSuccessMessage('Employee updated successfully');
-                }
-            } catch (error) {
-                console.error('Error updating employee:', error);
-                this.showErrorMessage(error.response?.data?.error || 'Failed to update employee');
-            } finally {
-                this.isUpdating = false;
-            }
+            this.showEditModal = false;
+            this.showSuccessMessage('Employee updated successfully');
         },
 
         confirmMoveToTrash(employee) {
@@ -495,7 +408,7 @@ export default {
                     }
                 );
                 if (response.status === 200) {
-                    this.pendingRequests = this.pendingRequests.filter(req => req._id !== request._id); // Match _id
+                    this.pendingRequests = this.pendingRequests.filter(req => req._id !== request._id);
                     this.employees.push(response.data.updatedEmployee);
                     this.showRequestModal = false;
                     this.showSuccessMessage('Employee approved successfully');
@@ -593,14 +506,6 @@ export default {
             if (selectedPosition) {
                 this.newEmployee.salary = selectedPosition.salary;
                 this.newEmployee.hourlyRate = selectedPosition.salary / (8 * 22);
-            }
-        },
-
-        updateSalaryFromPositionEdit() {
-            const selectedPosition = this.adminPositions.find(pos => pos.name === this.selectedEmployee.position);
-            if (selectedPosition) {
-                this.selectedEmployee.salary = selectedPosition.salary;
-                this.selectedEmployee.hourlyRate = selectedPosition.salary / (8 * 22);
             }
         },
 
@@ -718,7 +623,7 @@ export default {
                                             class="text-indigo-600 hover:text-indigo-800 p-1 rounded-full hover:bg-indigo-100">
                                             <span class="material-icons text-lg">visibility</span>
                                         </button>
-                                        <button @click="editEmployee(employee)"
+                                        <button @click="openEditModal(employee)"
                                             class="text-yellow-600 hover:text-yellow-800 p-1 rounded-full hover:bg-yellow-100">
                                             <span class="material-icons text-lg">edit</span>
                                         </button>
@@ -796,14 +701,14 @@ export default {
         </main>
 
         <EmployeeDetailsModal :show="showDetailsModal" :employee="selectedEmployee" @close="showDetailsModal = false"
-            @edit="editEmployee" />
+            @edit="openEditModal" />
         <PendingRequestModal :show="showRequestModal" :request="selectedRequest" :positions="adminPositions"
             @close="showRequestModal = false" @save="saveRequestChanges" @approve="approveRequest"
             @reject="rejectRequest" />
         <AddEmployeeModal :show="showAddModal" :employee="newEmployee" :positions="adminPositions"
             @close="showAddModal = false" @add-success="handleAddSuccess" />
         <EditEmployeeModal :show="showEditModal" :employee="selectedEmployee" :positions="adminPositions"
-            @close="showEditModal = false" @update="updateEmployee" />
+            @close="showEditModal = false" @update="handleUpdateEmployee" />
         <PositionModal :show="showPositionModal" :positions="adminPositions" :newPosition="newPosition"
             @close="showPositionModal = false" @create="handlePositionCreated" @edit="editPosition"
             @delete="confirmDeletePosition" />

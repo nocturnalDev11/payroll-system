@@ -1485,7 +1485,7 @@ export default {
                 </div>
                 <div class="p-4 border-t border-gray-300 bg-gray-50 flex justify-end">
                     <button @click="showPositionModal = false"
-                         class="px-3 py-1.5 border border-gray-300 text-sm rounded-md text-gray-700 hover:bg-gray-100 cursor-pointer">Close</button>
+                        class="px-3 py-1.5 border border-gray-300 text-sm rounded-md text-gray-700 hover:bg-gray-100">Close</button>
                 </div>
             </div>
         </div>
