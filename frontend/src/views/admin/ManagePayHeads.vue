@@ -82,15 +82,30 @@
                     <div class="rounded-full bg-blue-100 p-2 mb-2">
                         <span class="material-icons text-blue-600 text-lg">search_off</span>
                     </div>
-                    <h3 class="text-base font-medium text-gray-900">No results found</h3>
+                    <h3 class="text-base font-medium text-gray-900">No {{ activeTab }} found</h3>
                     <p class="mt-1 text-gray-500 text-center max-w-sm text-xs">
-                        We couldn't find any {{ activeTab }} that match your search criteria. Try adjusting your filters
-                        or search terms.
+                        {{ activeTab === 'payheads' ?
+                        'No pay heads exist yet. Add a new pay head to get started.' :
+                        'No employees match your criteria. Try adjusting your filters.' }}
                     </p>
-                    <button @click="resetFilters"
+                    <!-- Add buttons for payheads empty state -->
+                    <div v-if="activeTab === 'payheads'" class="mt-4 flex gap-2">
+                        <button @click="showAddModal = true" class="inline-flex items-center px-2 py-0.5 bg-blue-600 text-white rounded-sm 
+              text-xs font-medium hover:bg-blue-700 focus:outline-none focus:ring-1 
+              focus:ring-offset-1 focus:ring-blue-500 transition-all shadow-sm transform hover:scale-105">
+                            <span class="material-icons text-xs mr-1">add</span>
+                            New Pay Head
+                        </button>
+                        <button @click="showRecurringDeductionModal = true" class="inline-flex items-center px-2 py-0.5 bg-green-600 text-white rounded-sm 
+              text-xs font-medium hover:bg-green-700 focus:outline-none focus:ring-1 
+              focus:ring-offset-1 focus:ring-green-500 transition-all shadow-sm transform hover:scale-105">
+                            <span class="material-icons text-xs mr-1">repeat</span>
+                            Add Recurring Deduction
+                        </button>
+                    </div>
+                    <button v-if="activeTab === 'employees'" @click="resetFilters"
                         class="mt-2 p-1.5 rounded-sm text-gray-700 hover:text-gray-900 bg-white border border-gray-300 shadow-sm 
-                   focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-blue-500 transition-all transform hover:scale-105"
-                        title="Reset Filters">
+            focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-blue-500 transition-all transform hover:scale-105" title="Reset Filters">
                         <span class="material-icons text-base">refresh</span>
                     </button>
                 </div>
@@ -104,19 +119,19 @@
                         {{ activeTab === 'payheads' ? 'Pay Heads' : 'Employees' }}
                     </h2>
                     <div class="flex items-center space-x-2">
-                        <div v-if="filteredPayHeads.length > 0 && activeTab === 'payheads'"
-                            class="text-xs text-gray-500">
+                        <div v-if="activeTab === 'payheads'" class="text-xs text-gray-500">
                             Showing {{ filteredPayHeads.length }} {{ filteredPayHeads.length === 1 ? 'item' : 'items' }}
                         </div>
+                        <!-- Always show buttons when activeTab is 'payheads' -->
                         <button v-if="activeTab === 'payheads'" @click="showAddModal = true" class="inline-flex items-center px-2 py-0.5 bg-blue-600 text-white rounded-sm 
-                     text-xs font-medium hover:bg-blue-700 focus:outline-none focus:ring-1 
-                     focus:ring-offset-1 focus:ring-blue-500 transition-all shadow-sm transform hover:scale-105">
+              text-xs font-medium hover:bg-blue-700 focus:outline-none focus:ring-1 
+              focus:ring-offset-1 focus:ring-blue-500 transition-all shadow-sm transform hover:scale-105">
                             <span class="material-icons text-xs mr-1">add</span>
                             New Pay Head
                         </button>
                         <button v-if="activeTab === 'payheads'" @click="showRecurringDeductionModal = true" class="inline-flex items-center px-2 py-0.5 bg-green-600 text-white rounded-sm 
-                     text-xs font-medium hover:bg-green-700 focus:outline-none focus:ring-1 
-                     focus:ring-offset-1 focus:ring-green-500 transition-all shadow-sm transform hover:scale-105">
+              text-xs font-medium hover:bg-green-700 focus:outline-none focus:ring-1 
+              focus:ring-offset-1 focus:ring-green-500 transition-all shadow-sm transform hover:scale-105">
                             <span class="material-icons text-xs mr-1">repeat</span>
                             Add Recurring Deduction
                         </button>
