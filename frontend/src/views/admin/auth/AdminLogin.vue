@@ -12,6 +12,7 @@ export default {
             loginError: false,
             errorMessage: '',
             isLoading: false,
+            showPassword: false,
         };
     },
     setup() {
@@ -40,12 +41,10 @@ export default {
                 );
                 console.log(response.data);
 
-                // Check if response contains a token (indicating success)
                 if (!response.data.token) {
                     throw new Error(response.data.message || 'Login failed');
                 }
 
-                // Extract token and admin data
                 const { token, id, username, email } = response.data;
                 const admin = { id, username, email, role: 'admin' };
                 this.authStore.setAdmin(admin);
@@ -62,8 +61,10 @@ export default {
             }
         },
         forgotPassword() {
-            // Placeholder for forgot password logic
             console.log('Forgot password clicked');
+        },
+        togglePasswordVisibility() {
+            this.showPassword = !this.showPassword;
         }
     },
 };
@@ -72,10 +73,8 @@ export default {
 <template>
     <div class="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center p-4">
         <div class="w-full max-w-md">
-            <!-- Admin Login Card with Fade-In Animation -->
             <div
                 class="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 space-y-6 transform transition-all duration-500 ease-out animate-fadeIn">
-                <!-- Admin Brand Area -->
                 <div class="text-center space-y-2">
                     <div
                         class="bg-indigo-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse-slow">
@@ -89,7 +88,6 @@ export default {
                     <p class="text-gray-500 text-sm">Secure administrative access</p>
                 </div>
 
-                <!-- Error Alert with Pulse Animation -->
                 <div v-if="loginError"
                     class="bg-red-50 text-red-700 p-4 rounded-lg flex items-center gap-2 animate-pulse-fast">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -100,7 +98,6 @@ export default {
                     <span class="text-sm">{{ errorMessage }}</span>
                 </div>
 
-                <!-- Login Form -->
                 <form @submit.prevent="login" class="space-y-4">
                     <div class="space-y-1">
                         <label for="username" class="text-sm font-medium text-gray-700">Admin Username</label>
@@ -129,9 +126,25 @@ export default {
                                         d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                 </svg>
                             </div>
-                            <input v-model="password" type="password" id="password" name="password" :class="['block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-0 focus:border-gray-300 outline-none backdrop-blur-sm transition-all duration-300 ease-in-out hover:border-indigo-300',
-                                loginError ? 'border-red-300' : 'border-gray-300']" placeholder="Enter your password"
+                            <input v-model="password" :type="showPassword ? 'text' : 'password'" id="password"
+                                name="password" :class="['block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-0 focus:border-gray-300 outline-none backdrop-blur-sm transition-all duration-300 ease-in-out hover:border-indigo-300',
+                                    loginError ? 'border-red-300' : 'border-gray-300']" placeholder="Enter your password"
                                 required />
+                            <button type="button" @click="togglePasswordVisibility"
+                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700">
+                                <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
