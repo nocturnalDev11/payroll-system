@@ -5,7 +5,7 @@ defineEmits(['close', 'save', 'approve', 'reject']);
 </script>
 
 <template>
-    <Modal :show="show" @close="$emit('close')" max-width="4xl" max-height="85vh">
+    <Modal :show="show" :max-width="'4xl'" :max-height="'80vh'" @close="$emit('close')">
         <div class="p-4 border-b">
             <h2 class="text-lg font-semibold">Pending Request Details - {{ request.firstName }} {{ request.lastName }}
             </h2>

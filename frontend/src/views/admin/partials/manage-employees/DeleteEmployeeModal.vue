@@ -5,7 +5,7 @@ defineEmits(['close', 'delete']);
 </script>
 
 <template>
-    <Modal :show="show" @close="$emit('close')" max-width="sm">
+    <Modal :show="show" @close="$emit('close')" max-width="sm" maxHeight="80vh">
         <div class="p-4 border-b">
             <h2 class="text-lg font-semibold">Confirm Move to Trash</h2>
         </div>

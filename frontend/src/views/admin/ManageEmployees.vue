@@ -173,6 +173,16 @@ export default {
             return Math.round(408841.80 + (taxableIncome - 666667) * 0.35);
         },
 
+        handleAddSuccess(newEmployee) {
+            this.employees.push({
+                ...newEmployee,
+                hourlyRate: newEmployee.hourlyRate || (newEmployee.salary / (8 * 22)),
+            });
+            this.showAddModal = false;
+            this.resetNewEmployee();
+            this.showSuccessMessage('Employee added successfully');
+        },
+
         async fetchEmployees() {
             this.isLoading = true;
             try {

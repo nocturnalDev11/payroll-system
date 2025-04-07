@@ -14,10 +14,11 @@ const props = defineProps({
         },
     },
     maxHeight: {
-        type: String,
+        type: [String, Number],
         default: '80vh',
         validator: (value) => {
-            return ['sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', '7xl', '80vh', '90vh', 'screen'].includes(value);
+            const validValues = ['sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', '7xl', '80vh', '90vh', 'screen'];
+            return validValues.includes(String(value)) || typeof value === 'number';
         },
     },
     closeable: {

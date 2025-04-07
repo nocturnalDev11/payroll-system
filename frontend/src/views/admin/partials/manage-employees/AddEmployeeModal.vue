@@ -99,7 +99,7 @@ watch(() => employee.salary, (newSalary) => {
 </script>
 
 <template>
-    <Modal :show="show" @close="$emit('close')" max-width="4xl" max-height="85vh">
+    <Modal :show="show" :max-width="'4xl'" :max-height="'80vh'" @close="$emit('close')">
         <div class="flex flex-col h-full">
             <!-- Header -->
             <div

@@ -5,7 +5,7 @@ defineEmits(['close', 'update']);
 </script>
 
 <template>
-    <Modal :show="show" @close="$emit('close')" max-width="sm">
+    <Modal :show="show" :max-width="'sm'" :max-height="'80vh'" @close="$emit('close')">
         <div class="p-4 border-b">
             <h2 class="text-lg font-semibold">Edit Position</h2>
         </div>
