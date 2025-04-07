@@ -44,4 +44,14 @@ router.post('/', checkAdmin, async (req, res) => {
     }
 });
 
+router.put('/:id', async (req, res) => {
+    try {
+        const position = await Position.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!position) return res.status(404).json({ error: 'Position not found' });
+        res.status(200).json(position);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update position', message: error.message });
+    }
+});
+
 module.exports = router;

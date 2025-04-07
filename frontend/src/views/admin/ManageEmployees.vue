@@ -34,7 +34,6 @@ export default {
             isUpdating: false,
             isDeleting: false,
             isAddingPosition: false,
-            isUpdatingPosition: false,
             isDeletingPosition: false,
             searchQuery: '',
             positionFilter: '',
@@ -247,7 +246,11 @@ export default {
                         'user-role': this.authStore.userRole,
                     },
                 });
-                this.adminPositions = response.data || [];
+                this.adminPositions = response.data.map(pos => ({
+                    id: pos.id || pos._id,
+                    name: pos.name,
+                    salary: pos.salary
+                })) || [];
             } catch (error) {
                 console.error('Error fetching positions:', error);
                 this.showErrorMessage('Failed to load positions');
@@ -443,35 +446,15 @@ export default {
         },
 
         editPosition(position) {
-            this.editPositionData = { ...position };
+            this.editPositionData = { id: position.id || position._id, name: position.name, salary: position.salary }; // Ensure id is set
             this.showEditPositionModal = true;
         },
 
-        async updatePosition() {
-            if (!this.editPositionData.name || this.editPositionData.salary < 0) {
-                this.showErrorMessage('Position Name and a non-negative Salary are required');
-                return;
-            }
-            this.isUpdatingPosition = true;
-            try {
-                const response = await axios.put(`${BASE_API_URL}/api/positions/${this.editPositionData.id}`, this.editPositionData, {
-                    headers: {
-                        Authorization: `Bearer ${this.authStore.accessToken}`,
-                        'user-role': this.authStore.userRole,
-                    },
-                });
-                if (response.status === 200) {
-                    const index = this.adminPositions.findIndex(pos => pos.id === this.editPositionData.id);
-                    if (index !== -1) this.adminPositions[index] = { ...this.editPositionData };
-                    this.showEditPositionModal = false;
-                    this.showSuccessMessage('Position updated successfully');
-                }
-            } catch (error) {
-                console.error('Error updating position:', error);
-                this.showErrorMessage('Failed to update position');
-            } finally {
-                this.isUpdatingPosition = false;
-            }
+        handlePositionUpdated(updatedPosition) {
+            const index = this.adminPositions.findIndex(pos => pos.id === updatedPosition.id || pos._id === updatedPosition.id);
+            if (index !== -1) this.adminPositions[index] = { ...updatedPosition };
+            this.showEditPositionModal = false;
+            this.showSuccessMessage('Position updated successfully');
         },
 
         confirmDeletePosition(position) {
@@ -713,7 +696,7 @@ export default {
             @close="showPositionModal = false" @create="handlePositionCreated" @edit="editPosition"
             @delete="confirmDeletePosition" />
         <EditPositionModal :show="showEditPositionModal" :position="editPositionData"
-            @close="showEditPositionModal = false" @update="updatePosition" />
+            @close="showEditPositionModal = false" @update-success="handlePositionUpdated" />
         <DeletePositionModal :show="showDeletePositionModal" :position="selectedPosition"
             @close="showDeletePositionModal = false" @delete="deletePosition" />
         <DeleteEmployeeModal :show="showDeleteModal" :employee="selectedEmployee" @close="showDeleteModal = false"
