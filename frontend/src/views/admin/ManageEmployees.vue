@@ -34,7 +34,6 @@ export default {
             isUpdating: false,
             isDeleting: false,
             isAddingPosition: false,
-            isDeletingPosition: false,
             searchQuery: '',
             positionFilter: '',
             currentPage: 1,
@@ -210,7 +209,7 @@ export default {
                             startDate: new Date(emp.hireDate).toISOString().slice(0, 10),
                             endDate: null,
                         }],
-                        originalPosition: emp.position, // Store original position for comparison
+                        originalPosition: emp.position,
                     }));
             } catch (error) {
                 console.error('Error fetching employees:', error);
@@ -462,26 +461,11 @@ export default {
             this.showDeletePositionModal = true;
         },
 
-        async deletePosition() {
-            this.isDeletingPosition = true;
-            try {
-                const response = await axios.delete(`${BASE_API_URL}/api/positions/${this.selectedPosition.id}`, {
-                    headers: {
-                        Authorization: `Bearer ${this.authStore.accessToken}`,
-                        'user-role': this.authStore.userRole,
-                    },
-                });
-                if (response.status === 200 || response.status === 204) {
-                    this.adminPositions = this.adminPositions.filter(pos => pos.id !== this.selectedPosition.id);
-                    this.showDeletePositionModal = false;
-                    this.showSuccessMessage('Position deleted successfully');
-                }
-            } catch (error) {
-                console.error('Error deleting position:', error);
-                this.showErrorMessage('Failed to delete position');
-            } finally {
-                this.isDeletingPosition = false;
-            }
+        async handlePositionDeleted(deletedPosition) {
+            this.adminPositions = this.adminPositions.filter(pos => pos.id !== deletedPosition.id && pos._id !== deletedPosition._id);
+            this.showDeletePositionModal = false;
+            this.showSuccessMessage('Position deleted successfully');
+            await this.fetchPositions();
         },
 
         updateSalaryFromPosition() {
@@ -698,7 +682,7 @@ export default {
         <EditPositionModal :show="showEditPositionModal" :position="editPositionData"
             @close="showEditPositionModal = false" @update-success="handlePositionUpdated" />
         <DeletePositionModal :show="showDeletePositionModal" :position="selectedPosition"
-            @close="showDeletePositionModal = false" @delete="deletePosition" />
+            @close="showDeletePositionModal = false" @delete-success="handlePositionDeleted" />
         <DeleteEmployeeModal :show="showDeleteModal" :employee="selectedEmployee" @close="showDeleteModal = false"
             @delete="moveToTrash" />
 

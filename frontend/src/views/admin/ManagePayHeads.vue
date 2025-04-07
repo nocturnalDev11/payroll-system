@@ -91,21 +91,21 @@
                     <!-- Add buttons for payheads empty state -->
                     <div v-if="activeTab === 'payheads'" class="mt-4 flex gap-2">
                         <button @click="showAddModal = true" class="inline-flex items-center px-2 py-0.5 bg-blue-600 text-white rounded-sm 
-              text-xs font-medium hover:bg-blue-700 focus:outline-none focus:ring-1 
-              focus:ring-offset-1 focus:ring-blue-500 transition-all shadow-sm transform hover:scale-105">
+                            text-xs font-medium hover:bg-blue-700 focus:outline-none focus:ring-1 
+                            focus:ring-offset-1 focus:ring-blue-500 transition-all shadow-sm transform hover:scale-105">
                             <span class="material-icons text-xs mr-1">add</span>
                             New Pay Head
                         </button>
                         <button @click="showRecurringDeductionModal = true" class="inline-flex items-center px-2 py-0.5 bg-green-600 text-white rounded-sm 
-              text-xs font-medium hover:bg-green-700 focus:outline-none focus:ring-1 
-              focus:ring-offset-1 focus:ring-green-500 transition-all shadow-sm transform hover:scale-105">
+                            text-xs font-medium hover:bg-green-700 focus:outline-none focus:ring-1 
+                            focus:ring-offset-1 focus:ring-green-500 transition-all shadow-sm transform hover:scale-105">
                             <span class="material-icons text-xs mr-1">repeat</span>
                             Add Recurring Deduction
                         </button>
                     </div>
                     <button v-if="activeTab === 'employees'" @click="resetFilters"
                         class="mt-2 p-1.5 rounded-sm text-gray-700 hover:text-gray-900 bg-white border border-gray-300 shadow-sm 
-            focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-blue-500 transition-all transform hover:scale-105" title="Reset Filters">
+                        focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-blue-500 transition-all transform hover:scale-105" title="Reset Filters">
                         <span class="material-icons text-base">refresh</span>
                     </button>
                 </div>
@@ -124,14 +124,14 @@
                         </div>
                         <!-- Always show buttons when activeTab is 'payheads' -->
                         <button v-if="activeTab === 'payheads'" @click="showAddModal = true" class="inline-flex items-center px-2 py-0.5 bg-blue-600 text-white rounded-sm 
-              text-xs font-medium hover:bg-blue-700 focus:outline-none focus:ring-1 
-              focus:ring-offset-1 focus:ring-blue-500 transition-all shadow-sm transform hover:scale-105">
+                            text-xs font-medium hover:bg-blue-700 focus:outline-none focus:ring-1 
+                            focus:ring-offset-1 focus:ring-blue-500 transition-all shadow-sm transform hover:scale-105">
                             <span class="material-icons text-xs mr-1">add</span>
                             New Pay Head
                         </button>
                         <button v-if="activeTab === 'payheads'" @click="showRecurringDeductionModal = true" class="inline-flex items-center px-2 py-0.5 bg-green-600 text-white rounded-sm 
-              text-xs font-medium hover:bg-green-700 focus:outline-none focus:ring-1 
-              focus:ring-offset-1 focus:ring-green-500 transition-all shadow-sm transform hover:scale-105">
+                            text-xs font-medium hover:bg-green-700 focus:outline-none focus:ring-1 
+                            focus:ring-offset-1 focus:ring-green-500 transition-all shadow-sm transform hover:scale-105">
                             <span class="material-icons text-xs mr-1">repeat</span>
                             Add Recurring Deduction
                         </button>

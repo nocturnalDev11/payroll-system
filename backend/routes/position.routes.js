@@ -44,6 +44,7 @@ router.post('/', checkAdmin, async (req, res) => {
     }
 });
 
+// Update a position (admin only)
 router.put('/:id', async (req, res) => {
     try {
         const position = await Position.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -51,6 +52,20 @@ router.put('/:id', async (req, res) => {
         res.status(200).json(position);
     } catch (error) {
         res.status(500).json({ error: 'Failed to update position', message: error.message });
+    }
+});
+
+// Delete a position (admin only)
+router.delete('/:id', checkAdmin, async (req, res) => {
+    try {
+        const position = await Position.findByIdAndDelete(req.params.id);
+        if (!position) {
+            return res.status(404).json({ error: 'Position not found' });
+        }
+        // No content on successful deletion
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete position', message: error.message });
     }
 });
 
