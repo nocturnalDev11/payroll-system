@@ -182,10 +182,14 @@ exports.updateAttendance = asyncHandler(async (req, res) => {
     }
 
     if (employeeId && attendance.employeeId.toString() !== employeeId) {
-        return res.status(400).json({ message: 'Employee ID mismatch' });
+        return res.status(400).json({
+            message: 'Employee ID mismatch',
+            expected: attendance.employeeId.toString(),
+            received: employeeId,
+        });
     }
 
-    // Update fields
+    // Update fields only if provided in the request
     attendance.date = date || attendance.date;
     attendance.morningTimeIn = morningTimeIn !== undefined ? morningTimeIn : attendance.morningTimeIn || null;
     attendance.morningTimeOut = morningTimeOut !== undefined ? morningTimeOut : attendance.morningTimeOut || null;
@@ -193,10 +197,10 @@ exports.updateAttendance = asyncHandler(async (req, res) => {
     attendance.afternoonTimeOut = afternoonTimeOut !== undefined ? afternoonTimeOut : attendance.afternoonTimeOut || null;
 
     // Define time thresholds
-    const MORNING_START = "08:00"; // 8:00 AM
-    const AFTERNOON_START = "13:00"; // 1:00 PM
-    const MORNING_EARLY_CUTOFF = "11:30"; // 11:30 AM
-    const AFTERNOON_END = "17:00"; // 5:00 PM
+    const MORNING_START = "08:00";
+    const AFTERNOON_START = "13:00";
+    const MORNING_EARLY_CUTOFF = "11:30";
+    const AFTERNOON_END = "17:00";
 
     // Calculate status if not explicitly provided
     if (!status) {

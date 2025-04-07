@@ -514,8 +514,8 @@ export default {
             );
             return previousPayslips.sort((a, b) => {
                 if (this.sortPreviousField === 'payDate') {
-                    const dateA = moment(a.paydayType === 'mid-month' ? a.expectedPaydays.midMonthPayday : a.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
-                    const dateB = moment(b.paydayType === 'mid-month' ? b.expectedPaydays.midMonthPayday : b.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
+                    const dateA = moment(a.payDate, 'YYYY-MM-DD');
+                    const dateB = moment(b.payDate, 'YYYY-MM-DD');
                     return this.sortPreviousAsc ? dateA - dateB : dateB - dateA;
                 } else if (this.sortPreviousField === 'position') {
                     const posA = this.getPositionName(a.position);
@@ -533,9 +533,9 @@ export default {
             );
             return newPayslips.sort((a, b) => {
                 if (this.sortNewField === 'payDate') {
-                    const dateA = moment(a.paydayType === 'mid-month' ? a.expectedPaydays.midMonthPayday : a.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
-                    const dateB = moment(b.paydayType === 'mid-month' ? b.expectedPaydays.midMonthPayday : b.expectedPaydays.endMonthPayday, 'D MMMM YYYY');
-                    return this.sortNewAsc ? dateA - dateB : dateB - dateA;
+                    const dateA = moment(a.payDate, 'YYYY-MM-DD');
+                    const dateB = moment(b.payDate, 'YYYY-MM-DD');
+                    return this.sortNewAsc ? dateA - dateB : dateB - dateA; // Ascending by default
                 } else if (this.sortNewField === 'position') {
                     const posA = this.getPositionName(a.position);
                     const posB = this.getPositionName(b.position);

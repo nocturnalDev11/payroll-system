@@ -210,6 +210,10 @@ export default {
         },
         showDetails(employee) {
             this.selectedEmployee = { ...employee };
+            // Ensure employeeId is a string
+            if (typeof this.selectedEmployee.employeeId !== 'string') {
+                this.selectedEmployee.employeeId = this.selectedEmployee.employeeId._id;
+            }
             this.showDetailsModal = true;
         },
         calculateStatus({ morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut }) {
@@ -246,6 +250,10 @@ export default {
                         afternoonTimeIn: this.selectedEmployee.afternoonTimeIn,
                         afternoonTimeOut: this.selectedEmployee.afternoonTimeOut,
                     });
+                    // Ensure employeeId remains a string
+                    if (typeof this.selectedEmployee.employeeId !== 'string') {
+                        this.selectedEmployee.employeeId = this.selectedEmployee.employeeId._id;
+                    }
                     await this.updateAttendance(this.selectedEmployee, timeField);
                 }
             } catch (error) {
@@ -271,7 +279,7 @@ export default {
                 employee.status = changedField === 'status' ? employee.status : newStatus;
 
                 const payload = {
-                    employeeId: employee.employeeId,
+                    employeeId: typeof employee.employeeId === 'string' ? employee.employeeId : employee.employeeId._id, // Ensure string ID
                     date: this.date,
                     morningTimeIn: employee.morningTimeIn || null,
                     morningTimeOut: employee.morningTimeOut || null,
@@ -279,6 +287,8 @@ export default {
                     afternoonTimeOut: employee.afternoonTimeOut || null,
                     status: employee.status,
                 };
+
+                console.log('Updating attendance with payload:', payload); // Debug log
 
                 let response;
                 if (employee._id) {
@@ -294,6 +304,8 @@ export default {
                         { headers: { 'Authorization': `Bearer ${token}`, 'user-role': 'admin' } }
                     );
                 }
+
+                console.log('Response:', response.data); // Debug log
 
                 if (response.status === 200 || response.status === 201) {
                     const updatedEmployee = {
@@ -311,7 +323,8 @@ export default {
                 }
             } catch (error) {
                 console.error('Error updating attendance:', error);
-                this.showErrorMessage(`Update failed: ${error.response?.data?.error || error.message}`);
+                console.error('Server response:', error.response?.data); // Log server error details
+                this.showErrorMessage(`Update failed: ${error.response?.data?.message || error.message}`);
                 if (error.message.includes('No access token')) {
                     this.authStore.logout();
                     this.$router.push('/login');
