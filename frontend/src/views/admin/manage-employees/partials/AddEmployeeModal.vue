@@ -10,9 +10,9 @@ import {
     calculateWithholdingTax,
     calculateNewEmployeeNetSalary
 } from '@/utils/calculations.js';
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, reactive } from 'vue';
 
-const { show, employee, positions } = defineProps({
+const { show, employee: employeeProp, positions } = defineProps({
     show: Boolean,
     employee: Object,
     positions: Array,
@@ -22,16 +22,64 @@ const emit = defineEmits(['close', 'add-success']);
 const authStore = useAuthStore();
 const isAdding = ref(false);
 
+// Create a local reactive employee object to manage form data
+const localEmployee = reactive({
+    empNo: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    email: '',
+    contactInfo: '',
+    civilStatus: 'Single',
+    username: '',
+    password: '',
+    position: '',
+    hireDate: new Date().toISOString().slice(0, 10),
+    sss: '',
+    philhealth: '',
+    pagibig: '',
+    tin: '',
+    salary: 0,
+    hourlyRate: 0,
+    earnings: {
+        travelExpenses: 0,
+        otherEarnings: 0,
+    },
+});
+
 // Function to generate EMP-[7 random numbers]
 function generateEmpNo() {
     const randomNum = Math.floor(1000000 + Math.random() * 9000000);
     return `EMP-${randomNum}`;
 }
 
-// Set empNo when the modal is mounted
-onMounted(() => {
-    if (show && !employee.empNo) {
-        employee.empNo = generateEmpNo();
+// Initialize localEmployee with employeeProp data when modal opens
+watch(() => show, (newShow) => {
+    if (newShow) {
+        // Reset localEmployee with defaults and employeeProp data
+        Object.assign(localEmployee, {
+            empNo: employeeProp?.empNo || generateEmpNo(),
+            firstName: employeeProp?.firstName || '',
+            middleName: employeeProp?.middleName || '',
+            lastName: employeeProp?.lastName || '',
+            email: employeeProp?.email || '',
+            contactInfo: employeeProp?.contactInfo || '',
+            civilStatus: employeeProp?.civilStatus || 'Single',
+            username: employeeProp?.username || '',
+            password: employeeProp?.password || '',
+            position: employeeProp?.position || '',
+            hireDate: employeeProp?.hireDate || new Date().toISOString().slice(0, 10),
+            sss: employeeProp?.sss || '',
+            philhealth: employeeProp?.philhealth || '',
+            pagibig: employeeProp?.pagibig || '',
+            tin: employeeProp?.tin || '',
+            salary: employeeProp?.salary || 0,
+            hourlyRate: employeeProp?.hourlyRate || 0,
+            earnings: {
+                travelExpenses: employeeProp?.earnings?.travelExpenses || 0,
+                otherEarnings: employeeProp?.earnings?.otherEarnings || 0,
+            },
+        });
     }
 });
 
@@ -42,7 +90,7 @@ async function addEmployee() {
     ];
 
     const missingFields = requiredFields.filter(field => {
-        const value = employee[field];
+        const value = localEmployee[field];
         if (value === undefined || value === null) return true;
         if (['empNo', 'firstName', 'lastName', 'position', 'email', 'contactInfo', 'username', 'password'].includes(field)) {
             return typeof value !== 'string' || value.trim() === '';
@@ -61,15 +109,15 @@ async function addEmployee() {
     isAdding.value = true;
     try {
         const employeeData = {
-            ...employee,
-            hourlyRate: employee.hourlyRate || (employee.salary / (8 * 22)),
+            ...localEmployee,
+            hourlyRate: localEmployee.hourlyRate || (localEmployee.salary / (8 * 22)),
             role: 'employee',
-            civilStatus: employee.civilStatus || 'Single',
-            hireDate: employee.hireDate || new Date().toISOString().slice(0, 10),
+            civilStatus: localEmployee.civilStatus || 'Single',
+            hireDate: localEmployee.hireDate || new Date().toISOString().slice(0, 10),
             positionHistory: [{
-                position: employee.position,
-                salary: employee.salary,
-                startDate: employee.hireDate || new Date().toISOString().slice(0, 10),
+                position: localEmployee.position,
+                salary: localEmployee.salary,
+                startDate: localEmployee.hireDate || new Date().toISOString().slice(0, 10),
                 endDate: null,
             }],
             status: 'approved',
@@ -99,15 +147,15 @@ async function addEmployee() {
 }
 
 function updateSalaryFromPosition() {
-    const selectedPosition = positions.find(pos => pos.name === employee.position);
+    const selectedPosition = positions.find(pos => pos.name === localEmployee.position);
     if (selectedPosition) {
-        employee.salary = selectedPosition.salary || 0;
-        employee.hourlyRate = employee.salary / (8 * 22);
+        localEmployee.salary = selectedPosition.salary || 0;
+        localEmployee.hourlyRate = localEmployee.salary / (8 * 22);
     }
 }
 
-watch(() => employee.salary, (newSalary) => {
-    employee.hourlyRate = newSalary ? newSalary / (8 * 22) : 0;
+watch(() => localEmployee.salary, (newSalary) => {
+    localEmployee.hourlyRate = newSalary ? newSalary / (8 * 22) : 0;
 });
 </script>
 
@@ -128,42 +176,42 @@ watch(() => employee.salary, (newSalary) => {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Employee Number *</label>
-                                <input v-model="employee.empNo"
+                                <input v-model="localEmployee.empNo"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100" readonly
                                     required />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">First Name *</label>
-                                <input v-model="employee.firstName"
+                                <input v-model="localEmployee.firstName"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Middle Name</label>
-                                <input v-model="employee.middleName"
+                                <input v-model="localEmployee.middleName"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Last Name *</label>
-                                <input v-model="employee.lastName"
+                                <input v-model="localEmployee.lastName"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Email *</label>
-                                <input v-model="employee.email" type="email"
+                                <input v-model="localEmployee.email" type="email"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Contact Number *</label>
-                                <input v-model="employee.contactInfo"
+                                <input v-model="localEmployee.contactInfo"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required pattern="\d{11}" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Civil Status *</label>
-                                <select v-model="employee.civilStatus"
+                                <select v-model="localEmployee.civilStatus"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required>
                                     <option value="Single">Single</option>
@@ -174,13 +222,13 @@ watch(() => employee.salary, (newSalary) => {
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Username *</label>
-                                <input v-model="employee.username"
+                                <input v-model="localEmployee.username"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Password *</label>
-                                <input v-model="employee.password" type="password"
+                                <input v-model="localEmployee.password" type="password"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required />
                             </div>
@@ -191,7 +239,7 @@ watch(() => employee.salary, (newSalary) => {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Position *</label>
-                                <select v-model="employee.position" @change="updateSalaryFromPosition"
+                                <select v-model="localEmployee.position" @change="updateSalaryFromPosition"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required>
                                     <option v-for="position in positions" :key="position.name" :value="position.name">{{
@@ -200,31 +248,31 @@ watch(() => employee.salary, (newSalary) => {
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Hire Date *</label>
-                                <input v-model="employee.hireDate" type="date"
+                                <input v-model="localEmployee.hireDate" type="date"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">SSS ID</label>
-                                <input v-model="employee.sss"
+                                <input v-model="localEmployee.sss"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     pattern="\d{10}" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">PhilHealth ID</label>
-                                <input v-model="employee.philhealth"
+                                <input v-model="localEmployee.philhealth"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     pattern="\d{12}" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Pag-IBIG ID</label>
-                                <input v-model="employee.pagibig"
+                                <input v-model="localEmployee.pagibig"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     pattern="\d{12}" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">TIN</label>
-                                <input v-model="employee.tin"
+                                <input v-model="localEmployee.tin"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     pattern="\d{9,12}" />
                             </div>
@@ -235,59 +283,59 @@ watch(() => employee.salary, (newSalary) => {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Monthly Salary *</label>
-                                <input v-model.number="employee.salary" type="number"
+                                <input v-model.number="localEmployee.salary" type="number"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required min="0" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Hourly Rate</label>
-                                <input :value="employee.hourlyRate.toLocaleString()" type="text"
+                                <input :value="localEmployee.hourlyRate.toLocaleString()" type="text"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Travel Expenses</label>
-                                <input v-model.number="employee.earnings.travelExpenses" type="number"
+                                <input v-model.number="localEmployee.earnings.travelExpenses" type="number"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     min="0" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Other Earnings</label>
-                                <input v-model.number="employee.earnings.otherEarnings" type="number"
+                                <input v-model.number="localEmployee.earnings.otherEarnings" type="number"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     min="0" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">SSS Contribution</label>
-                                <input :value="calculateSSSContribution(employee.salary).toLocaleString()"
+                                <input :value="calculateSSSContribution(localEmployee.salary).toLocaleString()"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">PhilHealth Contribution</label>
-                                <input :value="calculatePhilHealthContribution(employee.salary).toLocaleString()"
+                                <input :value="calculatePhilHealthContribution(localEmployee.salary).toLocaleString()"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Pag-IBIG Contribution</label>
-                                <input :value="calculatePagIBIGContribution(employee.salary).toLocaleString()"
+                                <input :value="calculatePagIBIGContribution(localEmployee.salary).toLocaleString()"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Withholding Tax</label>
-                                <input :value="calculateWithholdingTax(employee.salary).toLocaleString()"
+                                <input :value="calculateWithholdingTax(localEmployee.salary).toLocaleString()"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
                         </div>
                     </div>
-                    <div v-if="employee" class="mt-4 p-3 bg-gray-50 rounded-md">
+                    <div v-if="localEmployee" class="mt-4 p-3 bg-gray-50 rounded-md">
                         <div class="flex justify-between items-center text-sm">
                             <span class="font-medium text-gray-700">Net Salary Preview:</span>
                             <span class="font-semibold text-gray-900">₱{{
-                                calculateNewEmployeeNetSalary(employee).toLocaleString() }}</span>
+                                calculateNewEmployeeNetSalary(localEmployee).toLocaleString() }}</span>
                         </div>
                     </div>
                 </div>

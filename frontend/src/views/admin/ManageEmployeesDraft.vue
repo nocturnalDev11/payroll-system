@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth.store.js';
 import { BASE_API_URL } from '@/utils/constants.js';
-import EmployeeDetailsModal from './partials/manage-employees/EmployeeDetailsModal.vue';
+import EmployeeDetailsModal from './manage-employees/partials/EmployeeDetailsModal.vue';
 import Modal from '@/components/Modal.vue';
 
 export default {

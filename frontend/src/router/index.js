@@ -93,7 +93,7 @@ const routes = [
             { 
                 path: 'manage-employees', 
                 name: 'ManageEmployees',
-                component: () => import('../views/admin/ManageEmployees.vue'),
+                component: () => import('../views/admin/manage-employees/ManageEmployees.vue'),
                 meta: {
                     title: 'Manage Employees',
                 }
