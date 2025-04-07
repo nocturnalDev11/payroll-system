@@ -44,33 +44,35 @@
                                         <input v-model="deductionSearch" type="text" placeholder="Search deductions..."
                                             class="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                                     </div>
+
                                     <div
                                         class="max-h-[300px] space-y-2 overflow-y-auto rounded-lg border border-gray-200 p-2 scroll-container">
-                                        <TransitionGroup enter="transition-all ease-out duration-200"
-                                            enter-from="opacity-0 -translate-y-2" enter-to="opacity-100 translate-y-0"
-                                            leave="transition-all ease-in duration-150" leave-from="opacity-100"
-                                            leave-to="opacity-0">
+                                        <TransitionGroup tag="div">
                                             <div v-for="deduction in filteredDeductions" :key="deduction.id"
-                                                class="group relative flex items-center rounded-lg border border-transparent bg-gray-50 p-3 hover:border-blue-100 hover:bg-blue-50">
-                                                <div class="flex flex-1 items-center space-x-3">
-                                                    <input type="checkbox" :id="'deduction-' + deduction.id"
-                                                        v-model="selectedDeductions" :value="deduction"
-                                                        class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                                                    <label :for="'deduction-' + deduction.id"
-                                                        class="flex-1 cursor-pointer">
-                                                        <span class="block text-sm font-medium text-gray-900">
-                                                            {{ deduction.name }}
-                                                        </span>
-                                                        <span class="text-sm text-gray-500">
-                                                            ₱{{ deduction.amount.toLocaleString() }}
-                                                        </span>
-                                                    </label>
+                                                class="transition-all ease-out duration-200"
+                                                :class="{ 'opacity-0 -translate-y-2': !isVisible(deduction), 'opacity-100 translate-y-0': isVisible(deduction) }">
+                                                <div
+                                                    class="group relative flex items-center rounded-lg border border-transparent bg-gray-50 p-3 hover:border-blue-100 hover:bg-blue-50">
+                                                    <div class="flex flex-1 items-center space-x-3">
+                                                        <input type="checkbox" :id="'deduction-' + deduction.id"
+                                                            v-model="selectedDeductions" :value="deduction"
+                                                            class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                                                        <label :for="'deduction-' + deduction.id"
+                                                            class="flex-1 cursor-pointer">
+                                                            <span class="block text-sm font-medium text-gray-900">
+                                                                {{ deduction.name }}
+                                                            </span>
+                                                            <span class="text-sm text-gray-500">
+                                                                ₱{{ deduction.amount.toLocaleString() }}
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                    <span
+                                                        class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100">
+                                                        <CheckIcon v-if="selectedDeductions.includes(deduction)"
+                                                            class="h-5 w-5 text-blue-600" />
+                                                    </span>
                                                 </div>
-                                                <span
-                                                    class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100">
-                                                    <CheckIcon v-if="selectedDeductions.includes(deduction)"
-                                                        class="h-5 w-5 text-blue-600" />
-                                                </span>
                                             </div>
                                         </TransitionGroup>
                                     </div>
@@ -94,31 +96,32 @@
                                     </div>
                                     <div
                                         class="max-h-[300px] space-y-2 overflow-y-auto rounded-lg border border-gray-200 p-2">
-                                        <TransitionGroup enter="transition-all ease-out duration-200"
-                                            enter-from="opacity-0 -translate-y-2" enter-to="opacity-100 translate-y-0"
-                                            leave="transition-all ease-in duration-150" leave-from="opacity-100"
-                                            leave-to="opacity-0">
+                                        <TransitionGroup tag="div">
                                             <div v-for="employee in filteredEmployees" :key="employee.id"
-                                                class="group relative flex items-center rounded-lg border border-transparent bg-gray-50 p-3 hover:border-blue-100 hover:bg-blue-50">
-                                                <div class="flex flex-1 items-center space-x-3">
-                                                    <input type="checkbox" :id="'employee-' + employee.id"
-                                                        v-model="selectedEmployees" :value="employee"
-                                                        class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                                                    <label :for="'employee-' + employee.id"
-                                                        class="flex-1 cursor-pointer">
-                                                        <span class="block text-sm font-medium text-gray-900">
-                                                            {{ employee.name }}
-                                                        </span>
-                                                        <span class="text-sm text-gray-500">
-                                                            {{ employee.position }}
-                                                        </span>
-                                                    </label>
+                                                class="transition-all ease-out duration-200"
+                                                :class="{ 'opacity-0 -translate-y-2': !isVisible(employee), 'opacity-100 translate-y-0': isVisible(employee) }">
+                                                <div
+                                                    class="group relative flex items-center rounded-lg border border-transparent bg-gray-50 p-3 hover:border-blue-100 hover:bg-blue-50">
+                                                    <div class="flex flex-1 items-center space-x-3">
+                                                        <input type="checkbox" :id="'employee-' + employee.id"
+                                                            v-model="selectedEmployees" :value="employee"
+                                                            class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                                                        <label :for="'employee-' + employee.id"
+                                                            class="flex-1 cursor-pointer">
+                                                            <span class="block text-sm font-medium text-gray-900">
+                                                                {{ employee.name }}
+                                                            </span>
+                                                            <span class="text-sm text-gray-500">
+                                                                {{ employee.position }}
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                    <span
+                                                        class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100">
+                                                        <CheckIcon v-if="selectedEmployees.includes(employee)"
+                                                            class="h-5 w-5 text-blue-600" />
+                                                    </span>
                                                 </div>
-                                                <span
-                                                    class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100">
-                                                    <CheckIcon v-if="selectedEmployees.includes(employee)"
-                                                        class="h-5 w-5 text-blue-600" />
-                                                </span>
                                             </div>
                                         </TransitionGroup>
                                     </div>
@@ -150,7 +153,7 @@
                                                 class="text-center text-xs font-medium text-gray-500">
                                                 {{ day }}
                                             </div>
-                                            <button v-for="day in calendarDays" :key="day.date"
+                                            <button v-for="day in calendarDays" :key="day.date.toISOString()"
                                                 @click="toggleDate(day.date)" :disabled="!isPayrollDay(day.date)"
                                                 :class="[
                                                     'aspect-square rounded-full text-sm',
@@ -171,20 +174,21 @@
                                     <div class="space-y-3">
                                         <h4 class="text-sm font-medium text-gray-700">Selected Periods</h4>
                                         <div class="max-h-[200px] space-y-2 overflow-y-auto">
-                                            <TransitionGroup enter="transition-all ease-out duration-200"
-                                                enter-from="opacity-0 -translate-y-2"
-                                                enter-to="opacity-100 translate-y-0"
-                                                leave="transition-all ease-in duration-150" leave-from="opacity-100"
-                                                leave-to="opacity-0">
+                                            <TransitionGroup tag="div">
                                                 <div v-for="period in selectedPeriods" :key="period.start.toISOString()"
-                                                    class="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm">
-                                                    <span class="text-sm text-gray-900">
-                                                        {{ formatDate(period.start) }} - {{ formatDate(period.end) }}
-                                                    </span>
-                                                    <button @click="toggleDate(period.start)"
-                                                        class="text-gray-400 hover:text-gray-600">
-                                                        <XMarkIcon class="h-5 w-5" />
-                                                    </button>
+                                                    class="transition-all ease-out duration-200"
+                                                    :class="{ 'opacity-0 -translate-y-2': !isVisible(period), 'opacity-100 translate-y-0': isVisible(period) }">
+                                                    <div
+                                                        class="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm">
+                                                        <span class="text-sm text-gray-900">
+                                                            {{ formatDate(period.start) }} - {{ formatDate(period.end)
+                                                            }}
+                                                        </span>
+                                                        <button @click="toggleDate(period.start)"
+                                                            class="text-gray-400 hover:text-gray-600">
+                                                            <XMarkIcon class="h-5 w-5" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </TransitionGroup>
                                             <div v-if="selectedPeriods.length === 0"
@@ -223,6 +227,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { TransitionGroup } from 'vue' // Import TransitionGroup from vue
 import {
     Dialog,
     DialogPanel,
@@ -235,7 +240,7 @@ import {
     ChevronLeftIcon,
     CheckIcon,
     MagnifyingGlassIcon,
-} from '@heroicons/vue/24/outline/index.js'
+} from '@heroicons/vue/24/outline'
 
 // Props
 const props = defineProps({
@@ -384,6 +389,10 @@ const formatDate = (date) => {
     })
 }
 
+const isVisible = (item) => {
+    return true // Always true since we're handling transitions via classes
+}
+
 const saveChanges = () => {
     emit('save', {
         deductions: selectedDeductions.value,
@@ -395,28 +404,22 @@ const saveChanges = () => {
 </script>
 
 <style>
-/* These styles are now global, but limited to components using scrollbars */
 .scroll-container::-webkit-scrollbar {
     width: 8px;
-    /* w-2 equivalent */
     height: 8px;
 }
 
 .scroll-container::-webkit-scrollbar-track {
     background-color: #f3f4f6;
-    /* bg-gray-100 */
     border-radius: 9999px;
-    /* rounded-full */
 }
 
 .scroll-container::-webkit-scrollbar-thumb {
     background-color: #d1d5db;
-    /* bg-gray-300 */
     border-radius: 9999px;
 }
 
 .scroll-container::-webkit-scrollbar-thumb:hover {
     background-color: #9ca3af;
-    /* hover:bg-gray-400 */
 }
 </style>

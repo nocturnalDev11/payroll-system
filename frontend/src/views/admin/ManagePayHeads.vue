@@ -90,13 +90,15 @@
                     </p>
                     <!-- Add buttons for payheads empty state -->
                     <div v-if="activeTab === 'payheads'" class="mt-4 flex gap-2">
-                        <button @click="showAddModal = true" class="inline-flex items-center px-2 py-0.5 bg-blue-600 text-white rounded-sm 
+                        <button @click="showAddModal = true"
+                            class="inline-flex items-center px-2 py-0.5 bg-blue-600 text-white rounded-sm 
                             text-xs font-medium hover:bg-blue-700 focus:outline-none focus:ring-1 
                             focus:ring-offset-1 focus:ring-blue-500 transition-all shadow-sm transform hover:scale-105">
                             <span class="material-icons text-xs mr-1">add</span>
                             New Pay Head
                         </button>
-                        <button @click="showRecurringDeductionModal = true" class="inline-flex items-center px-2 py-0.5 bg-green-600 text-white rounded-sm 
+                        <button @click="showRecurringDeductionModal = true"
+                            class="inline-flex items-center px-2 py-0.5 bg-green-600 text-white rounded-sm 
                             text-xs font-medium hover:bg-green-700 focus:outline-none focus:ring-1 
                             focus:ring-offset-1 focus:ring-green-500 transition-all shadow-sm transform hover:scale-105">
                             <span class="material-icons text-xs mr-1">repeat</span>
@@ -123,13 +125,15 @@
                             Showing {{ filteredPayHeads.length }} {{ filteredPayHeads.length === 1 ? 'item' : 'items' }}
                         </div>
                         <!-- Always show buttons when activeTab is 'payheads' -->
-                        <button v-if="activeTab === 'payheads'" @click="showAddModal = true" class="inline-flex items-center px-2 py-0.5 bg-blue-600 text-white rounded-sm 
+                        <button v-if="activeTab === 'payheads'" @click="showAddModal = true"
+                            class="inline-flex items-center px-2 py-0.5 bg-blue-600 text-white rounded-sm 
                             text-xs font-medium hover:bg-blue-700 focus:outline-none focus:ring-1 
                             focus:ring-offset-1 focus:ring-blue-500 transition-all shadow-sm transform hover:scale-105">
                             <span class="material-icons text-xs mr-1">add</span>
                             New Pay Head
                         </button>
-                        <button v-if="activeTab === 'payheads'" @click="showRecurringDeductionModal = true" class="inline-flex items-center px-2 py-0.5 bg-green-600 text-white rounded-sm 
+                        <button v-if="activeTab === 'payheads'" @click="showRecurringDeductionModal = true"
+                            class="inline-flex items-center px-2 py-0.5 bg-green-600 text-white rounded-sm 
                             text-xs font-medium hover:bg-green-700 focus:outline-none focus:ring-1 
                             focus:ring-offset-1 focus:ring-green-500 transition-all shadow-sm transform hover:scale-105">
                             <span class="material-icons text-xs mr-1">repeat</span>
@@ -658,15 +662,15 @@ export default {
             }
         },
 
-        async saveRecurringDeductions(selectedDeductions, selectedEmployees) {
+        async saveRecurringDeductions({ deductions, employees, periods }) { // Destructure the object
             try {
                 this.isLoading = true;
                 const authStore = useAuthStore();
-                for (const employee of selectedEmployees) {
+                for (const employee of employees) { // Now employees is correctly iterable
                     const existingPayheads = this.employees.find(e => e._id === employee._id)?.payheads || [];
                     const updatedPayheads = [...existingPayheads];
 
-                    for (const deduction of selectedDeductions) {
+                    for (const deduction of deductions) {
                         if (!updatedPayheads.some(ph => ph._id === deduction._id && ph.isRecurring)) {
                             updatedPayheads.push({
                                 _id: deduction._id,
