@@ -2,6 +2,17 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth.store.js';
 import { BASE_API_URL } from '@/utils/constants.js';
+import {
+    calculateTotalEarnings,
+    calculateTotalDeductions,
+    calculateNetSalary,
+    calculateRequestNetSalary,
+    calculateNewEmployeeNetSalary,
+    calculateSSSContribution,
+    calculatePhilHealthContribution,
+    calculatePagIBIGContribution,
+    calculateWithholdingTax,
+} from '@/utils/calculations.js';
 import EmployeeDetailsModal from './partials/manage-employees/EmployeeDetailsModal.vue';
 import PendingRequestModal from './partials/manage-employees/PendingRequestModal.vue';
 import AddEmployeeModal from './partials/manage-employees/AddEmployeeModal.vue';
@@ -29,10 +40,7 @@ export default {
             showPositionModal: false,
             showEditPositionModal: false,
             showDeletePositionModal: false,
-            isEditingRequest: false,
             isLoading: false,
-            isUpdating: false,
-            isDeleting: false,
             isAddingPosition: false,
             searchQuery: '',
             positionFilter: '',
@@ -107,8 +115,9 @@ export default {
         },
     },
     watch: {
-        'selectedRequest.salary'(newSalary) { this.selectedRequest.hourlyRate = newSalary / (8 * 22); },
-        'newEmployee.salary'(newSalary) { this.newEmployee.hourlyRate = newSalary ? newSalary / (8 * 22) : 0; },
+        'newEmployee.salary'(newSalary) {
+            this.newEmployee.hourlyRate = newSalary ? newSalary / (8 * 22) : 0;
+        },
     },
     mounted() {
         this.fetchEmployees();
@@ -116,73 +125,16 @@ export default {
         this.fetchPositions();
     },
     methods: {
-        calculateTotalEarnings(employee) {
-            const baseEarnings = (employee.earnings?.travelExpenses || 0) + (employee.earnings?.otherEarnings || 0);
-            return employee.salary + baseEarnings;
-        },
-        calculateTotalDeductions(employee) {
-            return this.calculateSSSContribution(employee.salary) +
-                this.calculatePhilHealthContribution(employee.salary) +
-                this.calculatePagIBIGContribution(employee.salary) +
-                this.calculateWithholdingTax(employee.salary);
-        },
-        calculateNetSalary(employee) {
-            return employee && employee.salary ? this.calculateTotalEarnings(employee) - this.calculateTotalDeductions(employee) : 0;
-        },
-        calculateRequestNetSalary(request) {
-            if (!request || !request.salary) return 0;
-            const totalEarnings = (request.earnings?.travelExpenses || 0) + (request.earnings?.otherEarnings || 0) + (request.salary || 0);
-            return totalEarnings - (this.calculateSSSContribution(request.salary) + this.calculatePhilHealthContribution(request.salary) +
-                this.calculatePagIBIGContribution(request.salary) + this.calculateWithholdingTax(request.salary));
-        },
-        calculateNewEmployeeNetSalary() {
-            if (!this.newEmployee.salary) return 0;
-            const totalEarnings = this.newEmployee.salary + (this.newEmployee.earnings.travelExpenses || 0) + (this.newEmployee.earnings.otherEarnings || 0);
-            return totalEarnings - (this.calculateSSSContribution(this.newEmployee.salary) + this.calculatePhilHealthContribution(this.newEmployee.salary) +
-                this.calculatePagIBIGContribution(this.newEmployee.salary) + this.calculateWithholdingTax(this.newEmployee.salary));
-        },
-        calculateSSSContribution(salary) {
-            const monthlySalary = Math.max(salary || 0, 0);
-            if (monthlySalary < 5000) return 250;
-            const salaryCredit = Math.min(Math.max(monthlySalary, 5000), 35000);
-            const regularSSContribution = Math.round(salaryCredit * 0.05);
-            let mpfContribution = salaryCredit > 20000 ? Math.round((Math.min(salaryCredit, 35000) - 20000) * 0.025) : 0;
-            return salaryCredit > 34750 ? 1750 : regularSSContribution + mpfContribution;
-        },
-        calculatePhilHealthContribution(salary) {
-            const monthlySalary = Math.max(salary || 0, 0);
-            return Math.round(Math.min(Math.max(monthlySalary, 10000), 100000) * 0.025);
-        },
-        calculatePagIBIGContribution(salary) {
-            const monthlySalary = Math.max(salary || 0, 0);
-            const cappedSalary = Math.min(monthlySalary, 5000);
-            return Math.round(cappedSalary * (cappedSalary <= 1500 ? 0.01 : 0.02));
-        },
-        calculateWithholdingTax(salary) {
-            const taxableIncome = salary || 0;
-            if (taxableIncome <= 20833) return 0;
-            if (taxableIncome <= 33333) return Math.round((taxableIncome - 20833) * 0.15);
-            if (taxableIncome <= 66667) return Math.round(1875 + (taxableIncome - 33333) * 0.20);
-            if (taxableIncome <= 166667) return Math.round(13541.80 + (taxableIncome - 66667) * 0.25);
-            if (taxableIncome <= 666667) return Math.round(90841.80 + (taxableIncome - 166667) * 0.30);
-            return Math.round(408841.80 + (taxableIncome - 666667) * 0.35);
-        },
-
-        handleAddSuccess(newEmployee) {
-            this.employees.push({
-                ...newEmployee,
-                hourlyRate: newEmployee.hourlyRate || (newEmployee.salary / (8 * 22)),
-            });
-            this.showAddModal = false;
-            this.resetNewEmployee();
-            this.showSuccessMessage('Employee added successfully');
-        },
-
-        handlePositionCreated(newPosition) {
-            this.adminPositions.push(newPosition);
-            this.resetNewPosition();
-            this.showSuccessMessage('Position created successfully');
-        },
+        // Expose imported functions to the template
+        calculateNetSalary,
+        calculateRequestNetSalary,
+        calculateNewEmployeeNetSalary,
+        calculateTotalEarnings,
+        calculateTotalDeductions,
+        calculateSSSContribution,
+        calculatePhilHealthContribution,
+        calculatePagIBIGContribution,
+        calculateWithholdingTax,
 
         async fetchEmployees() {
             this.isLoading = true;
@@ -306,35 +258,10 @@ export default {
             this.showDeleteModal = true;
         },
 
-        async moveToTrash(id) {
-            this.isDeleting = true;
-            try {
-                const employee = this.employees.find(emp => emp.id === id);
-                if (!employee || !employee._id) {
-                    this.showErrorMessage('Invalid employee _id');
-                    return;
-                }
-                const response = await axios.put(
-                    `${BASE_API_URL}/api/employees/${employee._id}/trash`,
-                    {},
-                    {
-                        headers: {
-                            Authorization: `Bearer ${this.authStore.accessToken}`,
-                            'user-role': this.authStore.userRole,
-                        },
-                    }
-                );
-                if (response.status === 200) {
-                    this.employees = this.employees.filter(emp => emp._id !== employee._id);
-                    this.showDeleteModal = false;
-                    this.showSuccessMessage('Employee moved to trash successfully');
-                }
-            } catch (error) {
-                console.error('Error moving employee to trash:', error);
-                this.showErrorMessage('Failed to move employee to trash');
-            } finally {
-                this.isDeleting = false;
-            }
+        handleEmployeeDeleted(employeeId) {
+            this.employees = this.employees.filter(emp => emp._id !== employeeId);
+            this.showDeleteModal = false;
+            this.showSuccessMessage('Employee moved to trash successfully');
         },
 
         viewRequestInfo(request) {
@@ -348,104 +275,31 @@ export default {
                 hireDate: request.hireDate ? new Date(request.hireDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)
             };
             this.showRequestModal = true;
-            this.isEditingRequest = false;
         },
 
-        async saveRequestChanges() {
-            const requiredFields = ['firstName', 'lastName', 'position', 'salary', 'email', 'contactInfo'];
-            const missingFields = requiredFields.filter(field => {
-                const value = this.selectedRequest[field];
-                return value === undefined || value === null || (typeof value === 'string' && value.trim() === '') || (field === 'salary' && (typeof value !== 'number' || value < 0));
-            });
-
-            if (missingFields.length > 0) {
-                this.showErrorMessage(`Missing or invalid required fields: ${missingFields.join(', ')}`);
-                return;
+        handleRequestSaved(updatedRequest) {
+            const index = this.pendingRequests.findIndex(req => req._id === updatedRequest._id);
+            if (index !== -1) {
+                this.pendingRequests[index] = { ...updatedRequest };
             }
-
-            this.isUpdating = true;
-            try {
-                const updatedRequest = { ...this.selectedRequest, hireDate: this.selectedRequest.hireDate };
-                const response = await axios.put(
-                    `${BASE_API_URL}/api/employees/pending-requests/${this.selectedRequest._id}`,
-                    updatedRequest,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${this.authStore.accessToken}`,
-                            'user-role': this.authStore.userRole,
-                        },
-                    }
-                );
-
-                if (response.status === 200) {
-                    const index = this.pendingRequests.findIndex(req => req._id === this.selectedRequest._id);
-                    if (index !== -1) this.pendingRequests[index] = { ...this.selectedRequest };
-                    this.showSuccessMessage('Request updated successfully');
-                    this.isEditingRequest = false;
-                }
-            } catch (error) {
-                console.error('Error saving request changes:', error);
-                this.showErrorMessage(error.response?.data?.error || 'Failed to save request changes');
-            } finally {
-                this.isUpdating = false;
-            }
+            this.showSuccessMessage('Request updated successfully');
         },
 
-        async approveRequest(request) {
-            try {
-                const updatedEmployee = {
-                    status: 'approved',
-                    hireDate: new Date(),
-                    username: request.username || `${request.firstName.toLowerCase()}${Math.floor(Math.random() * 1000)}`,
-                    empNo: request.empNo || `EMP-${Date.now()}`,
-                };
-                const response = await axios.put(
-                    `${BASE_API_URL}/api/employees/update/${request._id}`,
-                    updatedEmployee,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${this.authStore.accessToken}`,
-                            'user-role': this.authStore.userRole,
-                        },
-                    }
-                );
-                if (response.status === 200) {
-                    this.pendingRequests = this.pendingRequests.filter(req => req._id !== request._id);
-                    this.employees.push(response.data.updatedEmployee);
-                    this.showRequestModal = false;
-                    this.showSuccessMessage('Employee approved successfully');
-                }
-            } catch (error) {
-                console.error('Error approving request:', error);
-                this.showErrorMessage('Error approving employee');
-            }
+        handleRequestApproved(approvedEmployee) {
+            this.pendingRequests = this.pendingRequests.filter(req => req._id !== approvedEmployee._id);
+            this.employees.push(approvedEmployee);
+            this.showRequestModal = false;
+            this.showSuccessMessage('Employee approved successfully');
         },
 
-        async rejectRequest(_id) {
-            try {
-                const response = await axios.put(
-                    `${BASE_API_URL}/api/employees/pending-requests/${_id}/reject`,
-                    { status: 'rejected' },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${this.authStore.accessToken}`,
-                            'user-role': this.authStore.userRole,
-                        },
-                    }
-                );
-                if (response.status === 200) {
-                    this.pendingRequests = this.pendingRequests.filter(req => req._id !== _id);
-                    this.showRequestModal = false;
-                    this.showSuccessMessage('Application rejected successfully');
-                }
-            } catch (error) {
-                console.error('Error rejecting request:', error);
-                this.showErrorMessage('Failed to reject application');
-            }
+        handleRequestRejected(requestId) {
+            this.pendingRequests = this.pendingRequests.filter(req => req._id !== requestId);
+            this.showRequestModal = false;
+            this.showSuccessMessage('Application rejected successfully');
         },
 
         editPosition(position) {
-            this.editPositionData = { id: position.id || position._id, name: position.name, salary: position.salary }; // Ensure id is set
+            this.editPositionData = { id: position.id || position._id, name: position.name, salary: position.salary };
             this.showEditPositionModal = true;
         },
 
@@ -466,6 +320,22 @@ export default {
             this.showDeletePositionModal = false;
             this.showSuccessMessage('Position deleted successfully');
             await this.fetchPositions();
+        },
+
+        handleAddSuccess(newEmployee) {
+            this.employees.push({
+                ...newEmployee,
+                hourlyRate: newEmployee.hourlyRate || (newEmployee.salary / (8 * 22)),
+            });
+            this.showAddModal = false;
+            this.resetNewEmployee();
+            this.showSuccessMessage('Employee added successfully');
+        },
+
+        handlePositionCreated(newPosition) {
+            this.adminPositions.push(newPosition);
+            this.resetNewPosition();
+            this.showSuccessMessage('Position created successfully');
         },
 
         updateSalaryFromPosition() {
@@ -648,16 +518,6 @@ export default {
                                     title="View">
                                     <span class="material-icons text-lg">visibility</span>
                                 </button>
-                                <button @click="approveRequest(request)"
-                                    class="text-green-600 hover:text-green-800 p-1 rounded-full hover:bg-green-100"
-                                    title="Approve">
-                                    <span class="material-icons text-lg">check_circle</span>
-                                </button>
-                                <button @click="rejectRequest(request._id)"
-                                    class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100"
-                                    title="Reject">
-                                    <span class="material-icons text-lg">cancel</span>
-                                </button>
                             </div>
                         </div>
                         <div v-if="pendingRequests.length === 0" class="p-3 text-center text-sm text-gray-500">No
@@ -670,8 +530,8 @@ export default {
         <EmployeeDetailsModal :show="showDetailsModal" :employee="selectedEmployee" @close="showDetailsModal = false"
             @edit="openEditModal" />
         <PendingRequestModal :show="showRequestModal" :request="selectedRequest" :positions="adminPositions"
-            @close="showRequestModal = false" @save="saveRequestChanges" @approve="approveRequest"
-            @reject="rejectRequest" />
+            @close="showRequestModal = false" @save="handleRequestSaved" @approve="handleRequestApproved"
+            @reject="handleRequestRejected" />
         <AddEmployeeModal :show="showAddModal" :employee="newEmployee" :positions="adminPositions"
             @close="showAddModal = false" @add-success="handleAddSuccess" />
         <EditEmployeeModal :show="showEditModal" :employee="selectedEmployee" :positions="adminPositions"
@@ -684,7 +544,7 @@ export default {
         <DeletePositionModal :show="showDeletePositionModal" :position="selectedPosition"
             @close="showDeletePositionModal = false" @delete-success="handlePositionDeleted" />
         <DeleteEmployeeModal :show="showDeleteModal" :employee="selectedEmployee" @close="showDeleteModal = false"
-            @delete="moveToTrash" />
+            @delete="handleEmployeeDeleted" />
 
         <!-- Status Toast -->
         <div v-if="statusMessage" :class="statusMessage.includes('successfully') ? 'bg-green-500' : 'bg-red-500'"

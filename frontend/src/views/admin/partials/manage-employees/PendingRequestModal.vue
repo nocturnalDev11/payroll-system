@@ -1,63 +1,362 @@
 <script setup>
 import Modal from '@/components/Modal.vue';
-defineProps(['show', 'request', 'positions']);
-defineEmits(['close', 'save', 'approve', 'reject']);
+import axios from 'axios';
+import { ref, watch } from 'vue';
+import { useAuthStore } from '@/stores/auth.store.js';
+import { BASE_API_URL } from '@/utils/constants.js';
+import {
+    calculateSSSContribution,
+    calculatePhilHealthContribution,
+    calculatePagIBIGContribution,
+    calculateWithholdingTax,
+    calculateNewEmployeeNetSalary
+} from '@/utils/calculations.js';
+
+const props = defineProps(['show', 'request', 'positions']);
+const emit = defineEmits(['close', 'save', 'approve', 'reject']);
+
+const authStore = useAuthStore();
+const isUpdating = ref(false);
+const statusMessage = ref('');
+
+// Reactive copy of the request to allow editing without mutating the prop directly
+const localRequest = ref({ ...props.request });
+
+// Watch for changes in the request prop to update the local copy
+watch(() => props.request, (newRequest) => {
+    localRequest.value = { ...newRequest };
+});
+
+// Update salary and hourly rate when position changes
+const updateSalaryFromPosition = () => {
+    const selectedPosition = props.positions.find(pos => pos.name === localRequest.value.position);
+    if (selectedPosition) {
+        localRequest.value.salary = selectedPosition.salary;
+        localRequest.value.hourlyRate = selectedPosition.salary / (8 * 22);
+    }
+};
+
+// Update hourly rate when salary changes
+watch(() => localRequest.value.salary, (newSalary) => {
+    localRequest.value.hourlyRate = newSalary ? newSalary / (8 * 22) : 0;
+});
+
+const saveRequestChanges = async () => {
+    const requiredFields = ['firstName', 'lastName', 'position', 'salary', 'email', 'contactInfo'];
+    const missingFields = requiredFields.filter(field => {
+        const value = localRequest.value[field];
+        return value === undefined || value === null || (typeof value === 'string' && value.trim() === '') || (field === 'salary' && (typeof value !== 'number' || value < 0));
+    });
+
+    if (missingFields.length > 0) {
+        statusMessage.value = `Missing or invalid required fields: ${missingFields.join(', ')}`;
+        setTimeout(() => (statusMessage.value = ''), 3000);
+        return;
+    }
+
+    isUpdating.value = true;
+    try {
+        const updatedRequest = { ...localRequest.value, hireDate: localRequest.value.hireDate };
+        const response = await axios.put(
+            `${BASE_API_URL}/api/employees/pending-requests/${localRequest.value._id}`,
+            updatedRequest,
+            {
+                headers: {
+                    Authorization: `Bearer ${authStore.accessToken}`,
+                    'user-role': authStore.userRole,
+                },
+            }
+        );
+
+        if (response.status === 200) {
+            emit('save', localRequest.value); // Emit the updated request
+            statusMessage.value = 'Request updated successfully';
+            setTimeout(() => (statusMessage.value = ''), 3000);
+        }
+    } catch (error) {
+        console.error('Error saving request changes:', error);
+        statusMessage.value = error.response?.data?.error || 'Failed to save request changes';
+        setTimeout(() => (statusMessage.value = ''), 3000);
+    } finally {
+        isUpdating.value = false;
+    }
+};
+
+const approveRequest = async () => {
+    isUpdating.value = true;
+    try {
+        const updatedEmployee = {
+            status: 'approved',
+            hireDate: new Date(),
+            username: localRequest.value.username || `${localRequest.value.firstName.toLowerCase()}${Math.floor(Math.random() * 1000)}`,
+            empNo: localRequest.value.empNo || `EMP-${Date.now()}`,
+        };
+        const response = await axios.put(
+            `${BASE_API_URL}/api/employees/update/${localRequest.value._id}`,
+            updatedEmployee,
+            {
+                headers: {
+                    Authorization: `Bearer ${authStore.accessToken}`,
+                    'user-role': authStore.userRole,
+                },
+            }
+        );
+        if (response.status === 200) {
+            emit('approve', response.data.updatedEmployee); // Emit the approved employee
+            statusMessage.value = 'Employee approved successfully';
+            setTimeout(() => {
+                statusMessage.value = '';
+                emit('close');
+            }, 3000);
+        }
+    } catch (error) {
+        console.error('Error approving request:', error);
+        statusMessage.value = 'Error approving employee';
+        setTimeout(() => (statusMessage.value = ''), 3000);
+    } finally {
+        isUpdating.value = false;
+    }
+};
+
+const rejectRequest = async () => {
+    isUpdating.value = true;
+    try {
+        const response = await axios.put(
+            `${BASE_API_URL}/api/employees/pending-requests/${localRequest.value._id}/reject`,
+            { status: 'rejected' },
+            {
+                headers: {
+                    Authorization: `Bearer ${authStore.accessToken}`,
+                    'user-role': authStore.userRole,
+                },
+            }
+        );
+        if (response.status === 200) {
+            emit('reject', localRequest.value._id); // Emit the rejected request ID
+            statusMessage.value = 'Application rejected successfully';
+            setTimeout(() => {
+                statusMessage.value = '';
+                emit('close');
+            }, 3000);
+        }
+    } catch (error) {
+        console.error('Error rejecting request:', error);
+        statusMessage.value = 'Failed to reject application';
+        setTimeout(() => (statusMessage.value = ''), 3000);
+    } finally {
+        isUpdating.value = false;
+    }
+};
 </script>
 
 <template>
     <Modal :show="show" :max-width="'4xl'" :max-height="'80vh'" @close="$emit('close')">
-        <div class="p-4 border-b">
-            <h2 class="text-lg font-semibold">Pending Request Details - {{ request.firstName }} {{ request.lastName }}
+        <!-- Modal Header -->
+        <div class="p-4 border-b border-gray-300 flex justify-between items-center sticky top-0">
+            <h2 class="text-lg font-semibold text-gray-800">
+                Pending Request Details - {{ localRequest.firstName }} {{ localRequest.lastName }}
             </h2>
         </div>
-        <div class="p-4 space-y-4">
-            <div>
-                <h3 class="text-base font-semibold mb-2">Personal Information</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <input v-model="request.empNo" placeholder="Employee Number" required
-                        class="p-1.5 border rounded-md" />
-                    <input v-model="request.firstName" placeholder="First Name" required
-                        class="p-1.5 border rounded-md" />
-                    <input v-model="request.middleName" placeholder="Middle Name" class="p-1.5 border rounded-md" />
-                    <input v-model="request.lastName" placeholder="Last Name" required
-                        class="p-1.5 border rounded-md" />
-                    <input v-model="request.email" type="email" placeholder="Email" required
-                        class="p-1.5 border rounded-md" />
-                    <input v-model="request.contactInfo" placeholder="Contact Number" required pattern="\d{11}"
-                        class="p-1.5 border rounded-md" />
-                    <select v-model="request.civilStatus" required class="p-1.5 border rounded-md">
-                        <option value="Single">Single</option>
-                        <option value="Married">Married</option>
-                        <option value="Divorced">Divorced</option>
-                        <option value="Widowed">Widowed</option>
-                    </select>
+
+        <!-- Modal Body -->
+        <div class="flex-1 overflow-y-auto max-h-[65vh] p-4 space-y-6">
+            <div class="space-y-4">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-800 mb-2">Personal Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Employee Number *</label>
+                            <input v-model="localRequest.empNo"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100" readonly
+                                required />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">First Name *</label>
+                            <input v-model="localRequest.firstName"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                required />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Middle Name</label>
+                            <input v-model="localRequest.middleName"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500" />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Last Name *</label>
+                            <input v-model="localRequest.lastName"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                required />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Email *</label>
+                            <input v-model="localRequest.email" type="email"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                required />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Contact Number *</label>
+                            <input v-model="localRequest.contactInfo"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                required pattern="\d{11}" />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Civil Status *</label>
+                            <select v-model="localRequest.civilStatus"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                required>
+                                <option value="Single">Single</option>
+                                <option value="Married">Married</option>
+                                <option value="Divorced">Divorced</option>
+                                <option value="Widowed">Widowed</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Username *</label>
+                            <input v-model="localRequest.username"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                required />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Password *</label>
+                            <input v-model="localRequest.password" type="password"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                required />
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-gray-800 mb-2">Employment Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Position *</label>
+                            <select v-model="localRequest.position" @change="updateSalaryFromPosition"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                required>
+                                <option v-for="position in positions" :key="position.name" :value="position.name">{{
+                                    position.name }}</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Hire Date *</label>
+                            <input v-model="localRequest.hireDate" type="date"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                required />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">SSS ID</label>
+                            <input v-model="localRequest.sss"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                pattern="\d{10}" />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">PhilHealth ID</label>
+                            <input v-model="localRequest.philhealth"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                pattern="\d{12}" />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Pag-IBIG ID</label>
+                            <input v-model="localRequest.pagibig"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                pattern="\d{12}" />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">TIN</label>
+                            <input v-model="localRequest.tin"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                pattern="\d{9,12}" />
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-gray-800 mb-2">Financial Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Monthly Salary *</label>
+                            <input v-model.number="localRequest.salary" type="number"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                required min="0" />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Hourly Rate</label>
+                            <input :value="localRequest.hourlyRate.toLocaleString()" type="text"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100" disabled />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Travel Expenses</label>
+                            <input v-model.number="localRequest.earnings.travelExpenses" type="number"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                min="0" />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Other Earnings</label>
+                            <input v-model.number="localRequest.earnings.otherEarnings" type="number"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                min="0" />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">SSS Contribution</label>
+                            <input :value="calculateSSSContribution(localRequest.salary).toLocaleString()"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100" disabled />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">PhilHealth Contribution</label>
+                            <input :value="calculatePhilHealthContribution(localRequest.salary).toLocaleString()"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100" disabled />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Pag-IBIG Contribution</label>
+                            <input :value="calculatePagIBIGContribution(localRequest.salary).toLocaleString()"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100" disabled />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-medium text-gray-600">Withholding Tax</label>
+                            <input :value="calculateWithholdingTax(localRequest.salary).toLocaleString()"
+                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100" disabled />
+                        </div>
+                    </div>
+                </div>
+                <div v-if="localRequest" class="mt-4 p-3 bg-gray-50 rounded-md">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-medium text-gray-700">Net Salary Preview:</span>
+                        <span class="font-semibold text-gray-900">₱{{
+                            calculateNewEmployeeNetSalary(localRequest).toLocaleString() }}</span>
+                    </div>
                 </div>
             </div>
-            <div>
-                <h3 class="text-base font-semibold mb-2">Employment Information</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <select v-model="request.position" required class="p-1.5 border rounded-md">
-                        <option v-for="pos in positions" :key="pos.name" :value="pos.name">{{ pos.name }}</option>
-                    </select>
-                    <input v-model="request.hireDate" type="date" required class="p-1.5 border rounded-md" />
-                    <input v-model="request.sss" placeholder="SSS ID" pattern="\d{10}"
-                        class="p-1.5 border rounded-md" />
-                    <input v-model="request.philhealth" placeholder="PhilHealth ID" pattern="\d{12}"
-                        class="p-1.5 border rounded-md" />
-                    <input v-model="request.pagibig" placeholder="Pag-IBIG ID" pattern="\d{12}"
-                        class="p-1.5 border rounded-md" />
-                    <input v-model="request.tin" placeholder="TIN" pattern="\d{9,12}" class="p-1.5 border rounded-md" />
-                </div>
-            </div>
-            <!-- Financial Information and Net Salary Preview would need parent methods passed as props -->
         </div>
-        <div class="p-4 border-t bg-gray-50 flex justify-end gap-2">
-            <button @click="$emit('save')" class="px-3 py-1.5 bg-blue-600 text-white rounded-md">Save Changes</button>
-            <button @click="$emit('approve', request)"
-                class="px-3 py-1.5 bg-green-600 text-white rounded-md">Approve</button>
-            <button @click="$emit('reject', request._id)"
-                class="px-3 py-1.5 bg-red-600 text-white rounded-md">Reject</button>
-            <button @click="$emit('close')" class="px-3 py-1.5 border rounded-md">Close</button>
+
+        <!-- Modal Footer -->
+        <div class="p-4 border-t border-gray-300 bg-gray-50 flex justify-end gap-2">
+            <button @click="saveRequestChanges"
+                class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors flex items-center gap-1"
+                :disabled="isUpdating">
+                <span class="material-icons">save</span>
+                <span class="hidden sm:block">{{ isUpdating ? 'Saving...' : 'Save Changes' }}</span>
+            </button>
+
+            <button @click="approveRequest"
+                class="px-3 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors flex items-center gap-1"
+                :disabled="isUpdating">
+                <span class="material-icons">check_circle</span>
+                <span class="hidden sm:block">{{ isUpdating ? 'Approving...' : 'Approve' }}</span>
+            </button>
+
+            <button @click="rejectRequest"
+                class="px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-800 transition-colors flex items-center gap-1"
+                :disabled="isUpdating">
+                <span class="material-icons">cancel</span>
+                <span class="hidden sm:block">{{ isUpdating ? 'Rejecting...' : 'Reject' }}</span>
+            </button>
+
+            <button @click="$emit('close')" :disabled="isUpdating"
+                class="px-3 py-1.5 border border-gray-300 text-sm rounded-md text-gray-700 hover:bg-gray-100">Close</button>
+        </div>
+
+        <!-- Status Toast -->
+        <div v-if="statusMessage" :class="statusMessage.includes('successfully') ? 'bg-green-500' : 'bg-red-500'"
+            class="fixed bottom-4 right-4 p-3 text-white text-sm rounded-md shadow-lg animate-fade-in">
+            {{ statusMessage }}
         </div>
     </Modal>
 </template>
