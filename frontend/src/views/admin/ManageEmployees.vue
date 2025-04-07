@@ -33,7 +33,6 @@ export default {
             isLoading: false,
             isUpdating: false,
             isDeleting: false,
-            isAdding: false,
             isAddingPosition: false,
             isUpdatingPosition: false,
             isDeletingPosition: false,
@@ -59,7 +58,6 @@ export default {
                 philhealth: '',
                 pagibig: '',
                 tin: '',
-                hireDate: new Date().toISOString().slice(0, 10),
                 earnings: { travelExpenses: 0, otherEarnings: 0 },
                 username: '',
                 password: '',
@@ -181,6 +179,12 @@ export default {
             this.showAddModal = false;
             this.resetNewEmployee();
             this.showSuccessMessage('Employee added successfully');
+        },
+
+        handlePositionCreated(newPosition) {
+            this.adminPositions.push(newPosition);
+            this.resetNewPosition();
+            this.showSuccessMessage('Position created successfully');
         },
 
         async fetchEmployees() {
@@ -525,101 +529,6 @@ export default {
             }
         },
 
-        async addEmployee() {
-            // Define required fields
-            const requiredFields = [
-                'empNo', 'firstName', 'lastName', 'position', 'salary',
-                'email', 'contactInfo', 'username', 'password'
-            ];
-
-            // Check for missing or empty required fields
-            const missingFields = requiredFields.filter(field => {
-                const value = this.newEmployee[field];
-                if (value === undefined || value === null) return true;
-                if (['empNo', 'firstName', 'lastName', 'position', 'email', 'contactInfo', 'username', 'password'].includes(field)) {
-                    return typeof value !== 'string' || value.trim() === '';
-                }
-                if (field === 'salary') {
-                    return typeof value !== 'number' || value < 0;
-                }
-                return false;
-            });
-
-            if (missingFields.length > 0) {
-                this.showErrorMessage(`Missing or invalid required fields: ${missingFields.join(', ')}`);
-                return;
-            }
-
-            this.isAdding = true;
-            try {
-                const employeeData = {
-                    ...this.newEmployee,
-                    hourlyRate: this.newEmployee.hourlyRate,
-                    role: 'employee',
-                    civilStatus: this.newEmployee.civilStatus || 'Single',
-                    hireDate: this.newEmployee.hireDate || new Date().toISOString().slice(0, 10),
-                    positionHistory: [{
-                        position: this.newEmployee.position,
-                        salary: this.newEmployee.salary,
-                        startDate: this.newEmployee.hireDate || new Date().toISOString().slice(0, 10),
-                        endDate: null,
-                    }],
-                    status: 'approved', // Ensure status is set to 'approved' for new employees
-                };
-
-                // Remove id if present (let backend generate it)
-                delete employeeData.id;
-
-                const response = await axios.post(`${BASE_API_URL}/api/employees`, employeeData, {
-                    headers: {
-                        Authorization: `Bearer ${this.authStore.accessToken}`,
-                        'user-role': this.authStore.userRole,
-                    },
-                });
-
-                if (response.status === 201) {
-                    this.employees.push({
-                        ...response.data,
-                        hourlyRate: response.data.hourlyRate || (response.data.salary / (8 * 22))
-                    });
-                    this.showAddModal = false;
-                    this.resetNewEmployee();
-                    this.showSuccessMessage('Employee added successfully');
-                }
-            } catch (error) {
-                console.error('Error adding employee:', error);
-                this.showErrorMessage(error.response?.data?.error || 'Failed to add employee');
-            } finally {
-                this.isAdding = false;
-            }
-        },
-
-        async createPosition() {
-            if (!this.newPosition.name || this.newPosition.salary < 0) {
-                this.showErrorMessage('Position Name and a non-negative Salary are required');
-                return;
-            }
-            this.isAddingPosition = true;
-            try {
-                const response = await axios.post(`${BASE_API_URL}/api/positions`, this.newPosition, {
-                    headers: {
-                        Authorization: `Bearer ${this.authStore.accessToken}`,
-                        'user-role': this.authStore.userRole,
-                    },
-                });
-                if (response.status === 201) {
-                    this.adminPositions.push(response.data);
-                    this.resetNewPosition();
-                    this.showSuccessMessage('Position created successfully');
-                }
-            } catch (error) {
-                console.error('Error creating position:', error);
-                this.showErrorMessage('Failed to create position');
-            } finally {
-                this.isAddingPosition = false;
-            }
-        },
-
         editPosition(position) {
             this.editPositionData = { ...position };
             this.showEditPositionModal = true;
@@ -896,7 +805,7 @@ export default {
         <EditEmployeeModal :show="showEditModal" :employee="selectedEmployee" :positions="adminPositions"
             @close="showEditModal = false" @update="updateEmployee" />
         <PositionModal :show="showPositionModal" :positions="adminPositions" :newPosition="newPosition"
-            @close="showPositionModal = false" @create="createPosition" @edit="editPosition"
+            @close="showPositionModal = false" @create="handlePositionCreated" @edit="editPosition"
             @delete="confirmDeletePosition" />
         <EditPositionModal :show="showEditPositionModal" :position="editPositionData"
             @close="showEditPositionModal = false" @update="updatePosition" />

@@ -1,47 +1,49 @@
 <script setup>
 import Modal from '@/components/Modal.vue';
-defineProps(['show', 'positions', 'newPosition']);
-defineEmits(['close', 'create', 'edit', 'delete']);
+import axios from 'axios';
+import { useAuthStore } from '@/stores/auth.store.js';
+import { BASE_API_URL } from '@/utils/constants.js';
+import { ref } from 'vue';
+
+// Define props and emits
+const props = defineProps(['show', 'positions', 'newPosition']);
+const emit = defineEmits(['close', 'create', 'edit', 'delete']);
+
+// Initialize authStore and reactive state
+const authStore = useAuthStore();
+const isAddingPosition = ref(false);
+
+// Moved and adapted createPosition method
+async function createPosition() {
+    if (!props.newPosition.name || props.newPosition.salary < 0) {
+        alert('Position Name and a non-negative Salary are required');
+        return;
+    }
+    isAddingPosition.value = true;
+    try {
+        const response = await axios.post(`${BASE_API_URL}/api/positions`, props.newPosition, {
+            headers: {
+                Authorization: `Bearer ${authStore.accessToken}`,
+                'user-role': authStore.userRole,
+            },
+        });
+        if (response.status === 201) {
+            emit('create', response.data);
+            props.newPosition.name = '';
+            props.newPosition.salary = 0;
+            alert('Position created successfully');
+        }
+    } catch (error) {
+        console.error('Error creating position:', error);
+        alert('Failed to create position');
+    } finally {
+        isAddingPosition.value = false;
+    }
+}
 </script>
 
 <template>
     <Modal :show="show" @close="$emit('close')" max-width="3xl" max-height="80vh">
-        <!-- <div class="p-4 border-b border-gray-300">
-            <h2 class="text-lg font-semibold text-gray-800">Manage Positions</h2>
-        </div>
-        <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-4">
-                <h3 class="text-base font-semibold">Create Position</h3>
-                <input v-model="newPosition.name" placeholder="Position Name" required
-                    class="p-1.5 border rounded-md" />
-                <input v-model.number="newPosition.salary" type="number" placeholder="Monthly Salary" required min="0"
-                    class="p-1.5 border rounded-md" />
-                <button @click="$emit('create')"
-                    class="w-full px-3 py-1.5 bg-blue-600 text-white rounded-md">Create</button>
-            </div>
-            <div class="space-y-4">
-                <h3 class="text-base font-semibold">Available Positions</h3>
-                <div v-if="!positions.length" class="text-gray-500">No positions</div>
-                <div v-else class="space-y-2 max-h-[50vh] overflow-y-auto">
-                    <div v-for="pos in positions" :key="pos.id" class="p-3 bg-gray-50 rounded-md flex justify-between">
-                        <div>
-                            <p class="font-medium">{{ pos.name }}</p>
-                            <p class="text-xs">₱{{ pos.salary.toLocaleString() }}</p>
-                        </div>
-                        <div class="flex gap-1">
-                            <button @click="$emit('edit', pos)" class="text-yellow-600 p-1"><span
-                                    class="material-icons">edit</span></button>
-                            <button @click="$emit('delete', pos)" class="text-red-600 p-1"><span
-                                    class="material-icons">delete</span></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="p-4 border-t bg-gray-50 flex justify-end">
-            <button @click="$emit('close')" class="px-3 py-1.5 border rounded-md">Close</button>
-        </div> -->
-
         <!-- Header -->
         <div class="p-4 border-b border-gray-300">
             <h2 class="text-lg font-semibold text-gray-800">Manage Positions</h2>
@@ -65,8 +67,10 @@ defineEmits(['close', 'create', 'edit', 'delete']);
                                 class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                 required min="0" />
                         </div>
-                        <button @click="$emit('create')"
-                            class="w-full px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">Create</button>
+                        <button @click="createPosition" :disabled="isAddingPosition"
+                            class="w-full px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">
+                            {{ isAddingPosition ? 'Creating...' : 'Create' }}
+                        </button>
                     </div>
                 </div>
                 <div class="space-y-4">

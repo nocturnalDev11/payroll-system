@@ -10,7 +10,7 @@ import {
     calculateWithholdingTax,
     calculateNewEmployeeNetSalary
 } from '@/utils/calculations.js';
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 
 const { show, employee, positions } = defineProps({
     show: Boolean,
@@ -21,6 +21,19 @@ const emit = defineEmits(['close', 'add-success']);
 
 const authStore = useAuthStore();
 const isAdding = ref(false);
+
+// Function to generate EMP-[7 random numbers]
+function generateEmpNo() {
+    const randomNum = Math.floor(1000000 + Math.random() * 9000000);
+    return `EMP-${randomNum}`;
+}
+
+// Set empNo when the modal is mounted
+onMounted(() => {
+    if (show && !employee.empNo) {
+        employee.empNo = generateEmpNo();
+    }
+});
 
 async function addEmployee() {
     const requiredFields = [
@@ -116,7 +129,7 @@ watch(() => employee.salary, (newSalary) => {
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Employee Number *</label>
                                 <input v-model="employee.empNo"
-                                    class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
+                                    class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100" readonly
                                     required />
                             </div>
                             <div class="space-y-1">
