@@ -116,7 +116,7 @@ export default {
     },
     watch: {
         'newEmployee.salary'(newSalary) {
-            this.newEmployee.hourlyRate = newSalary ? newSalary / (8 * 22) : 0;
+            this.newEmployee.hourlyRate = newSalary ? Number((newSalary / (8 * 22)).toFixed(2)) : 0;
         },
     },
     mounted() {
@@ -151,7 +151,7 @@ export default {
                         ...emp,
                         id: emp.id,
                         _id: emp._id,
-                        hourlyRate: emp.hourlyRate || (emp.salary / (8 * 22)),
+                        hourlyRate: emp.hourlyRate || Number((emp.salary / (8 * 22)).toFixed(2)), // Fix here
                         empNo: emp.empNo || `EMP-${String(emp.id).padStart(4, '0')}`,
                         hireDate: new Date(emp.hireDate).toISOString().slice(0, 10),
                         payheads: Array.isArray(emp.payheads) ? emp.payheads : [],
@@ -325,7 +325,7 @@ export default {
         handleAddSuccess(newEmployee) {
             this.employees.push({
                 ...newEmployee,
-                hourlyRate: newEmployee.hourlyRate || (newEmployee.salary / (8 * 22)),
+                hourlyRate: newEmployee.hourlyRate || Number((newEmployee.salary / (8 * 22)).toFixed(2)),
             });
             this.showAddModal = false;
             this.resetNewEmployee();
@@ -342,7 +342,7 @@ export default {
             const selectedPosition = this.adminPositions.find(pos => pos.name === this.newEmployee.position);
             if (selectedPosition) {
                 this.newEmployee.salary = selectedPosition.salary;
-                this.newEmployee.hourlyRate = selectedPosition.salary / (8 * 22);
+                this.newEmployee.hourlyRate = Number((selectedPosition.salary / (8 * 22)).toFixed(2));
             }
         },
 
@@ -451,9 +451,11 @@ export default {
                                     <td class="px-4 py-2">{{ (employee.firstName || '') + ' ' + (employee.lastName ||
                                         '') || 'N/A' }}</td>
                                     <td class="px-4 py-2">{{ employee.position || 'N/A' }}</td>
-                                    <td class="px-4 py-2">₱{{ (employee.hourlyRate && !isNaN(employee.hourlyRate) ?
-                                        employee.hourlyRate : 0).toLocaleString() }}</td>
-                                    <td class="px-4 py-2">₱{{ (calculateNetSalary(employee) || 0).toLocaleString() }}
+                                    <td class="px-4 py-2">
+                                       ₱{{ (employee.hourlyRate && !isNaN(employee.hourlyRate) ? employee.hourlyRate : 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        ₱{{ (calculateNetSalary(employee) || 0).toLocaleString() }}
                                     </td>
                                     <td class="px-4 py-2 text-right flex justify-end gap-1">
                                         <button @click="viewEmployeeDetails(employee)"
