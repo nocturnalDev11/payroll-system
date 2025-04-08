@@ -27,7 +27,7 @@
                                 search
                             </span>
                             <input id="search" v-model="searchQuery" type="text" placeholder="Search by name or ID..."
-                                class="w-full pl-10 pr-10 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 
+                                class="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 
                        focus:border-blue-500 outline-none transition-all duration-200 text-sm" />
                             <button v-if="searchQuery" @click="searchQuery = ''"
                                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-all duration-200">
@@ -43,7 +43,7 @@
                             <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                                 filter_list
                             </span>
-                            <select id="statusFilter" v-model="filterStatus" class="w-full pl-10 pr-9 py-2.5 border rounded-lg appearance-none focus:ring-2 
+                            <select id="statusFilter" v-model="filterStatus" class="w-full pl-10 pr-9 py-2.5 border border-gray-300 rounded-lg appearance-none focus:ring-2 
                        focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200 text-sm">
                                 <option value="">All Statuses</option>
                                 <option value="Pending">Pending</option>
@@ -59,7 +59,7 @@
 
                     <div class="relative">
                         <label for="dateRange" class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
-                        <input id="dateRange" v-model="dateRange" type="month" class="w-full px-10 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 
+                        <input id="dateRange" v-model="dateRange" type="month" class="w-full px-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 
                      focus:border-blue-500 outline-none transition-all duration-200 text-sm"
                             @change="applyDateFilter" />
                     </div>
@@ -68,7 +68,7 @@
 
             <!-- Leave Requests Table -->
             <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-                <div class="px-6 py-4 border-b bg-gray-50 flex items-center justify-between">
+                <div class="px-6 py-4 border-gray-300 bg-gray-50 flex items-center justify-between">
                     <h2 class="text-lg font-medium text-gray-900">Leave Requests</h2>
                     <span class="text-sm text-gray-500">Showing {{ filteredLeaveRequests.length }} {{
                         filteredLeaveRequests.length === 1 ? 'request' : 'requests' }}</span>
@@ -168,7 +168,7 @@
 
                 <!-- Pagination -->
                 <div v-if="!isLoading && filteredLeaveRequests.length > itemsPerPage"
-                    class="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
+                    class="px-6 py-4 bg-gray-50 border-t border-gray-300 flex items-center justify-between">
                     <div class="text-sm text-gray-700">
                         Showing <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span> to
                         <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, filteredLeaveRequests.length)
@@ -377,6 +377,10 @@ export default {
             this.selectedLeave = {};
         },
         async approveLeave(id) {
+            if (!id) {
+                this.showToast('Invalid leave ID', 'error');
+                return;
+            }
             try {
                 const response = await axios.put(`${BASE_API_URL}/api/leaves/${id}/approve`);
                 if (response.status === 200) {
