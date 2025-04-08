@@ -68,7 +68,7 @@ const handleAdminUpdated = (updatedAdmin) => {
 
 <template>
     <div class="space-y-2">
-        <h2 class="pb-5 text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
+        <h2 class="pb-5 text-xl font-semibold leading-tight text-gray-800">
             Settings
         </h2>
 
