@@ -80,11 +80,11 @@ const handleAdminUpdated = (updatedAdmin) => {
         </div>
 
         <div v-else-if="admin" class="space-y-4">
-            <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
+            <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8">
                 <UpdateDetailsForm :admin="admin" @admin-updated="handleAdminUpdated" class="max-w-3xl" />
             </div>
 
-            <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
+            <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8">
                 <UpdatePasswordForm class="max-w-3xl" />
             </div>
         </div>
