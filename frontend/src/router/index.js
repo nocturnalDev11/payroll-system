@@ -101,7 +101,7 @@ const routes = [
             { 
                 path: 'salary-slips', 
                 name: 'SalarySlips',
-                component: () => import('../views/admin/SalarySlips.vue'),
+                component: () => import('../views/admin/payslips/SalarySlips.vue'),
                 meta: {
                     title: 'Salary Slips',
                 }

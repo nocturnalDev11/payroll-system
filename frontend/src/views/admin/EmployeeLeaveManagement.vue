@@ -1,7 +1,7 @@
 <template>
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-1">
         <div class="max-w-8xl mx-auto">
-            <header class="bg-white p-6 rounded-xl shadow-lg mb-6">
+            <header class="bg-white p-6 rounded-xl shadow-lg mb-6 z-30">
                 <div class="flex justify-between items-center">
                     <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
                         <span class="material-icons text-blue-600">event_note</span>
