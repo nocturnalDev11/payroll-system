@@ -14,7 +14,7 @@
                                 search
                             </span>
                             <input id="search" v-model="searchQuery" type="text"
-                                placeholder="Search by name or description..." class="w-full pl-8 pr-3 py-1.5 border rounded-md focus:ring-1 focus:ring-blue-500 
+                                placeholder="Search by name or description..." class="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 
                       focus:border-blue-500 outline-none transition-all text-sm" />
                             <button v-if="searchQuery" @click="searchQuery = ''"
                                 class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
@@ -32,7 +32,7 @@
                                 class="material-icons absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-base">
                                 filter_list
                             </span>
-                            <select id="filter" v-model="filterType" class="w-full pl-8 pr-7 py-1.5 border rounded-md appearance-none focus:ring-1 
+                            <select id="filter" v-model="filterType" class="w-full pl-8 pr-7 py-1.5 border border-gray-300 rounded-md appearance-none focus:ring-1 
                       focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
                                 <option value="">All Types</option>
                                 <option value="Earnings">Earnings</option>
@@ -116,7 +116,7 @@
             <!-- Data Table Section -->
             <div v-else class="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
                 <!-- Table Header -->
-                <div class="px-4 py-2 border-b bg-gray-50 flex items-center justify-between">
+                <div class="px-4 py-2 border-b border-gray-300 bg-gray-50 flex items-center justify-between">
                     <h2 class="text-base font-medium text-gray-900">
                         {{ activeTab === 'payheads' ? 'Pay Heads' : 'Employees' }}
                     </h2>

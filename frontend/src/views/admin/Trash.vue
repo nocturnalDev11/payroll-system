@@ -1,48 +1,61 @@
 <template>
     <div class="min-h-screen p-6">
-        <header class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-800">Trash Bin</h1>
-            <p class="text-gray-600">Manage employees moved to trash</p>
+        <header class="bg-white shadow-sm p-3 flex justify-between items-center sticky top-0 z-20 rounded-lg">
+            <h1 class="text-lg font-bold text-gray-800">Trash Bin</h1>
+            <div class="flex items-center gap-3">
+                <input v-model="searchQuery" type="text" placeholder="Search employees..."
+                    class="p-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 w-48" />
+                <button @click="refreshAll"
+                    class="bg-indigo-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-indigo-700 transition flex items-center gap-1">
+                    <span class="material-icons text-lg">refresh</span>
+                    Refresh
+                </button>
+            </div>
         </header>
 
         <div v-if="loading" class="flex justify-center items-center h-64">
             <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500"></div>
         </div>
 
-        <div v-else-if="trashedEmployees.length > 0" class="bg-white shadow-lg rounded-lg overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Employee ID</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Position</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Trashed Date</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    <tr v-for="employee in trashedEmployees" :key="employee._id"
-                        class="hover:bg-gray-50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ employee.empNo }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ `${employee.firstName}
-                            ${employee.lastName}` }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ employee.position }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ formatDate(employee.trashedAt)
-                            }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button @click="restoreEmployee(employee._id)"
-                                class="text-blue-600 hover:text-blue-800 mr-4 transition-colors">Restore</button>
-                            <button @click="confirmDelete(employee._id)"
-                                class="text-red-600 hover:text-red-800 transition-colors">Delete Permanently</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <div v-else-if="filteredEmployees.length > 0" class="bg-white shadow-lg rounded-lg overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Employee ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Name
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Position</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Trashed Date</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr v-for="employee in trashedEmployees" :key="employee._id"
+                            class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ employee.empNo }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ `${employee.firstName}
+                                ${employee.lastName}` }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ employee.position }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{
+                                formatDate(employee.trashedAt)
+                                }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button @click="restoreEmployee(employee._id)"
+                                    class="text-blue-600 hover:text-blue-800 mr-4 transition-colors">Restore</button>
+                                <button @click="confirmDelete(employee._id)"
+                                    class="text-red-600 hover:text-red-800 transition-colors">Delete
+                                    Permanently</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div v-else class="flex flex-col items-center justify-center h-64 bg-white shadow-lg rounded-lg">
@@ -83,11 +96,20 @@ export default {
             loading: true,
             showModal: false,
             employeeToDelete: null,
+            searchQuery: '',
         };
     },
     setup() {
         const authStore = useAuthStore();
         return { authStore };
+    },
+    computed: {
+        filteredEmployees() {
+            return this.trashedEmployees.filter(employee => {
+                const fullName = `${employee.firstName} ${employee.lastName}`.toLowerCase();
+                return fullName.includes(this.searchQuery.toLowerCase());
+            });
+        },
     },
     mounted() {
         console.log('Mounted - Token:', this.authStore.accessToken, 'Role:', this.authStore.userRole, 'IsAdmin:', this.authStore.isAdmin);
@@ -98,6 +120,9 @@ export default {
         }
     },
     methods: {
+        resetFilters() {
+            this.fetchTrashedEmployees();
+        },
         async fetchTrashedEmployees() {
             try {
                 this.loading = true;
@@ -107,7 +132,7 @@ export default {
                 };
                 console.log('Fetching trashed employees with headers:', headers);
                 const response = await axios.get(`${BASE_API_URL}/api/employees/trash`, { headers });
-                this.trashedEmployees = response.data;
+                this.trashedEmployees = response.data || [];
                 console.log('Trashed employees response:', response.data);
             } catch (error) {
                 console.error('Error fetching trashed employees:', error);
@@ -124,9 +149,14 @@ export default {
                 } else {
                     alert('Network error: Unable to reach the server');
                 }
+                this.trashedEmployees = [];
             } finally {
                 this.loading = false;
             }
+        },
+        async refreshAll() {
+            await this.fetchTrashedEmployees();
+            this.searchQuery = '';
         },
         async restoreEmployee(id) {
             try {

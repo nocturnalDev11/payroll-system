@@ -20,8 +20,8 @@ export default {
             currentPage: 1,
             itemsPerPage: 10,
             statusMessage: '',
-            date: new Date().toISOString().split('T')[0], // Default to today
-            sortKey: 'empNo', // Changed to empNo to match table
+            date: new Date().toISOString().split('T')[0],
+            sortKey: 'empNo',
             sortDirection: 'asc',
             headers: [
                 { key: 'empNo', label: 'Employee No', icon: 'badge' },
