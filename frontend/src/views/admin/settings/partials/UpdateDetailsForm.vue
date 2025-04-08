@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth.store.js';
 import TextInput from '@/components/TextInput.vue';
 import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
+import Toast from '@/components/Toast.vue'; 
 
 const props = defineProps(['admin']);
 const emit = defineEmits(['admin-updated']);
@@ -18,11 +19,23 @@ const form = ref({
 });
 
 const isUpdating = ref(false);
-const updateMessage = ref('');
-const successMessage = ref('');
 const emailError = ref('');
 const usernameError = ref('');
 const nameError = ref('');
+
+// Array to manage multiple toasts
+const toasts = ref([]);
+
+// Function to add a toast
+const addToast = (message, type = 'info', description = '', duration = 3000) => {
+    const id = Date.now(); // Unique ID for each toast
+    toasts.value.push({ id, message, type, description, duration });
+};
+
+// Function to remove a toast
+const removeToast = (id) => {
+    toasts.value = toasts.value.filter(toast => toast.id !== id);
+};
 
 // Populate form with admin data when prop changes
 watch(() => props.admin, (admin) => {
@@ -48,7 +61,7 @@ const validateEmail = () => {
 
 const validateUsername = () => {
     if (form.value.username) {
-        const usernameRegex = /^[a-zA-Z0-9._-]{4,}$/; // Align with server minLength: 4
+        const usernameRegex = /^[a-zA-Z0-9._-]{4,}$/;
         usernameError.value = usernameRegex.test(form.value.username)
             ? ''
             : 'Username must be at least 4 characters long and can only contain letters, numbers, dots, underscores, and hyphens.';
@@ -90,23 +103,21 @@ const updateAdmin = async () => {
     const isNameValid = validateName();
 
     if (!isEmailValid || !isUsernameValid || !isNameValid) {
-        updateMessage.value = 'Please fix all validation errors before submitting.';
+        addToast('Please fix all validation errors before submitting.', 'error');
         return;
     }
 
     if (!hasChanges()) {
-        updateMessage.value = 'No changes detected.';
+        addToast('No changes detected.', 'warning');
         return;
     }
 
     isUpdating.value = true;
-    updateMessage.value = '';
-    successMessage.value = '';
 
     try {
         const changedFields = getChangedFields();
         if (Object.keys(changedFields).length === 0) {
-            successMessage.value = 'No changes to update.';
+            addToast('No changes to update.', 'info');
             return;
         }
 
@@ -126,10 +137,10 @@ const updateAdmin = async () => {
 
         const updatedAdmin = await response.json();
         emit('admin-updated', updatedAdmin);
-        successMessage.value = updatedAdmin.message || 'Admin details updated successfully!';
+        addToast(updatedAdmin.message || 'Admin details updated successfully!', 'success');
     } catch (error) {
         console.error('Error updating admin:', error);
-        updateMessage.value = error.message || 'An error occurred while updating the admin.';
+        addToast(error.message || 'An error occurred while updating the admin.', 'error');
     } finally {
         isUpdating.value = false;
     }
@@ -147,8 +158,6 @@ const resetForm = () => {
     emailError.value = '';
     usernameError.value = '';
     nameError.value = '';
-    updateMessage.value = '';
-    successMessage.value = '';
 };
 </script>
 
@@ -176,15 +185,21 @@ const resetForm = () => {
                 <InputError :message="emailError" class="mt-2" />
             </div>
 
-            <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
                 <button type="submit" :disabled="isUpdating"
-                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="bg-blue-500 items-center text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-50 tracking-wide disabled:cursor-not-allowed">
                     Update
+                </button>
+                <button type="button" @click="resetForm"
+                    class="items-center px-4 py-2 bg-gray-200 border border-gray-300 rounded-md font-semibold text-gray-700 tracking-wide hover:bg-gray-300 focus:outline-none">
+                    Reset
                 </button>
             </div>
 
-            <p v-if="updateMessage" class="text-red-500 mt-4">{{ updateMessage }}</p>
-            <p v-if="successMessage" class="text-green-500 mt-4">{{ successMessage }}</p>
+            <div class="fixed bottom-6 right-6 z-1000 flex flex-col gap-2">
+                <Toast v-for="toast in toasts" :key="toast.id" :message="toast.message" :type="toast.type"
+                    :description="toast.description" :duration="toast.duration" @close="removeToast(toast.id)" />
+            </div>
         </form>
     </div>
 </template>

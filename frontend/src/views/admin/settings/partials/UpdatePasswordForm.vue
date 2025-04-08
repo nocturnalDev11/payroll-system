@@ -7,10 +7,10 @@ import { useAuthStore } from '@/stores/auth.store.js';
 import TextInput from '@/components/TextInput.vue';
 import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
+import Toast from '@/components/Toast.vue'; // Import the Toast component
 
 const route = useRoute();
 const authStore = useAuthStore();
-// Corrected: Remove .value and use _id consistently
 const adminId = computed(() => authStore.admin?._id || route.params.id);
 
 const newRequest = ref({ password: '' });
@@ -19,30 +19,41 @@ const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 const passwordError = ref('');
 const isSubmitting = ref(false);
-const updateMessage = ref('');
-const signupMessage = ref('');
 const isLoading = ref(false);
 
+// Array to manage multiple toasts
+const toasts = ref([]);
+
+// Function to add a toast
+const addToast = (message, type = 'info', description = '', duration = 3000) => {
+    const id = Date.now(); // Unique ID for each toast
+    toasts.value.push({ id, message, type, description, duration });
+};
+
+// Function to remove a toast
+const removeToast = (id) => {
+    toasts.value = toasts.value.filter(toast => toast.id !== id);
+};
+
 onMounted(async () => {
-    console.log('Initial authStore.admin:', authStore.admin); // Debug log
-    console.log('route.params.id:', route.params.id); // Debug log
-    console.log('Computed adminId:', adminId.value); // Debug log
+    console.log('Initial authStore.admin:', authStore.admin);
+    console.log('route.params.id:', route.params.id);
+    console.log('Computed adminId:', adminId.value);
 
     if (!adminId.value && route.params.id) {
         isLoading.value = true;
         try {
             await authStore.fetchAdminDetails(route.params.id);
-            // Corrected: Use _id instead of id
             if (!authStore.admin?._id) {
-                updateMessage.value = 'Admin ID could not be retrieved after fetch.';
+                addToast('Admin ID could not be retrieved after fetch.', 'error');
             }
         } catch (error) {
-            updateMessage.value = `Failed to load admin details: ${error.message}`;
+            addToast(`Failed to load admin details: ${error.message}`, 'error');
         } finally {
             isLoading.value = false;
         }
     } else if (!adminId.value) {
-        updateMessage.value = 'No admin ID provided in route or auth store.';
+        addToast('No admin ID provided in route or auth store.', 'error');
     }
 });
 
@@ -52,8 +63,6 @@ const resetForm = () => {
     showPassword.value = false;
     showConfirmPassword.value = false;
     passwordError.value = '';
-    updateMessage.value = '';
-    signupMessage.value = '';
 };
 
 const validatePassword = () => {
@@ -109,22 +118,21 @@ const isSubmitDisabled = computed(() => {
 
 const submitRequest = async () => {
     if (!passwordsMatch.value) {
-        updateMessage.value = 'Passwords do not match.';
+        addToast('Passwords do not match.', 'error');
         return;
     }
 
     if (passwordError.value) {
-        updateMessage.value = 'Please fix all validation errors before submitting.';
+        addToast('Please fix all validation errors before submitting.', 'error');
         return;
     }
 
     if (!adminId.value) {
-        updateMessage.value = 'Admin ID is missing.';
+        addToast('Admin ID is missing.', 'error');
         return;
     }
 
     isSubmitting.value = true;
-    updateMessage.value = '';
 
     try {
         const payload = { password: newRequest.value.password };
@@ -149,11 +157,11 @@ const submitRequest = async () => {
         }
 
         const data = await response.json();
-        signupMessage.value = 'Your password has been updated successfully.';
+        addToast(data.message || 'Your password has been updated successfully.', 'success');
         resetForm();
     } catch (error) {
         console.error('Error during password update:', error);
-        updateMessage.value = `Update password failed: ${error.message}`;
+        addToast(`Update password failed: ${error.message}`, 'error');
     } finally {
         isSubmitting.value = false;
     }
@@ -171,11 +179,10 @@ const submitRequest = async () => {
                 <div class="grid grid-cols-1 gap-y-6">
                     <div>
                         <InputLabel for="password" value="New Password" />
-                        ` <div class="relative">
+                        <div class="relative">
                             <TextInput id="password" v-model="newRequest.password"
                                 :type="showPassword ? 'text' : 'password'" required autocomplete="new-password"
                                 @input="validatePassword" :errorMessage="passwordError" :isLoading="isLoading" />
-
                             <button type="button"
                                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5"
                                 @click="togglePasswordVisibility">
@@ -206,7 +213,6 @@ const submitRequest = async () => {
                         </div>
                         <InputError :message="passwordsMatch ? '' : 'Passwords do not match.'" class="mt-2" />
                     </div>
-
                 </div>
                 <div class="mt-6 flex items-center justify-end">
                     <button type="submit" :disabled="isSubmitDisabled"
@@ -214,9 +220,13 @@ const submitRequest = async () => {
                         Update Password
                     </button>
                 </div>
-                <div v-if="updateMessage" class="mt-4 text-red-600">{{ updateMessage }}</div>
-                <div v-if="signupMessage" class="mt-4 text-green-600">{{ signupMessage }}</div>
             </form>
+        </div>
+
+        <!-- Render toasts -->
+        <div class="fixed bottom-6 right-6 z-1000 flex flex-col gap-2">
+            <Toast v-for="toast in toasts" :key="toast.id" :message="toast.message" :type="toast.type"
+                :description="toast.description" :duration="toast.duration" @close="removeToast(toast.id)" />
         </div>
     </div>
 </template>

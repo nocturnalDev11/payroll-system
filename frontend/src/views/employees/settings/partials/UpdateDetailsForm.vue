@@ -140,8 +140,10 @@ const updateEmployee = async () => {
     successMessage.value = '';
 
     try {
-        const authStore = useAuthStore(); // Access the auth store
-        const token = authStore.accessToken; // Get the token
+        // Access the auth store
+        const authStore = useAuthStore();
+        // Get the token
+        const token = authStore.accessToken;
 
         if (!token) {
             throw new Error('No authentication token available. Please log in again.');
@@ -164,7 +166,8 @@ const updateEmployee = async () => {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`, // Add the Authorization header
+                // Add the Authorization header
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify(payload),
         });
