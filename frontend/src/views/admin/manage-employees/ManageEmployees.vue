@@ -6,8 +6,6 @@ import {
     calculateTotalEarnings,
     calculateTotalDeductions,
     calculateNetSalary,
-    calculateRequestNetSalary,
-    calculateNewEmployeeNetSalary,
     calculateSSSContribution,
     calculatePhilHealthContribution,
     calculatePagIBIGContribution,
@@ -71,6 +69,12 @@ export default {
             },
             newPosition: { name: '', salary: 0 },
             editPositionData: { id: null, name: '', salary: 0 },
+            config: {
+                minimumWage: 610,
+                deMinimisLimit: 10000,
+                regularHolidays: [],
+                specialNonWorkingDays: [],
+            },
         };
     },
     components: {
@@ -125,10 +129,7 @@ export default {
         this.fetchPositions();
     },
     methods: {
-        // Expose imported functions to the template
         calculateNetSalary,
-        calculateRequestNetSalary,
-        calculateNewEmployeeNetSalary,
         calculateTotalEarnings,
         calculateTotalDeductions,
         calculateSSSContribution,
@@ -151,7 +152,7 @@ export default {
                         ...emp,
                         id: emp.id,
                         _id: emp._id,
-                        hourlyRate: emp.hourlyRate || Number((emp.salary / (8 * 22)).toFixed(2)), // Fix here
+                        hourlyRate: emp.hourlyRate || Number((emp.salary / (8 * 22)).toFixed(2)),
                         empNo: emp.empNo || `EMP-${String(emp.id).padStart(4, '0')}`,
                         hireDate: new Date(emp.hireDate).toISOString().slice(0, 10),
                         payheads: Array.isArray(emp.payheads) ? emp.payheads : [],
@@ -346,6 +347,18 @@ export default {
             }
         },
 
+        getNetSalary(employee) {
+            return calculateNetSalary(employee, this.config);
+        },
+
+        getTotalEarnings(employee) {
+            return calculateTotalEarnings(employee, this.config);
+        },
+
+        getTotalDeductions(employee) {
+            return calculateTotalDeductions(employee, this.config);
+        },
+
         resetNewEmployee() {
             this.newEmployee = {
                 empNo: '',
@@ -386,6 +399,7 @@ export default {
 };
 </script>
 
+<!-- Template and styles remain unchanged -->
 <template>
     <div class="min-h-screen bg-gray-50 flex flex-col">
         <!-- Header -->
@@ -452,10 +466,14 @@ export default {
                                         '') || 'N/A' }}</td>
                                     <td class="px-4 py-2">{{ employee.position || 'N/A' }}</td>
                                     <td class="px-4 py-2">
-                                       ₱{{ (employee.hourlyRate && !isNaN(employee.hourlyRate) ? employee.hourlyRate : 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                                        ₱{{ (employee.hourlyRate && !isNaN(employee.hourlyRate) ? employee.hourlyRate :
+                                        0).toLocaleString('en-US', {
+                                        minimumFractionDigits: 2, maximumFractionDigits: 2
+                                        }) }}
                                     </td>
                                     <td class="px-4 py-2">
-                                        ₱{{ (calculateNetSalary(employee) || 0).toLocaleString() }}
+                                        ₱{{ (getNetSalary(employee) || 0).toLocaleString('en-US', {
+                                        minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
                                     </td>
                                     <td class="px-4 py-2 text-right flex justify-end gap-1">
                                         <button @click="viewEmployeeDetails(employee)"
@@ -529,8 +547,8 @@ export default {
             </div>
         </main>
 
-        <EmployeeDetailsModal :show="showDetailsModal" :employee="selectedEmployee" @close="showDetailsModal = false"
-            @edit="openEditModal" />
+        <EmployeeDetailsModal :show="showDetailsModal" :employee="selectedEmployee" :config="config"
+            @close="showDetailsModal = false" @edit="openEditModal" />
         <PendingRequestModal :show="showRequestModal" :request="selectedRequest" :positions="adminPositions"
             @close="showRequestModal = false" @save="handleRequestSaved" @approve="handleRequestApproved"
             @reject="handleRequestRejected" />

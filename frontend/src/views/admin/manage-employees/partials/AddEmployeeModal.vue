@@ -8,9 +8,9 @@ import {
     calculatePhilHealthContribution,
     calculatePagIBIGContribution,
     calculateWithholdingTax,
-    calculateNewEmployeeNetSalary
+    calculateNetSalary,
 } from '@/utils/calculations.js';
-import { ref, watch, onMounted, reactive } from 'vue';
+import { ref, watch, reactive } from 'vue';
 
 const { show, employee: employeeProp, positions } = defineProps({
     show: Boolean,
@@ -21,6 +21,14 @@ const emit = defineEmits(['close', 'add-success']);
 
 const authStore = useAuthStore();
 const isAdding = ref(false);
+
+// Define config for calculations
+const config = {
+    minimumWage: 610,
+    deMinimisLimit: 10000,
+    regularHolidays: [],
+    specialNonWorkingDays: [],
+};
 
 // Create a local reactive employee object to manage form data
 const localEmployee = reactive({
@@ -45,6 +53,7 @@ const localEmployee = reactive({
         travelExpenses: 0,
         otherEarnings: 0,
     },
+    payheads: [],
 });
 
 // Function to generate EMP-[7 random numbers]
@@ -56,7 +65,6 @@ function generateEmpNo() {
 // Initialize localEmployee with employeeProp data when modal opens
 watch(() => show, (newShow) => {
     if (newShow) {
-        // Reset localEmployee with defaults and employeeProp data
         Object.assign(localEmployee, {
             empNo: employeeProp?.empNo || generateEmpNo(),
             firstName: employeeProp?.firstName || '',
@@ -79,6 +87,7 @@ watch(() => show, (newShow) => {
                 travelExpenses: employeeProp?.earnings?.travelExpenses || 0,
                 otherEarnings: employeeProp?.earnings?.otherEarnings || 0,
             },
+            payheads: employeeProp?.payheads || [],
         });
     }
 });
@@ -157,6 +166,16 @@ function updateSalaryFromPosition() {
 watch(() => localEmployee.salary, (newSalary) => {
     localEmployee.hourlyRate = newSalary ? newSalary / (8 * 22) : 0;
 });
+
+// Helper function to calculate net salary with config
+function getNetSalary(employee) {
+    return calculateNetSalary(employee, config);
+}
+
+// Helper function to calculate withholding tax with config
+function getWithholdingTax(employee) {
+    return calculateWithholdingTax(employee, config);
+}
 </script>
 
 <template>
@@ -289,7 +308,9 @@ watch(() => localEmployee.salary, (newSalary) => {
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Hourly Rate</label>
-                                <input :value="localEmployee.hourlyRate.toLocaleString()" type="text"
+                                <input
+                                    :value="localEmployee.hourlyRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
+                                    type="text"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
@@ -307,25 +328,29 @@ watch(() => localEmployee.salary, (newSalary) => {
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">SSS Contribution</label>
-                                <input :value="calculateSSSContribution(localEmployee.salary).toLocaleString()"
+                                <input
+                                    :value="calculateSSSContribution(localEmployee.salary).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">PhilHealth Contribution</label>
-                                <input :value="calculatePhilHealthContribution(localEmployee.salary).toLocaleString()"
+                                <input
+                                    :value="calculatePhilHealthContribution(localEmployee.salary).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Pag-IBIG Contribution</label>
-                                <input :value="calculatePagIBIGContribution(localEmployee.salary).toLocaleString()"
+                                <input
+                                    :value="calculatePagIBIGContribution(localEmployee.salary).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Withholding Tax</label>
-                                <input :value="calculateWithholdingTax(localEmployee.salary).toLocaleString()"
+                                <input
+                                    :value="getWithholdingTax(localEmployee).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
@@ -335,7 +360,9 @@ watch(() => localEmployee.salary, (newSalary) => {
                         <div class="flex justify-between items-center text-sm">
                             <span class="font-medium text-gray-700">Net Salary Preview:</span>
                             <span class="font-semibold text-gray-900">₱{{
-                                calculateNewEmployeeNetSalary(localEmployee).toLocaleString() }}</span>
+                                getNetSalary(localEmployee).toLocaleString('en-US', {
+                                    minimumFractionDigits: 2,
+                                maximumFractionDigits: 2 }) }}</span>
                         </div>
                     </div>
                 </div>

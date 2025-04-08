@@ -1,10 +1,20 @@
 <script setup>
 import Modal from '@/components/Modal.vue';
 import { computed } from 'vue';
+import {
+    calculateSSSContribution,
+    calculatePhilHealthContribution,
+    calculatePagIBIGContribution,
+    calculateWithholdingTax,
+    calculateNetSalary,
+    calculateTotalEarnings,
+    calculateTotalDeductions,
+} from '@/utils/calculations.js';
 
 const props = defineProps({
     show: Boolean,
     employee: Object,
+    config: Object,
 });
 
 const emit = defineEmits(['close', 'edit']);
@@ -20,6 +30,19 @@ const sortedPositionHistory = computed(() => {
     }
     return [...props.employee.positionHistory].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 });
+
+// Helper functions using config
+function getNetSalary(employee) {
+    return calculateNetSalary(employee, props.config);
+}
+
+function getTotalEarnings(employee) {
+    return calculateTotalEarnings(employee, props.config);
+}
+
+function getTotalDeductions(employee) {
+    return calculateTotalDeductions(employee, props.config);
+}
 </script>
 
 <template>
@@ -51,8 +74,7 @@ const sortedPositionHistory = computed(() => {
                         <p class="text-base text-indigo-600 font-medium">{{ employee.position }}</p>
                         <p class="text-sm text-gray-500 mt-0.5">Joined {{ new
                             Date(employee.hireDate).toLocaleDateString('en-US', {
-                            year: 'numeric', month: 'long', day:
-                            'numeric' }) }}</p>
+                                year: 'numeric', month: 'long', day: 'numeric' }) }}</p>
                     </div>
                 </div>
 
@@ -92,18 +114,24 @@ const sortedPositionHistory = computed(() => {
                             <div class="p-3 bg-green-50 rounded-md">
                                 <dt class="text-xs text-green-600 mb-0.5">Net Salary</dt>
                                 <dd class="text-xl font-bold text-green-700">₱{{
-                                    $parent.calculateNetSalary(employee).toLocaleString() }}</dd>
+                                    getNetSalary(employee).toLocaleString('en-US', {
+                                        minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2 }) }}</dd>
                             </div>
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="p-2 bg-gray-50 rounded-md">
                                     <dt class="text-xs text-gray-500 mb-0.5">Monthly Salary</dt>
                                     <dd class="text-base font-semibold text-gray-900">₱{{
-                                        employee.salary?.toLocaleString() }}</dd>
+                                        employee.salary?.toLocaleString('en-US', {
+                                            minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2 }) }}</dd>
                                 </div>
                                 <div class="p-2 bg-gray-50 rounded-md">
                                     <dt class="text-xs text-gray-500 mb-0.5">Hourly Rate</dt>
                                     <dd class="text-base font-semibold text-gray-900">₱{{
-                                        employee.hourlyRate?.toLocaleString() }}</dd>
+                                        employee.hourlyRate?.toLocaleString('en-US', {
+                                            minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2 }) }}</dd>
                                 </div>
                             </div>
                         </dl>
@@ -150,8 +178,8 @@ const sortedPositionHistory = computed(() => {
                                 <div class="flex justify-between items-start">
                                     <div>
                                         <p class="font-medium text-sm text-gray-900">{{ history.position }}</p>
-                                        <p class="text-xs text-gray-500">₱{{ history.salary.toLocaleString() }}/month
-                                        </p>
+                                        <p class="text-xs text-gray-500">₱{{ history.salary.toLocaleString('en-US', {
+                                            minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}/month</p>
                                     </div>
                                     <div class="text-right">
                                         <p class="text-xs text-gray-500">{{ new

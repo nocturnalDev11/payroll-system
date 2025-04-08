@@ -9,7 +9,7 @@ import {
     calculatePhilHealthContribution,
     calculatePagIBIGContribution,
     calculateWithholdingTax,
-    calculateNewEmployeeNetSalary
+    calculateNetSalary, // Replace calculateNewEmployeeNetSalary with this
 } from '@/utils/calculations.js';
 
 const props = defineProps(['show', 'request', 'positions']);
@@ -19,20 +19,35 @@ const authStore = useAuthStore();
 const isUpdating = ref(false);
 const statusMessage = ref('');
 
-// Reactive copy of the request to allow editing without mutating the prop directly
-const localRequest = ref({ ...props.request });
+// Define config for calculations
+const config = {
+    minimumWage: 610, // Adjust as needed
+    deMinimisLimit: 10000,
+    regularHolidays: [], // Populate if needed
+    specialNonWorkingDays: [], // Populate if needed
+};
 
-// Watch for changes in the request prop to update the local copy
+// Reactive copy of the request to allow editing without mutating the prop directly
+const localRequest = ref({});
+
+// Sync localRequest with props.request when it changes
 watch(() => props.request, (newRequest) => {
-    localRequest.value = { ...newRequest };
-});
+    localRequest.value = {
+        ...newRequest,
+        earnings: {
+            travelExpenses: newRequest.earnings?.travelExpenses || 0,
+            otherEarnings: newRequest.earnings?.otherEarnings || 0,
+        },
+        payheads: Array.isArray(newRequest.payheads) ? newRequest.payheads : [],
+    };
+}, { immediate: true });
 
 // Update salary and hourly rate when position changes
 const updateSalaryFromPosition = () => {
     const selectedPosition = props.positions.find(pos => pos.name === localRequest.value.position);
     if (selectedPosition) {
-        localRequest.value.salary = selectedPosition.salary;
-        localRequest.value.hourlyRate = selectedPosition.salary / (8 * 22);
+        localRequest.value.salary = selectedPosition.salary || 0;
+        localRequest.value.hourlyRate = localRequest.value.salary / (8 * 22);
     }
 };
 
@@ -86,10 +101,17 @@ const approveRequest = async () => {
     isUpdating.value = true;
     try {
         const updatedEmployee = {
+            ...localRequest.value,
             status: 'approved',
-            hireDate: new Date(),
+            hireDate: new Date().toISOString().slice(0, 10),
             username: localRequest.value.username || `${localRequest.value.firstName.toLowerCase()}${Math.floor(Math.random() * 1000)}`,
             empNo: localRequest.value.empNo || `EMP-${Date.now()}`,
+            positionHistory: [{
+                position: localRequest.value.position,
+                salary: localRequest.value.salary,
+                startDate: new Date().toISOString().slice(0, 10),
+                endDate: null,
+            }],
         };
         const response = await axios.put(
             `${BASE_API_URL}/api/employees/update/${localRequest.value._id}`,
@@ -147,6 +169,15 @@ const rejectRequest = async () => {
         isUpdating.value = false;
     }
 };
+
+// Helper functions for calculations with config
+function getNetSalary(request) {
+    return calculateNetSalary(request, config);
+}
+
+function getWithholdingTax(request) {
+    return calculateWithholdingTax(request, config);
+}
 </script>
 
 <template>
@@ -279,8 +310,10 @@ const rejectRequest = async () => {
                         </div>
                         <div class="space-y-1">
                             <label class="text-xs font-medium text-gray-600">Hourly Rate</label>
-                            <input :value="localRequest.hourlyRate.toLocaleString()" type="text"
-                                class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100" disabled />
+                            <input
+                                :value="localRequest.hourlyRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
+                                type="text" class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
+                                disabled />
                         </div>
                         <div class="space-y-1">
                             <label class="text-xs font-medium text-gray-600">Travel Expenses</label>
@@ -296,22 +329,26 @@ const rejectRequest = async () => {
                         </div>
                         <div class="space-y-1">
                             <label class="text-xs font-medium text-gray-600">SSS Contribution</label>
-                            <input :value="calculateSSSContribution(localRequest.salary).toLocaleString()"
+                            <input
+                                :value="calculateSSSContribution(localRequest.salary).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
                                 class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100" disabled />
                         </div>
                         <div class="space-y-1">
                             <label class="text-xs font-medium text-gray-600">PhilHealth Contribution</label>
-                            <input :value="calculatePhilHealthContribution(localRequest.salary).toLocaleString()"
+                            <input
+                                :value="calculatePhilHealthContribution(localRequest.salary).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
                                 class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100" disabled />
                         </div>
                         <div class="space-y-1">
                             <label class="text-xs font-medium text-gray-600">Pag-IBIG Contribution</label>
-                            <input :value="calculatePagIBIGContribution(localRequest.salary).toLocaleString()"
+                            <input
+                                :value="calculatePagIBIGContribution(localRequest.salary).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
                                 class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100" disabled />
                         </div>
                         <div class="space-y-1">
                             <label class="text-xs font-medium text-gray-600">Withholding Tax</label>
-                            <input :value="calculateWithholdingTax(localRequest.salary).toLocaleString()"
+                            <input
+                                :value="getWithholdingTax(localRequest).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
                                 class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100" disabled />
                         </div>
                     </div>
@@ -320,7 +357,9 @@ const rejectRequest = async () => {
                     <div class="flex justify-between items-center text-sm">
                         <span class="font-medium text-gray-700">Net Salary Preview:</span>
                         <span class="font-semibold text-gray-900">₱{{
-                            calculateNewEmployeeNetSalary(localRequest).toLocaleString() }}</span>
+                            getNetSalary(localRequest).toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                            maximumFractionDigits: 2 }) }}</span>
                     </div>
                 </div>
             </div>

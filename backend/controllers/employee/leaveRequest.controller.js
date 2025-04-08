@@ -5,12 +5,14 @@ const moment = require('moment');
 
 // Get all leave requests
 exports.getAllLeaveRequests = asyncHandler(async (req, res) => {
+    if (!LeaveRequest) throw new Error('LeaveRequest model is not initialized');
     const requests = await LeaveRequest.find().populate('employeeId', 'firstName lastName');
+
     const formattedRequests = requests.map(req => ({
-        id: req._id.toString(),
         ...req._doc,
         employeeName: req.employeeId ? `${req.employeeId.firstName} ${req.employeeId.lastName}` : 'Unknown',
     }));
+    
     res.status(200).json(formattedRequests);
 });
 

@@ -129,9 +129,37 @@ exports.permanentDeleteEmployee = asyncHandler(async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ message: 'Invalid employee ID' });
     }
-    const employee = await Employee.findByIdAndDelete(id);
-    if (!employee) return res.status(404).json({ message: 'Employee not found' });
-    res.status(200).json({ message: 'Employee permanently deleted' });
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        // Find and delete the employee
+        const employee = await Employee.findByIdAndDelete(id).session(session);
+        if (!employee) {
+            await session.abortTransaction();
+            return res.status(404).json({ message: 'Employee not found' });
+        }
+
+        // Delete associated attendance records
+        await Attendance.deleteMany({ employeeId: id }).session(session);
+
+        // Delete associated leave requests
+        await LeaveRequest.deleteMany({ employeeId: id }).session(session);
+
+        // Delete associated payslips
+        await Payslip.deleteMany({ employeeId: id }).session(session);
+
+        // Commit the transaction
+        await session.commitTransaction();
+        res.status(200).json({ message: 'Employee and associated activities permanently deleted' });
+    } catch (error) {
+        await session.abortTransaction();
+        console.error('Error during permanent delete:', error);
+        res.status(500).json({ message: 'Failed to permanently delete employee and activities', error: error.message });
+    } finally {
+        session.endSession();
+    }
 });
 
 // Get all employees

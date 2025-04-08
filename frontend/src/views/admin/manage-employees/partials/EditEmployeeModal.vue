@@ -8,9 +8,9 @@ import {
     calculatePhilHealthContribution,
     calculatePagIBIGContribution,
     calculateWithholdingTax,
-    calculateNewEmployeeNetSalary
+    calculateNetSalary,
 } from '@/utils/calculations.js';
-import { ref, watch } from 'vue';
+import { ref, watch, reactive } from 'vue';
 
 const props = defineProps(['show', 'employee', 'positions']);
 const emit = defineEmits(['close', 'update']);
@@ -18,23 +18,47 @@ const emit = defineEmits(['close', 'update']);
 const authStore = useAuthStore();
 const isUpdating = ref(false);
 
+// Define config for calculations
+const config = {
+    minimumWage: 610, // Adjust as needed
+    deMinimisLimit: 10000,
+    regularHolidays: [], // Populate if needed
+    specialNonWorkingDays: [], // Populate if needed
+};
+
+// Create a local reactive copy of the employee to avoid mutating props
+const localEmployee = reactive({});
+
+// Sync localEmployee with props.employee when it changes
+watch(() => props.employee, (newEmployee) => {
+    Object.assign(localEmployee, {
+        ...newEmployee,
+        earnings: {
+            travelExpenses: newEmployee.earnings?.travelExpenses || 0,
+            otherEarnings: newEmployee.earnings?.otherEarnings || 0,
+        },
+        payheads: Array.isArray(newEmployee.payheads) ? newEmployee.payheads : [],
+        positionHistory: Array.isArray(newEmployee.positionHistory) ? newEmployee.positionHistory : [],
+    });
+}, { immediate: true });
+
 // Function to update salary and hourly rate based on selected position
 function updateSalaryFromPositionEdit() {
-    const selectedPosition = props.positions.find(pos => pos.name === props.employee.position);
+    const selectedPosition = props.positions.find(pos => pos.name === localEmployee.position);
     if (selectedPosition) {
-        props.employee.salary = selectedPosition.salary;
-        props.employee.hourlyRate = selectedPosition.salary / (8 * 22);
+        localEmployee.salary = selectedPosition.salary || 0;
+        localEmployee.hourlyRate = localEmployee.salary / (8 * 22);
     }
 }
 
 // Watch salary changes to update hourlyRate
-watch(() => props.employee.salary, (newSalary) => {
-    props.employee.hourlyRate = newSalary / (8 * 22);
+watch(() => localEmployee.salary, (newSalary) => {
+    localEmployee.hourlyRate = newSalary ? newSalary / (8 * 22) : 0;
 });
 
 // Update employee function
 async function updateEmployee() {
-    if (!props.employee._id || typeof props.employee._id !== 'string') {
+    if (!localEmployee._id || typeof localEmployee._id !== 'string') {
         alert('Invalid employee _id');
         return;
     }
@@ -45,7 +69,7 @@ async function updateEmployee() {
     ];
 
     const missingFields = requiredFields.filter(field => {
-        const value = props.employee[field];
+        const value = localEmployee[field];
         if (value === undefined || value === null) return true;
         if (['firstName', 'lastName', 'position', 'email', 'contactInfo'].includes(field)) {
             return typeof value !== 'string' || value.trim() === '';
@@ -63,11 +87,11 @@ async function updateEmployee() {
 
     isUpdating.value = true;
     try {
-        // Check if position changed (requires original data; assume employee prop has originalPosition or fetch it)
-        const positionChanged = props.employee.originalPosition !== props.employee.position;
+        // Check if position changed
+        const positionChanged = localEmployee.originalPosition !== localEmployee.position;
 
         if (positionChanged) {
-            const updatedPositionHistory = props.employee.positionHistory.map(history => {
+            const updatedPositionHistory = localEmployee.positionHistory.map(history => {
                 if (!history.endDate) {
                     return { ...history, endDate: new Date().toISOString().slice(0, 10) };
                 }
@@ -75,17 +99,17 @@ async function updateEmployee() {
             });
 
             updatedPositionHistory.push({
-                position: props.employee.position,
-                salary: props.employee.salary,
+                position: localEmployee.position,
+                salary: localEmployee.salary,
                 startDate: new Date().toISOString().slice(0, 10),
                 endDate: null,
             });
 
-            props.employee.positionHistory = updatedPositionHistory;
+            localEmployee.positionHistory = updatedPositionHistory;
         }
 
         // Clean and validate payheads
-        const cleanedEmployee = { ...props.employee };
+        const cleanedEmployee = { ...localEmployee };
         if (!Array.isArray(cleanedEmployee.payheads)) {
             cleanedEmployee.payheads = [];
         } else {
@@ -99,7 +123,7 @@ async function updateEmployee() {
         }
 
         const response = await axios.put(
-            `${BASE_API_URL}/api/employees/update/${props.employee._id}`,
+            `${BASE_API_URL}/api/employees/update/${localEmployee._id}`,
             cleanedEmployee,
             {
                 headers: {
@@ -119,6 +143,15 @@ async function updateEmployee() {
         isUpdating.value = false;
     }
 }
+
+// Helper functions for calculations with config
+function getNetSalary(employee) {
+    return calculateNetSalary(employee, config);
+}
+
+function getWithholdingTax(employee) {
+    return calculateWithholdingTax(employee, config);
+}
 </script>
 
 <template>
@@ -127,7 +160,8 @@ async function updateEmployee() {
             <!-- Header -->
             <div
                 class="p-4 border-b border-gray-300 flex justify-between items-center sticky top-0 bg-white rounded-t-lg">
-                <h2 class="text-lg font-semibold">Edit Employee - {{ employee.firstName }} {{ employee.lastName }}</h2>
+                <h2 class="text-lg font-semibold">Edit Employee - {{ localEmployee.firstName }} {{
+                    localEmployee.lastName }}</h2>
             </div>
 
             <!-- Content -->
@@ -138,42 +172,42 @@ async function updateEmployee() {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Employee Number *</label>
-                                <input v-model="employee.empNo"
+                                <input v-model="localEmployee.empNo"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">First Name *</label>
-                                <input v-model="employee.firstName"
+                                <input v-model="localEmployee.firstName"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Middle Name</label>
-                                <input v-model="employee.middleName"
+                                <input v-model="localEmployee.middleName"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Last Name *</label>
-                                <input v-model="employee.lastName"
+                                <input v-model="localEmployee.lastName"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Email *</label>
-                                <input v-model="employee.email" type="email"
+                                <input v-model="localEmployee.email" type="email"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Contact Number *</label>
-                                <input v-model="employee.contactInfo"
+                                <input v-model="localEmployee.contactInfo"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required pattern="\d{11}" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Civil Status *</label>
-                                <select v-model="employee.civilStatus"
+                                <select v-model="localEmployee.civilStatus"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required>
                                     <option value="Single">Single</option>
@@ -189,7 +223,7 @@ async function updateEmployee() {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Position *</label>
-                                <select v-model="employee.position" @change="updateSalaryFromPositionEdit"
+                                <select v-model="localEmployee.position" @change="updateSalaryFromPositionEdit"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required>
                                     <option v-for="pos in positions" :key="pos.name" :value="pos.name">
@@ -199,31 +233,31 @@ async function updateEmployee() {
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Hire Date *</label>
-                                <input v-model="employee.hireDate" type="date"
+                                <input v-model="localEmployee.hireDate" type="date"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">SSS ID</label>
-                                <input v-model="employee.sss"
+                                <input v-model="localEmployee.sss"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     pattern="\d{10}" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">PhilHealth ID</label>
-                                <input v-model="employee.philhealth"
+                                <input v-model="localEmployee.philhealth"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     pattern="\d{12}" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Pag-IBIG ID</label>
-                                <input v-model="employee.pagibig"
+                                <input v-model="localEmployee.pagibig"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     pattern="\d{12}" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">TIN</label>
-                                <input v-model="employee.tin"
+                                <input v-model="localEmployee.tin"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     pattern="\d{9,12}" />
                             </div>
@@ -234,49 +268,55 @@ async function updateEmployee() {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Monthly Salary *</label>
-                                <input v-model.number="employee.salary" type="number"
+                                <input v-model.number="localEmployee.salary" type="number"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     required min="0" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Hourly Rate</label>
-                                <input :value="employee.hourlyRate.toLocaleString()" type="text"
+                                <input
+                                    :value="localEmployee.hourlyRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
+                                    type="text"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Travel Expenses</label>
-                                <input v-model.number="employee.earnings.travelExpenses" type="number"
+                                <input v-model.number="localEmployee.earnings.travelExpenses" type="number"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     min="0" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Other Earnings</label>
-                                <input v-model.number="employee.earnings.otherEarnings" type="number"
+                                <input v-model.number="localEmployee.earnings.otherEarnings" type="number"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500"
                                     min="0" />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">SSS Contribution</label>
-                                <input :value="calculateSSSContribution(employee.salary).toLocaleString()"
+                                <input
+                                    :value="calculateSSSContribution(localEmployee.salary).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">PhilHealth Contribution</label>
-                                <input :value="calculatePhilHealthContribution(employee.salary).toLocaleString()"
+                                <input
+                                    :value="calculatePhilHealthContribution(localEmployee.salary).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Pag-IBIG Contribution</label>
-                                <input :value="calculatePagIBIGContribution(employee.salary).toLocaleString()"
+                                <input
+                                    :value="calculatePagIBIGContribution(localEmployee.salary).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
                             <div class="space-y-1">
                                 <label class="text-xs font-medium text-gray-600">Withholding Tax</label>
-                                <input :value="calculateWithholdingTax(employee.salary).toLocaleString()"
+                                <input
+                                    :value="getWithholdingTax(localEmployee).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"
                                     class="w-full p-1.5 text-sm border border-gray-300 rounded-md bg-gray-100"
                                     disabled />
                             </div>
@@ -286,7 +326,9 @@ async function updateEmployee() {
                         <div class="flex justify-between items-center text-sm">
                             <span class="font-medium text-gray-700">Net Salary Preview:</span>
                             <span class="font-semibold text-gray-900">
-                                ₱{{ calculateNewEmployeeNetSalary(employee).toLocaleString() }}
+                                ₱{{ getNetSalary(localEmployee).toLocaleString('en-US', {
+                                    minimumFractionDigits: 2,
+                                maximumFractionDigits: 2 }) }}
                             </span>
                         </div>
                     </div>

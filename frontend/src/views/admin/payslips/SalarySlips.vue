@@ -1349,14 +1349,9 @@ export default {
         },
 
         calculateNetSalary(employee) {
-            const basicSalary = employee.salary || 0;
-            const payheadDeductions = this.calculatePayheadDeductions(employee.payheads) || 0;
-            const adjustedBasicSalary = basicSalary - payheadDeductions; // Deduct payheads first
-            const sssContribution = this.calculateSSSContribution(basicSalary) || 0;
-            const philhealthContribution = this.calculatePhilHealthContribution(basicSalary) || 0;
-            const pagibigContribution = this.calculatePagIBIGContribution(basicSalary) || 0;
-            const withholdingTax = this.calculateWithholdingTax(employee) || 0;
-            return adjustedBasicSalary - (sssContribution + philhealthContribution + pagibigContribution + withholdingTax) || 0;
+            const totalEarnings = this.calculateTotalEarnings(employee) || 0;
+            const totalDeductions = this.calculateTotalDeductions(employee) || 0;
+            return totalEarnings - totalDeductions || 0;
         },
 
         calculateHolidayPay(employee) {
