@@ -45,12 +45,15 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{
                                 formatDate(employee.trashedAt)
                                 }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button @click="restoreEmployee(employee._id)"
-                                    class="text-blue-600 hover:text-blue-800 mr-4 transition-colors">Restore</button>
-                                <button @click="confirmDelete(employee._id)"
-                                    class="text-red-600 hover:text-red-800 transition-colors">Delete
-                                    Permanently</button>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                <PrimaryButton @click="restoreEmployee(employee._id)">
+                                    <span class="material-icons text-xs">refresh</span>
+                                    Restore
+                                </PrimaryButton>
+                                <DangerButton @click="confirmDelete(employee._id)">
+                                    <span class="material-icons text-xs">delete</span>
+                                    Delete Permanently
+                                </DangerButton>
                             </td>
                         </tr>
                     </tbody>
@@ -73,11 +76,13 @@
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Confirm Permanent Deletion</h3>
                 <p class="text-gray-600 mb-6">Are you sure you want to permanently delete this employee? This action
                     cannot be undone.</p>
-                <div class="flex justify-end space-x-4">
-                    <button @click="showModal = false"
-                        class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors">Cancel</button>
-                    <button @click="permanentDelete"
-                        class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">Delete</button>
+                <div class="flex justify-end space-x-2">
+                    <SecondaryButton @click="showModal = false">
+                        Cancel
+                    </SecondaryButton>
+                    <DangerButton @click="permanentDelete">
+                        Delete
+                    </DangerButton>
                 </div>
             </div>
         </div>
@@ -88,8 +93,16 @@
 import axios from 'axios';
 import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
+import DangerButton from '@/components/DangerButton.vue';
+import PrimaryButton from '@/components/PrimaryButton.vue';
+import SecondaryButton from '@/components/SecondaryButton.vue';
 
 export default {
+    components: {
+        DangerButton,
+        PrimaryButton,
+        SecondaryButton
+    },
     data() {
         return {
             trashedEmployees: [],

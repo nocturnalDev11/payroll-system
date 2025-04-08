@@ -1,6 +1,6 @@
 <template>
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-1">
-        <div class="max-w-8xl mx-auto">
+        <div class="max-w-8xl mx-auto space-y-3">
             <header class="bg-white p-6 rounded-xl shadow-lg mb-6 z-30">
                 <div class="flex justify-between items-center">
                     <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -156,7 +156,7 @@
                                     <button @click="disapproveLeave(leave.id)"
                                         :disabled="leave.status === 'Disapproved'"
                                         class="inline-flex items-center gap-1.5 bg-red-50 text-red-600 py-1.5 px-2.5 rounded-md text-sm font-medium 
-                                 hover:bg-red-100 transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 disabled:opacity-50">
+                                            hover:bg-red-100 transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 disabled:opacity-50">
                                         <span class="material-icons text-xs">close</span>
                                         Disapprove
                                     </button>
