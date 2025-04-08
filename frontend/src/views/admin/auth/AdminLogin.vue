@@ -26,6 +26,7 @@ export default {
         }
     },
     methods: {
+        // AdminLogin.vue
         async login() {
             this.isLoading = true;
             this.loginError = false;
@@ -46,7 +47,8 @@ export default {
                 }
 
                 const { token, id, username, email } = response.data;
-                const admin = { id, username, email, role: 'admin' };
+
+                const admin = { _id: id, username, email, role: 'admin' };
                 this.authStore.setAdmin(admin);
                 this.authStore.setAccessToken(token);
                 this.$router.push('/admin/dashboard');

@@ -170,8 +170,12 @@ const submitRequest = async () => {
             <div>
                 <InputLabel for="password" value="New Password" />
                 <div class="relative">
-                    <TextInput id="password" class="mt-1 block w-full" v-model="newRequest.password"
-                        :type="showPassword ? 'text' : 'password'" required autocomplete="new-password"
+                    <TextInput
+                        id="password"
+                        class="mt-1 block w-full"
+                        v-model="newRequest.password"
+                        :type="showPassword ? 'text' : 'password'"
+                        required autocomplete="new-password"
                         @input="validatePassword" />
                     <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5"
                         @click="togglePasswordVisibility">

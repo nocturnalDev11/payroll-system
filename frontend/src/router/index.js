@@ -157,7 +157,7 @@ const routes = [
             { 
                 path: 'settings',
                 name: 'AdminSettings', 
-                component: () => import('../views/admin/auth/AdminSettings.vue'),
+                component: () => import('../views/admin/settings/AdminSettings.vue'),
                 meta: {
                     title: 'Admin Settings',
                 }

@@ -45,6 +45,34 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    async function fetchAdminDetails(id) {
+        try {
+            const headers = {
+                'Authorization': `Bearer ${accessToken.value}`,
+                'Content-Type': 'application/json',
+                'user-role': userRole.value || 'admin',
+            };
+
+            // Use _id consistently
+            if (admin.value && admin.value._id) {
+                headers['user-id'] = admin.value._id.toString();
+            } else if (employee.value && employee.value._id) {
+                headers['user-id'] = employee.value._id.toString();
+            }
+
+            const response = await fetch(`${BASE_API_URL}/api/admin/${id}`, { headers });
+            if (!response.ok) throw new Error('Failed to fetch admin details');
+            const adminData = await response.json();
+            console.log('Fetched admin data:', adminData);
+            admin.value = { ...admin.value, ...adminData };
+            console.log('Updated admin value:', admin.value);
+            saveAdmin(admin.value);
+        } catch (error) {
+            console.error('Error fetching admin details:', error);
+            throw error;
+        }
+    }
+
     // State
     const admin = ref(safeParse(localStorage.getItem('admin')));
     const employee = ref(safeParse(localStorage.getItem('employee')));
@@ -63,7 +91,15 @@ export const useAuthStore = defineStore('auth', () => {
         employee.value = storedEmployee;
         accessToken.value = storedToken;
 
-        console.log('Session restored:', { admin: admin.value, employee: employee.value, token: accessToken.value });
+        console.log('Session restored:', { 
+            admin: admin.value, 
+            employee: employee.value, 
+            token: accessToken.value 
+        });
+
+        if (!storedToken || (!storedAdmin && !storedEmployee)) {
+            console.warn('No valid session found in localStorage');
+        }
     }
 
     // Save state to localStorage
@@ -87,6 +123,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Setters
     function setAdmin(newAdmin) {
+        console.log('Setting admin:', newAdmin);
         saveAdmin(newAdmin);
         employee.value = null;
         localStorage.removeItem('employee');
@@ -138,6 +175,7 @@ export const useAuthStore = defineStore('auth', () => {
         saveAdmin,
         saveEmployee,
         saveAccessToken,
+        fetchAdminDetails,
         fetchEmployeeDetails,
     };
 });

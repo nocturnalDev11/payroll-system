@@ -43,6 +43,7 @@ exports.loginAdmin = asyncHandler(async (req, res) => {
     }
 
     const token = generateAdminToken(admin._id);
+    console.log('Login response data:', { id: admin._id, username: admin.username, email: admin.email, token }); // Debug log
 
     res.setHeader('Content-Type', 'application/json');
     res.status(200).json({
