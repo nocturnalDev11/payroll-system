@@ -389,7 +389,7 @@ export default {
 <template>
     <div class="min-h-screen bg-gray-50 flex flex-col">
         <!-- Header -->
-        <header class="bg-white shadow-sm p-3 flex justify-between items-center sticky top-0 z-40 rounded-lg">
+        <header class="bg-white shadow-sm p-3 flex justify-between items-center sticky top-0 z-20 rounded-lg">
             <h1 class="text-lg font-bold text-gray-800">Employee Management</h1>
             <div class="flex items-center gap-3">
                 <input v-model="searchQuery" type="text" placeholder="Search employees..."
