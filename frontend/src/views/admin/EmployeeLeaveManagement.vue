@@ -2,14 +2,14 @@
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-1">
         <div class="max-w-8xl mx-auto space-y-3">
             <header class="bg-white p-6 rounded-xl shadow-lg mb-6 z-30">
-                <div class="flex justify-between items-center">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
                         <span class="material-icons text-blue-600">event_note</span>
                         Employee Leave Management
                     </h1>
-                    <button @click="refreshLeaveRequests"
-                        class="inline-flex items-center gap-2 bg-blue-500 text-white px-3 py-1.5 rounded-md text-sm font-medium 
-                   hover:bg-blue-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                    <button @click="refreshLeaveRequests" class="inline-flex items-center gap-2 bg-blue-500 text-white px-3 py-1.5 rounded-md text-sm font-medium 
+                        hover:bg-blue-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5
+                        w-full md:w-auto justify-center">
                         <span class="material-icons text-sm">refresh</span>
                         Refresh
                     </button>

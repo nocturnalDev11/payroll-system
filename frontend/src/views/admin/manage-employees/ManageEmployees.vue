@@ -403,49 +403,54 @@ export default {
 <template>
     <div class="min-h-screen bg-gray-50 flex flex-col">
         <!-- Header -->
-        <header class="bg-white shadow-sm p-3 flex justify-between items-center sticky top-0 z-20 rounded-lg">
+        <header
+            class="bg-white shadow-sm p-3 flex flex-col md:flex-row justify-between items-start md:items-center sticky top-0 z-20 rounded-lg gap-3 md:gap-0">
             <h1 class="text-lg font-bold text-gray-800">Employee Management</h1>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
                 <input v-model="searchQuery" type="text" placeholder="Search employees..."
-                    class="p-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 w-48" />
+                    class="p-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 w-full sm:w-48" />
                 <button @click="refreshAll"
-                    class="bg-indigo-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-indigo-700 transition flex items-center gap-1">
+                    class="bg-indigo-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-indigo-700 transition flex items-center gap-1 w-full sm:w-auto justify-center">
                     <span class="material-icons text-lg">refresh</span>
                     Refresh
                 </button>
             </div>
         </header>
 
+
         <!-- Main Content -->
         <main class="flex-1 py-2">
             <div class="mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <!-- Employee List -->
                 <section class="lg:col-span-2 bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div class="p-4 flex justify-between items-center border-b border-gray-300">
+                    <div
+                        class="p-4 flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-300 gap-3 md:gap-0">
                         <h2 class="text-lg font-semibold text-gray-800">Employee List</h2>
-                        <div class="flex gap-2">
+                        <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                             <button @click="showAddModal = true"
-                                class="bg-green-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-green-700 transition flex items-center gap-1">
+                                class="bg-green-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-green-700 transition flex items-center gap-1 w-full sm:w-auto justify-center">
                                 <span class="material-icons text-lg">add</span>
                                 Add
                             </button>
                             <button @click="showPositionModal = true"
-                                class="bg-blue-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-blue-700 transition flex items-center gap-1">
+                                class="bg-blue-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-blue-700 transition flex items-center gap-1 w-full sm:w-auto justify-center">
                                 <span class="material-icons text-lg">work</span>
                                 Positions
                             </button>
                             <select v-model="positionFilter"
-                                class="p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500">
+                                class="p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500 w-full sm:w-auto">
                                 <option value="">All</option>
                                 <option v-for="pos in adminPositions" :key="pos.name" :value="pos.name">{{ pos.name }}
                                 </option>
                             </select>
                         </div>
                     </div>
+
                     <div v-if="isLoading" class="p-4 text-center text-gray-500 flex justify-center items-center">
                         <span class="material-icons animate-spin mr-1 text-lg">autorenew</span>
                         Loading...
                     </div>
+                    
                     <div v-else class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
                             <thead class="bg-gray-50">

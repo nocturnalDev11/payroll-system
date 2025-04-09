@@ -395,12 +395,12 @@ export default {
 <template>
     <div class="min-h-screen p-1">
         <div class="max-w-8xl mx-auto">
-            <div class="bg-white p-6 rounded-xl shadow-md">
+            <div class="bg-white p-6 rounded-xl shadow-md overflow-y-auto">
                 <div class="mb-6">
                     <h2 class="text-2xl font-semibold text-gray-900">My Employee Records</h2>
                 </div>
 
-                <table v-if="employees && employees.length" class="min-w-full border border-gray-300">
+                <table v-if="employees && employees.length" class="min-w-full border border-gray-300 overflow-y-auto">
                     <thead class="bg-gray-200">
                         <tr>
                             <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
@@ -433,8 +433,7 @@ export default {
                 </div>
 
                 <transition name="modal-fade">
-                    <div v-if="showTaxModal"
-                        class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+                    <div v-if="showTaxModal" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
                         <div class="bg-white p-5 rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-y-auto">
                             <div class="flex justify-between items-center mb-4">
                                 <h2 class="text-lg font-bold text-gray-800">
