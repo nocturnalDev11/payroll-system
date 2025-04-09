@@ -11,35 +11,34 @@ exports.timeIn = asyncHandler(async (req, res) => {
     const currentDate = new Date();
     const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false });
 
-    // Define office hours
-    const EARLY_THRESHOLD = "06:00:00"; // Optional early threshold
+    const EARLY_THRESHOLD = "06:00:00";
     const OFFICE_START = "08:00:00";
-    const LUNCH_END = "13:00:00"; // 1:00 PM, cutoff for absent to late transition
-    const CUTOFF_TIME = "13:00:00"; // Cutoff time to mark as absent initially
+    const LUNCH_END = "13:00:00";
+    const CUTOFF_TIME = "13:00:00";
 
-    // Validate minimum time-in
     if (currentTime < EARLY_THRESHOLD) {
         return res.status(400).json({ message: 'Time In is not allowed before 6:00 AM' });
     }
 
-    // Check if there's an open session (no timeOut) for today
     const todayStart = new Date(currentDate.setHours(0, 0, 0, 0));
     const todayEnd = new Date(currentDate.setHours(23, 59, 59, 999));
     const openSession = await Attendance.findOne({
         employeeId,
         date: { $gte: todayStart, $lte: todayEnd },
-        timeOut: null
+        $or: [
+            { morningTimeOut: null },
+            { afternoonTimeOut: null },
+        ],
     });
 
     if (openSession) {
         return res.status(400).json({ message: 'You are already Timed In. Please Time Out first.' });
     }
 
-    // Check if an absent record exists for today
     const existingAbsent = await Attendance.findOne({
         employeeId,
         date: { $gte: todayStart, $lte: todayEnd },
-        status: "Absent"
+        status: "Absent",
     });
 
     let status;
@@ -48,22 +47,27 @@ exports.timeIn = asyncHandler(async (req, res) => {
     } else if (currentTime >= LUNCH_END) {
         status = "Late";
     } else {
-        status = "Late"; // Between 8:00 AM and 1:00 PM
+        status = "Late";
     }
 
-    // If timing in after cutoff and an absent record exists, update it to Late
+    let attendance;
     if (currentTime > CUTOFF_TIME && existingAbsent) {
-        existingAbsent.timeIn = currentTime;
+        if (currentTime >= LUNCH_END) {
+            existingAbsent.afternoonTimeIn = currentTime;
+        } else {
+            existingAbsent.morningTimeIn = currentTime;
+        }
         existingAbsent.status = "Late";
         await existingAbsent.save();
         return res.status(200).json(existingAbsent);
     }
 
-    const attendance = new Attendance({
+    attendance = new Attendance({
         employeeId,
         date: currentDate,
-        timeIn: currentTime,
-        status
+        morningTimeIn: currentTime < LUNCH_END ? currentTime : null,
+        afternoonTimeIn: currentTime >= LUNCH_END ? currentTime : null,
+        status,
     });
 
     await attendance.save();
@@ -79,31 +83,39 @@ exports.timeOut = asyncHandler(async (req, res) => {
     const currentDate = new Date();
     const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false });
 
-    // Define office end time
     const OFFICE_END = "17:00:00";
-    const EARLY_THRESHOLD = "11:30:00"; // Allow early departure after lunch break
+    const EARLY_THRESHOLD = "11:30:00";
+    const LUNCH_END = "13:00:00";
 
-    // Find the latest open attendance record for today
     const todayStart = new Date(currentDate.setHours(0, 0, 0, 0));
     const todayEnd = new Date(currentDate.setHours(23, 59, 59, 999));
     let attendance = await Attendance.findOne({
         employeeId,
         date: { $gte: todayStart, $lte: todayEnd },
-        timeOut: null
+        $or: [
+            { morningTimeIn: { $ne: null }, morningTimeOut: null },
+            { afternoonTimeIn: { $ne: null }, afternoonTimeOut: null },
+        ],
     });
 
     if (!attendance) {
         return res.status(400).json({ message: 'No open Time In session found. Please Time In first.' });
     }
 
-    // Update time out and adjust status if early
-    attendance.timeOut = currentTime;
+    if (currentTime < EARLY_THRESHOLD) {
+        return res.status(400).json({ message: 'Time Out is not allowed before 11:30 AM' });
+    }
+
+    if (attendance.morningTimeIn && !attendance.morningTimeOut && currentTime < LUNCH_END) {
+        attendance.morningTimeOut = currentTime;
+    } else if (attendance.afternoonTimeIn && !attendance.afternoonTimeOut) {
+        attendance.afternoonTimeOut = currentTime;
+    }
+
     if (currentTime < OFFICE_END) {
-        if (currentTime >= EARLY_THRESHOLD) {
-            attendance.status = "Early Departure";
-        } else {
-            return res.status(400).json({ message: 'Time Out is not allowed before 11:30 AM' });
-        }
+        attendance.status = "Early Departure";
+    } else if (attendance.morningTimeIn && attendance.afternoonTimeIn) {
+        attendance.status = "Present";
     }
 
     await attendance.save();
@@ -118,11 +130,11 @@ exports.checkAbsent = asyncHandler(async (req, res) => {
     const today = new Date();
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
     const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-    const CUTOFF_TIME = "13:00:00"; // Cutoff time to mark as absent
+    const CUTOFF_TIME = "13:00:00";
 
     const attendanceRecords = await Attendance.find({ date: { $gte: startOfDay, $lte: endOfDay } });
     const presentEmployeeIds = attendanceRecords
-        .filter(record => record.timeIn && record.status !== "Absent")
+        .filter(record => record.morningTimeIn || record.afternoonTimeIn)
         .map(record => record.employeeId.toString());
 
     const employees = await Employee.find();
@@ -130,19 +142,10 @@ exports.checkAbsent = asyncHandler(async (req, res) => {
         .filter(emp => !presentEmployeeIds.includes(emp._id.toString()))
         .map(emp => emp._id);
 
-    const absentRecords = absentEmployeeIds.map(employeeId => ({
-        employeeId,
-        date: startOfDay,
-        status: "Absent",
-        timeIn: null,
-        timeOut: null
-    }));
-
-    // Only create absent records if after cutoff time and no prior record
     if (new Date().toLocaleTimeString('en-US', { hour12: false }) > CUTOFF_TIME) {
         const existingRecords = await Attendance.find({
             employeeId: { $in: absentEmployeeIds },
-            date: { $gte: startOfDay, $lte: endOfDay }
+            date: { $gte: startOfDay, $lte: endOfDay },
         });
         const employeesToMarkAbsent = absentEmployeeIds.filter(id =>
             !existingRecords.some(record => record.employeeId.toString() === id)
@@ -154,8 +157,10 @@ exports.checkAbsent = asyncHandler(async (req, res) => {
                     employeeId,
                     date: startOfDay,
                     status: "Absent",
-                    timeIn: null,
-                    timeOut: null
+                    morningTimeIn: null,
+                    morningTimeOut: null,
+                    afternoonTimeIn: null,
+                    afternoonTimeOut: null,
                 }))
             );
         }
@@ -163,8 +168,8 @@ exports.checkAbsent = asyncHandler(async (req, res) => {
 
     res.status(200).json({
         message: 'Absent employees checked',
-        absentCount: absentRecords.length,
-        absentEmployeeIds
+        absentCount: absentEmployeeIds.length,
+        absentEmployeeIds,
     });
 });
 

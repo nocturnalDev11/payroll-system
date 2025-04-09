@@ -3,16 +3,50 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
+import {
+    calculateTotalEarnings,
+    calculatePayheadEarnings,
+    calculatePayheadDeductions,
+    calculateSupplementaryIncome,
+    calculateNonTaxableIncome,
+    calculateTotalDeductions,
+    calculateNetSalary,
+    calculateHolidayPay,
+    calculateOvertimePay,
+    calculateSSSContribution,
+    calculatePhilHealthContribution,
+    calculatePagIBIGContribution,
+    calculateWithholdingTax,
+} from '@/utils/calculations.js';
 
 const authStore = useAuthStore();
 const router = useRouter();
 const token = localStorage.getItem('token');
 const employee = ref(null);
 const attendanceRecords = ref([]);
-const todayAttendance = ref([]); // For admin view
+const todayAttendance = ref([]);
 const isTimedIn = ref(false);
 const isLoading = ref(false);
-const currentPayPeriod = ref('Mar 16 - Mar 31, 2025');
+
+const currentPayPeriod = computed(() => {
+    const today = new Date();
+    const month = today.getMonth();
+    const year = today.getFullYear();
+    const day = today.getDate();
+
+    const monthNames = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+
+    // Determine if it's the first half (1st-15th) or second half (16th-end) of the month
+    if (day <= 15) {
+        return `${monthNames[month]} 01 - ${monthNames[month]} 15, ${year}`;
+    } else {
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        return `${monthNames[month]} 16 - ${monthNames[month]} ${lastDay}, ${year}`;
+    }
+});
 
 // Time constants
 const OFFICE_START = '08:00:00';
@@ -141,7 +175,10 @@ async function checkTimedInStatus() {
         (record) => new Date(record.date).toISOString().split('T')[0] === today
     );
     const latestRecord = todayRecords[todayRecords.length - 1];
-    isTimedIn.value = latestRecord && (latestRecord.morningTimeIn || latestRecord.afternoonTimeIn) && !(latestRecord.morningTimeOut && latestRecord.afternoonTimeOut);
+    isTimedIn.value =
+        latestRecord &&
+        (latestRecord.morningTimeIn || latestRecord.afternoonTimeIn) &&
+        !(latestRecord.morningTimeOut && latestRecord.afternoonTimeOut);
 }
 
 async function timeIn() {
@@ -230,28 +267,65 @@ const formatNumber = (value) => {
     });
 };
 
-// Salary Calculations (unchanged, keeping brief)
-const calculateTotalEarnings = () => { /* ... */ };
-const calculatePayheadEarnings = (payheads) => { /* ... */ };
-const calculatePayheadDeductions = (payheads) => { /* ... */ };
-const calculateSupplementaryIncome = () => { /* ... */ };
-const calculateNonTaxableIncome = () => { /* ... */ };
-const calculateTotalDeductions = () => { /* ... */ };
-const calculateNetSalary = () => { /* ... */ };
-const calculateHolidayPay = () => { /* ... */ };
-const calculateOvertimePay = () => { /* ... */ };
-const calculateSSSContribution = (salary) => { /* ... */ };
-const calculatePhilHealthContribution = (salary) => { /* ... */ };
-const calculatePagIBIGContribution = (salary) => { /* ... */ };
-const calculateWithholdingTax = () => { /* ... */ };
+// Reusable Payroll Computations
+const earningsBreakdown = computed(() => {
+    if (!employee.value) return [];
+    const monthlySalary = Number(employee.value.salary || 0);
+    const travelExpenses = Number(employee.value.earnings?.travelExpenses || 0);
+    const otherEarnings = Number(employee.value.earnings?.otherEarnings || 0);
+    const holidayPay = calculateHolidayPay(employee.value, config);
+    const overtimePay = calculateOvertimePay(employee.value);
+    const payheadEarnings = calculatePayheadEarnings(employee.value.payheads);
+    const supplementary = calculateSupplementaryIncome(employee.value);
 
-// Computed Properties
-const earningsBreakdown = computed(() => { /* ... */ });
-const deductionsBreakdown = computed(() => { /* ... */ });
-const totalEarnings = computed(() => formatNumber(calculateTotalEarnings()));
-const totalDeductions = computed(() => formatNumber(calculateTotalDeductions()));
-const netSalary = computed(() => formatNumber(calculateNetSalary()));
-const employeeInitials = computed(() => employee.value?.firstName && employee.value?.lastName ? `${employee.value.firstName[0]}${employee.value.lastName[0]}`.toUpperCase() : '');
+    return [
+        { name: 'Basic Salary', amount: formatNumber(monthlySalary) },
+        travelExpenses > 0 && { name: 'Travel Expenses', amount: formatNumber(travelExpenses) },
+        otherEarnings > 0 && { name: 'Other Earnings', amount: formatNumber(otherEarnings) },
+        holidayPay > 0 && { name: 'Holiday Pay', amount: formatNumber(holidayPay) },
+        overtimePay > 0 && { name: 'Overtime Pay', amount: formatNumber(overtimePay) },
+        payheadEarnings > 0 && { name: 'Payhead Earnings', amount: formatNumber(payheadEarnings) },
+        supplementary.taxable > 0 && { name: 'Supplementary Income', amount: formatNumber(supplementary.taxable) },
+    ].filter(Boolean);
+});
+
+const deductionsBreakdown = computed(() => {
+    if (!employee.value) return [];
+    const sssContribution = calculateSSSContribution(employee.value.salary);
+    const philhealthContribution = calculatePhilHealthContribution(employee.value.salary);
+    const pagibigContribution = calculatePagIBIGContribution(employee.value.salary);
+    const withholdingTax = calculateWithholdingTax(employee.value, config);
+    const payheadDeductions = calculatePayheadDeductions(employee.value.payheads);
+
+    return [
+        sssContribution > 0 && { name: 'SSS Contribution', amount: formatNumber(sssContribution) },
+        philhealthContribution > 0 && { name: 'PhilHealth Contribution', amount: formatNumber(philhealthContribution) },
+        pagibigContribution > 0 && { name: 'Pag-IBIG Contribution', amount: formatNumber(pagibigContribution) },
+        withholdingTax > 0 && { name: 'Withholding Tax', amount: formatNumber(withholdingTax) },
+        payheadDeductions > 0 && { name: 'Payhead Deductions', amount: formatNumber(payheadDeductions) },
+    ].filter(Boolean);
+});
+
+const totalEarnings = computed(() => {
+    if (!employee.value) return '0.00';
+    return formatNumber(calculateTotalEarnings(employee.value, config));
+});
+
+const totalDeductions = computed(() => {
+    if (!employee.value) return '0.00';
+    return formatNumber(calculateTotalDeductions(employee.value, config));
+});
+
+const netSalary = computed(() => {
+    if (!employee.value) return '0.00';
+    return formatNumber(calculateNetSalary(employee.value, config));
+});
+
+const employeeInitials = computed(() =>
+    employee.value?.firstName && employee.value?.lastName
+        ? `${employee.value.firstName[0]}${employee.value.lastName[0]}`.toUpperCase()
+        : ''
+);
 
 function formatDate(date) {
     if (!date) return '--';
@@ -391,16 +465,21 @@ function getStatusClass(status) {
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <tr v-for="record in attendanceRecords" :key="record._id" class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{
-                                            formatDate(record.date) }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{
-                                            formatTime(record.morningTimeIn) }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{
-                                            formatTime(record.morningTimeOut) }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{
-                                            formatTime(record.afternoonTimeIn) }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{
-                                            formatTime(record.afternoonTimeOut) }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ formatDate(record.date) }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ formatTime(record.morningTimeIn) }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ formatTime(record.morningTimeOut) }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ formatTime(record.afternoonTimeIn) }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ formatTime(record.afternoonTimeOut) }}
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                                             <span :class="getStatusClass(record.status)">{{ record.status }}</span>
                                         </td>
