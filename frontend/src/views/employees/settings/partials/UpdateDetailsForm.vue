@@ -123,7 +123,7 @@ const updateEmployee = async () => {
                 <div>
                     <InputLabel for="civilStatus" value="Civil Status" /><select v-model="form.civilStatus"
                         id="civilStatus"
-                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
                         <option value="">Select</option>
                         <option v-for="status in civilStatusOptions" :key="status" :value="status">{{ status }}</option>
                     </select>

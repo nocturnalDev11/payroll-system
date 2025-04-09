@@ -1,3 +1,4 @@
+require('dotenv').config();
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcrypt');
 const Employee = require('../../models/employee.model.js');

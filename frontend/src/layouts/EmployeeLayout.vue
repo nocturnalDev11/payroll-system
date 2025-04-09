@@ -1,3 +1,4 @@
+<!-- EmployeeLayout.vue -->
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -23,7 +24,7 @@ const logout = () => {
 };
 
 const settingsRoute = computed(() => {
-    return employee.value?.id ? `/employee/settings/${employee.value.id}` : '/employee/login';
+    return employee.value?._id ? `/employee/settings/${employee.value._id}` : '/employee/login';
 });
 
 const navigationLinks = [
@@ -44,11 +45,10 @@ const getLinkIcon = (name) => {
 
 const handleImageError = async () => {
     console.error('Failed to load profile picture:', employee.value?.profilePicture);
-    imageLoadFailed.value = true; // Switch to fallback
-    // Optionally refetch employee data to ensure profilePicture is correct
+    imageLoadFailed.value = true;
     try {
-        await authStore.fetchEmployeeDetails(employee.value.id);
-        imageLoadFailed.value = !employee.value?.profilePicture; // Reset if new data has a valid picture
+        await authStore.fetchEmployeeDetails(employee.value._id); // Use _id
+        imageLoadFailed.value = !employee.value?.profilePicture;
     } catch (err) {
         console.error('Failed to refetch employee data:', err);
     }
@@ -73,7 +73,7 @@ const handleImageError = async () => {
                                 class="flex items-center bg-white/5 rounded-lg p-1 sm:p-2 hover:bg-white/10 transition-all cursor-pointer">
                                 <div class="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center overflow-hidden">
                                     <img v-if="employee && employee.profilePicture && !imageLoadFailed"
-                                        :src="`${BASE_API_URL}${employee.profilePicture}`" :alt="employee.firstName"
+                                        :src="employee.profilePicture" :alt="employee.firstName"
                                         class="h-full w-full object-cover rounded-full" @error="handleImageError">
                                     <div v-else
                                         class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-teal-600 flex items-center justify-center">

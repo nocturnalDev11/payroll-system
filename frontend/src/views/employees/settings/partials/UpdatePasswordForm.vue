@@ -144,8 +144,8 @@ const submitRequest = async () => {
 <template>
     <div>
         <header>
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Update Password</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Ensure your account is secure.</p>
+            <h2 class="text-lg font-medium text-gray-900">Update Password</h2>
+            <p class="mt-1 text-sm text-gray-600">Ensure your account is secure.</p>
         </header>
 
         <form @submit.prevent="submitRequest" class="mt-6 space-y-6">

@@ -3,13 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth.store.js';
 import { BASE_API_URL } from '@/utils/constants.js';
 
-defineProps({
-    employee: {
-        type: Object,
-        default: () => ({}),
-    },
-});
-
+defineProps({ employee: { type: Object, default: () => ({}) } });
 const emit = defineEmits(['employeeUpdated']);
 
 const authStore = useAuthStore();
@@ -22,29 +16,24 @@ const previewUrl = computed(() => {
     if (selectedFile.value) {
         return URL.createObjectURL(selectedFile.value);
     }
-    return profilePic ? `${BASE_API_URL}${profilePic}` : null;
+    return profilePic || null; // Use raw URL
 });
 
-const triggerUpload = () => {
-    fileInput.value.click();
-};
+const triggerUpload = () => fileInput.value.click();
 
 const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
     if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
         error.value = 'Only JPEG/JPG/PNG images are allowed';
         selectedFile.value = null;
         return;
     }
-
     if (file.size > 5 * 1024 * 1024) {
         error.value = 'File size must be less than 5MB';
         selectedFile.value = null;
         return;
     }
-
     error.value = null;
     selectedFile.value = file;
 };
@@ -54,32 +43,23 @@ const uploadFile = async () => {
         error.value = 'No file selected';
         return;
     }
-
     const formData = new FormData();
     formData.append('profilePicture', selectedFile.value);
-
     try {
         const headers = {
             'Authorization': `Bearer ${authStore.accessToken}`,
             'user-role': authStore.userRole || 'employee',
-            'user-id': authStore.employee?.id?.toString() || '',
+            'user-id': authStore.employee?._id?.toString() || '', // Use _id
         };
-
         const response = await fetch(`${BASE_API_URL}/api/employees/profile-picture`, {
             method: 'POST',
             headers,
             body: formData,
         });
-
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Upload failed:', response.status, errorText);
-            if (response.status === 401 || response.status === 403) {
-                throw new Error('Authentication failed');
-            }
             throw new Error(`Upload failed: ${response.statusText} - ${errorText}`);
         }
-
         const result = await response.json();
         authStore.employee.profilePicture = result.profilePicture;
         authStore.saveEmployee(authStore.employee);
@@ -90,16 +70,12 @@ const uploadFile = async () => {
         error.value = `Failed to upload profile picture: ${err.message}`;
         selectedFile.value = null;
         console.error('Upload error details:', err);
-        if (err.message === 'Authentication failed') {
-            authStore.logout();
-            router.push('/employee-login');
-        }
     }
 };
 
 const clearUpload = async () => {
     try {
-        const response = await fetch(`${BASE_API_URL}/api/employees/update/${authStore.employee.id}`, {
+        const response = await fetch(`${BASE_API_URL}/api/employees/update/${authStore.employee._id}`, { // Use _id
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${authStore.accessToken}`,
@@ -107,12 +83,10 @@ const clearUpload = async () => {
             },
             body: JSON.stringify({ profilePicture: null }),
         });
-
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`Failed to clear profile picture: ${response.statusText} - ${errorText}`);
         }
-
         authStore.employee.profilePicture = null;
         authStore.saveEmployee(authStore.employee);
         selectedFile.value = null;
@@ -134,8 +108,8 @@ const handleImageError = () => {
 <template>
     <div class="max-w-3xl">
         <header class="pb-6">
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Profile Picture</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Update your profile picture.</p>
+            <h2 class="text-lg font-medium text-gray-900">Profile Picture</h2>
+            <p class="mt-1 text-sm text-gray-600">Update your profile picture.</p>
         </header>
         <form @submit.prevent="uploadFile">
             <div class="hs-file-upload" data-hs-file-upload='{
@@ -151,7 +125,7 @@ const handleImageError = () => {
                                 @error="handleImageError" />
                         </div>
                         <span v-else
-                            class="flex justify-center items-center size-20 border-2 border-dotted border-gray-300 text-gray-400 cursor-pointer rounded-full hover:bg-gray-50 dark:border-neutral-700 dark:text-neutral-600 dark:hover:bg-neutral-700/50"
+                            class="flex justify-center items-center size-20 border-2 border-dotted border-gray-300 text-gray-400 cursor-pointer rounded-full hover:bg-gray-50"
                             @click="triggerUpload">
                             <svg class="shrink-0 size-7" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
