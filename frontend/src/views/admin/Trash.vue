@@ -1,12 +1,13 @@
 <template>
-    <div class="min-h-screen p-6">
-        <header class="bg-white shadow-sm p-3 flex justify-between items-center sticky top-0 z-20 rounded-lg">
+    <div class="min-h-screen p-6 space-y-3">
+        <header
+            class="bg-white shadow-lg p-3 flex flex-col md:flex-row justify-between items-start md:items-center sticky top-0 z-20 rounded-lg gap-3 md:gap-0">
             <h1 class="text-lg font-bold text-gray-800">Trash Bin</h1>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
                 <input v-model="searchQuery" type="text" placeholder="Search employees..."
-                    class="p-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 w-48" />
+                    class="p-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 w-full sm:w-48" />
                 <button @click="refreshAll"
-                    class="bg-indigo-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-indigo-700 transition flex items-center gap-1">
+                    class="bg-indigo-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-indigo-700 transition flex items-center gap-1 w-full sm:w-auto justify-center">
                     <span class="material-icons text-lg">refresh</span>
                     Refresh
                 </button>
