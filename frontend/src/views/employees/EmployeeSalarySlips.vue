@@ -661,7 +661,7 @@ export default {
         <div class="max-w-6xl mx-auto space-y-3">
             <header
                 class="bg-white shadow-sm p-3 flex flex-col sm:flex-row sm:justify-between sm:items-center sticky top-0 z-40 rounded-lg gap-4 sm:gap-0">
-                <h1 class="text-lg font-bold text-gray-900 animate-fade-in">My Salary Slips</h1>
+                <h1 class="text-2xl font-bold text-gray-900 animate-fade-in">My Salary Slips</h1>
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     <input v-model="selectedMonth" type="month"
                         class="w-full sm:w-auto p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-300 placeholder-gray-400 shadow-sm"

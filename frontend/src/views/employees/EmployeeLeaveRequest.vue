@@ -32,20 +32,15 @@ const paginatedRequests = computed(() => {
 // Helper to get employeeId and token from localStorage
 const getAuthData = () => {
     const token = localStorage.getItem('token');
-    if (!token) {
-        console.error('No token found in localStorage');
-        return { employeeId: null, token: null };
-    }
+    if (!token) return { employeeId: null, token: null };
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload.exp * 1000 < Date.now()) {
-            console.error('Token has expired');
             useAuthStore().logout();
             return { employeeId: null, token: null };
         }
         return { employeeId: payload.employeeId, token };
     } catch (error) {
-        console.error('Failed to parse token:', error);
         return { employeeId: null, token: null };
     }
 };
@@ -53,13 +48,11 @@ const getAuthData = () => {
 // Fetch leave requests
 const fetchLeaveRequests = async () => {
     const { employeeId, token } = getAuthData();
-
     if (!employeeId || !token) {
         statusMessage.value = 'Authentication required. Please log in again.';
         setTimeout(() => statusMessage.value = '', 3000);
         return;
     }
-
     try {
         const response = await fetch(`${BASE_API_URL}/api/leaves/employee/${employeeId}`, {
             method: 'GET',
@@ -68,14 +61,10 @@ const fetchLeaveRequests = async () => {
                 'Authorization': `Bearer ${token}`
             },
         });
-        if (!response.ok) {
-            const text = await response.text();
-            throw new Error(`Failed to fetch leave requests: ${text}`);
-        }
+        if (!response.ok) throw new Error(`Failed to fetch: ${await response.text()}`);
         leaveRequests.value = await response.json() || [];
     } catch (error) {
-        console.error('Failed to fetch leave requests:', error);
-        statusMessage.value = 'Failed to load leave requests. Please try again.';
+        statusMessage.value = 'Failed to load leave requests.';
         setTimeout(() => statusMessage.value = '', 3000);
     }
 };
@@ -99,85 +88,95 @@ const previousPage = () => {
 
 // Format date
 const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
+    return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-// Watch for search query changes to reset page
 watch(searchQuery, () => {
     currentPage.value = 1;
 });
 
-// Lifecycle hook
 onMounted(() => {
     fetchLeaveRequests();
 });
 </script>
 
 <template>
-    <div class="min-h-screen p-1">
-        <div class="max-w-8xl mx-auto">
-            <!-- Header and Action Buttons -->
-
-
-            <header class="bg-white shadow-sm p-3 flex justify-between items-center sticky top-0 z-40 rounded-lg">
-                <h1 class="text-lg font-bold text-gray-900 animate-fade-in">My Leave Management</h1>
-                <div class="flex items-center gap-3">
-                    <input v-model="searchQuery" type="text" placeholder="Search by name, reason, or status..."
-                        class="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-300 placeholder-gray-400 shadow-sm" />
+    <div class="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-100 p-4">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <header
+                class="bg-white rounded-xl shadow-lg p-6 flex justify-between items-center sticky top-6 z-50 backdrop-blur-md bg-opacity-90">
+                <h1 class="text-2xl font-bold text-gray-900 animate-fade-in">Leave Request</h1>
+                <div class="flex items-center gap-4">
+                    <div class="relative w-full">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </span>
+                        <input v-model="searchQuery" type="text" placeholder="Search requests..."
+                            class="pl-10 pr-4 py-2 w-full rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-gray-50 text-gray-700 shadow-sm transition-all duration-300" />
+                    </div>
                     <button @click="showRequestLeave = true"
-                        class="bg-indigo-600 text-white px-2 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 flex items-center gap-2 animate-pulse-once">
-                        <span class="material-icons">add</span>
-                        Request Leave
+                        class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2">
+                        <span class="material-icons">add_circle</span>
+                        New Request
                     </button>
                 </div>
             </header>
 
-            <!-- Search Bar -->
-            <!-- <div class="mb-6">
-                <input v-model="searchQuery" type="text"
-                    class="w-full md:w-1/2 lg:w-1/3 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-300 placeholder-gray-400 shadow-sm"
-                    placeholder="Search by name, reason, or status..." />
-            </div> -->
-
-            <!-- Leave Requests Card -->
-            <div class="bg-white p-6 rounded-2xl shadow-lg transform transition-all hover:shadow-xl">
+            <!-- Main Content -->
+            <div
+                class="mt-6 bg-white bg-opacity-95 backdrop-blur-md p-6 rounded-2xl shadow-xl transition-all duration-300">
                 <div class="space-y-6">
+                    <!-- Status Message -->
                     <div v-if="statusMessage"
-                        class="p-4 bg-green-100 text-green-700 rounded-lg text-center animate-bounce-in">
+                        class="p-4 bg-green-50 text-green-800 rounded-lg flex items-center gap-2 shadow-md animate-bounce-in">
+                        <span class="material-icons">check_circle</span>
                         {{ statusMessage }}
                     </div>
 
+                    <!-- No Requests Found -->
                     <div v-if="paginatedRequests.length === 0" class="text-center py-12 text-gray-500">
-                        <span class="material-icons text-4xl text-gray-400 mb-2">event_busy</span>
-                        <p>No leave requests found.{{ searchQuery ? ' Try adjusting your search.' : '' }}</p>
+                        <span class="material-icons text-5xl text-indigo-300 mb-4 animate-pulse">event_busy</span>
+                        <p class="text-lg font-medium">No leave requests found{{ searchQuery ? ' - adjust your search' :
+                            '' }}</p>
                     </div>
 
-                    <transition-group name="list" tag="div" class="grid gap-4">
+                    <!-- Leave Requests List -->
+                    <transition-group name="list" tag="div" class="grid gap-5">
                         <div v-for="request in paginatedRequests" :key="request._id"
-                            class="border border-gray-200 rounded-xl p-5 bg-gray-50 hover:bg-gray-100 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-md cursor-pointer group"
-                            @click="$emit('view-details', request)">
-                            <div class="flex justify-between items-start gap-4">
+                            class="bg-gradient-to-r from-white to-gray-50 rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group border border-indigo-100">
+                            <div class="flex justify-between items-center gap-4">
                                 <div class="flex-1">
                                     <h3
-                                        class="text-lg font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">
+                                        class="text-xl font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
+                                        <span class="material-icons text-indigo-500">person</span>
                                         {{ request.employeeName }}
                                     </h3>
-                                    <p class="text-sm text-gray-600">
+                                    <p class="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                                        <span class="material-icons text-sm">calendar_today</span>
                                         {{ formatDate(request.startDate) }} - {{ formatDate(request.endDate) }}
                                     </p>
-                                    <p class="mt-2 text-gray-700 line-clamp-2">{{ request.reason }}</p>
+                                    <p class="mt-2 text-gray-700 flex items-start gap-2">
+                                        <span class="material-icons text-sm mt-1">notes</span>
+                                        {{ request.reason }}
+                                    </p>
                                 </div>
                                 <div class="flex-shrink-0">
                                     <span :class="{
-                                        'bg-yellow-100 text-yellow-700': request.status === 'Pending',
-                                        'bg-green-100 text-green-700': request.status === 'Approved',
-                                        'bg-red-100 text-red-700': request.status === 'Disapproved'
+                                        'bg-yellow-100 text-yellow-800': request.status === 'Pending',
+                                        'bg-green-100 text-green-800': request.status === 'Approved',
+                                        'bg-red-100 text-red-800': request.status === 'Disapproved'
                                     }"
-                                        class="px-3 py-1 rounded-full text-sm font-medium relative group-hover:scale-105 transition-transform">
+                                        class="px-4 py-1 rounded-full text-sm font-medium shadow-sm group-hover:scale-110 transition-transform flex items-center gap-1">
+                                        <span class="material-icons text-sm"
+                                            v-if="request.status === 'Pending'">hourglass_empty</span>
+                                        <span class="material-icons text-sm"
+                                            v-if="request.status === 'Approved'">check</span>
+                                        <span class="material-icons text-sm"
+                                            v-if="request.status === 'Disapproved'">close</span>
                                         {{ request.status }}
                                     </span>
                                 </div>
@@ -187,22 +186,27 @@ onMounted(() => {
 
                     <!-- Pagination -->
                     <div v-if="filteredRequests.length > 0"
-                        class="mt-8 flex justify-between items-center flex-wrap gap-4">
-                        <div class="flex items-center gap-2 text-sm text-gray-600">
-                            <span>Showing {{ paginatedRequests.length }} of {{ filteredRequests.length }}
-                                requests</span>
-                            <select v-model.number="requestsPerPage" class="border border-gray-300 rounded-lg p-1">
+                        class="mt-8 flex justify-between items-center flex-wrap gap-4 bg-indigo-50 p-4 rounded-lg shadow-inner">
+                        <div class="flex items-center gap-3 text-gray-600">
+                            <span class="flex items-center gap-1">
+                                <span class="material-icons">list</span>
+                                {{ paginatedRequests.length }} of {{ filteredRequests.length }}
+                            </span>
+                            <select v-model.number="requestsPerPage"
+                                class="border border-indigo-200 rounded-lg p-2 bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                                 <option v-for="n in [5, 10, 20]" :key="n" :value="n">{{ n }} per page</option>
                             </select>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-3">
                             <button @click="previousPage" :disabled="currentPage === 1"
-                                class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
+                                class="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 shadow-md">
                                 <span class="material-icons">chevron_left</span>
                             </button>
-                            <span class="text-gray-700">{{ currentPage }} of {{ totalPages }}</span>
+                            <span class="text-indigo-700 font-semibold bg-indigo-100 px-4 py-1 rounded-full shadow-sm">
+                                {{ currentPage }} / {{ totalPages }}
+                            </span>
                             <button @click="nextPage" :disabled="currentPage === totalPages"
-                                class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
+                                class="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 shadow-md">
                                 <span class="material-icons">chevron_right</span>
                             </button>
                         </div>
@@ -213,12 +217,13 @@ onMounted(() => {
             <!-- Request Leave Modal -->
             <RequestLeave v-if="showRequestLeave" :show="showRequestLeave" @close="showRequestLeave = false"
                 @submit="handleLeaveRequestSubmitted"
-                class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" />
+                class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" />
         </div>
     </div>
 </template>
 
 <style scoped>
+/* Animations */
 .animate-fade-in {
     animation: fadeIn 0.5s ease-in;
 }
@@ -227,21 +232,22 @@ onMounted(() => {
     animation: bounceIn 0.5s ease-out;
 }
 
-.animate-pulse-once {
-    animation: pulse 1s ease-out forwards;
+.animate-pulse {
+    animation: pulse 2s infinite;
 }
 
 .list-enter-active,
 .list-leave-active {
-    transition: all 0.3s ease;
+    transition: all 0.5s ease;
 }
 
 .list-enter-from,
 .list-leave-to {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(20px);
 }
 
+/* Keyframes */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -254,13 +260,13 @@ onMounted(() => {
 
 @keyframes bounceIn {
     0% {
-        transform: scale(0.9);
+        transform: scale(0.95);
         opacity: 0;
     }
 
     50% {
-        transform: scale(1.05);
-        opacity: 0.8;
+        transform: scale(1.02);
+        opacity: 0.9;
     }
 
     100% {
@@ -283,19 +289,25 @@ onMounted(() => {
     }
 }
 
-/* Responsive adjustments */
+/* Responsive Design */
 @media (max-width: 640px) {
-    .flex.justify-between {
+    header {
         flex-direction: column;
         gap: 1rem;
+        padding: 1rem;
     }
 
-    h1 {
-        font-size: 2rem;
-    }
-
-    button {
+    .flex.items-center.gap-4 {
+        flex-direction: column;
         width: 100%;
+    }
+
+    .text-2xl {
+        font-size: 1.5rem;
+    }
+
+    .grid.gap-5 {
+        gap: 1rem;
     }
 }
 </style>
