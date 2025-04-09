@@ -15,29 +15,20 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-    async function fetchEmployeeDetails(id) {
+    async function fetchEmployeeDetails(_id) {
         try {
             const headers = {
                 'Authorization': `Bearer ${accessToken.value}`,
                 'Content-Type': 'application/json',
                 'user-role': userRole.value || 'employee',
             };
+            if (admin.value?._id) headers['user-id'] = admin.value._id.toString();
+            else if (employee.value?._id) headers['user-id'] = employee.value._id.toString();
 
-            if (admin.value && admin.value.id) {
-                headers['user-id'] = admin.value.id.toString();
-            } else if (employee.value && employee.value.id) {
-                headers['user-id'] = employee.value.id.toString();
-            }
-
-            const response = await fetch(`${BASE_API_URL}/api/employees/${id}`, {
-                headers,
-            });
-
-            if (!response.ok) throw new Error('Failed to fetch employee details');
+            const response = await fetch(`${BASE_API_URL}/api/employees/${_id}`, { headers });
+            if (!response.ok) throw new Error(`Failed to fetch employee details: ${response.status} - ${await response.text()}`);
             const employeeData = await response.json();
-            console.log('Fetched employee data:', employeeData);
             employee.value = { ...employee.value, ...employeeData };
-            console.log('Updated employee value:', employee.value);
             saveEmployee(employee.value);
         } catch (error) {
             console.error('Error fetching employee details:', error);

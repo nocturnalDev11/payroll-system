@@ -78,14 +78,16 @@ export default {
             <div
                 class="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 space-y-6 transform transition-all duration-500 ease-out animate-fadeIn">
                 <div class="text-center space-y-2">
-                    <div
-                        class="bg-indigo-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse-slow">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016zM12 9v2m0 4h.01" />
-                        </svg>
-                    </div>
+                    <router-link :to="{ name: 'LoginSelection' }">
+                        <div
+                            class="bg-indigo-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse-slow">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016zM12 9v2m0 4h.01" />
+                            </svg>
+                        </div>
+                    </router-link>
                     <h1 class="text-2xl font-bold text-gray-900">Admin Portal</h1>
                     <p class="text-gray-500 text-sm">Secure administrative access</p>
                 </div>
@@ -130,8 +132,8 @@ export default {
                             </div>
                             <input v-model="password" :type="showPassword ? 'text' : 'password'" id="password"
                                 name="password" :class="['block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-0 focus:border-gray-300 outline-none backdrop-blur-sm transition-all duration-300 ease-in-out hover:border-indigo-300',
-                                    loginError ? 'border-red-300' : 'border-gray-300']" placeholder="Enter your password"
-                                required />
+                                    loginError ? 'border-red-300' : 'border-gray-300']"
+                                placeholder="Enter your password" required />
                             <button type="button" @click="togglePasswordVisibility"
                                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700">
                                 <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"

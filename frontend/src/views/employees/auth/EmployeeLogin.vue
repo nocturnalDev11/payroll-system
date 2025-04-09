@@ -3,8 +3,10 @@ import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store.js';
 import { BASE_API_URL } from '@/utils/constants.js';
-import EmployeeSignup from './EmployeeSignup.vue';
 import Toast from '@/components/Toast.vue';
+import TextInput from '@/components/TextInput.vue';
+import InputLabel from '@/components/InputLabel.vue';
+import EmployeeSignup from './EmployeeSignup.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -14,6 +16,7 @@ const username = ref('');
 const password = ref('');
 const auth = useAuthStore();
 const toasts = ref([]);
+const showPassword = ref(false);
 
 // Function to add a new toast
 function addToast(message, type = 'info') {
@@ -24,6 +27,11 @@ function addToast(message, type = 'info') {
 // Function to remove a toast
 function removeToast(id) {
     toasts.value = toasts.value.filter(toast => toast.id !== id);
+}
+
+// Toggle password visibility
+function togglePassword() {
+    showPassword.value = !showPassword.value;
 }
 
 async function login() {
@@ -100,30 +108,38 @@ async function login() {
 
             <div class="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 space-y-6">
                 <div class="text-center space-y-2">
-                    <div class="bg-blue-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                    </div>
+                    <router-link :to="{ name: 'LoginSelection' }">
+                        <div class="bg-blue-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                    </router-link>
                     <h1 class="text-2xl font-bold text-gray-900">Employee Portal</h1>
                     <p class="text-gray-500 text-sm">Welcome to your workspace</p>
                 </div>
 
                 <form @submit.prevent="login" class="space-y-4">
                     <div class="space-y-1">
-                        <label for="username" class="text-sm font-medium text-gray-700">Username</label>
-                        <input v-model="username" type="text" id="username"
-                            class="block w-full p-2 border border-gray-300 rounded-lg" placeholder="Enter your username"
-                            required>
+                        <InputLabel for="username" value="Username" />
+                        <TextInput id="username" v-model="username" type="text" class="mt-1 block w-full"
+                            placeholder="Enter your username" required />
                     </div>
 
                     <div class="space-y-1">
-                        <label for="password" class="text-sm font-medium text-gray-700">Password</label>
-                        <input v-model="password" type="password" id="password"
-                            class="block w-full p-2 border border-gray-300 rounded-lg" placeholder="Enter your password"
-                            required>
+                        <InputLabel for="password" value="Password" />
+                        <div class="relative">
+                            <TextInput id="password" class="mt-1 block w-full" v-model="password"
+                                :type="showPassword ? 'text' : 'password'" placeholder="Enter your password" required />
+                            <span @click="togglePassword"
+                                class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-gray-500">
+                                <i class="material-icons">
+                                    {{ showPassword ? 'visibility_off' : 'visibility' }}
+                                </i>
+                            </span>
+                        </div>
                     </div>
 
                     <div class="flex items-center justify-end">
