@@ -5,6 +5,7 @@ import autoTable from 'jspdf-autotable';
 import moment from 'moment';
 import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
+import Modal from '@/components/Modal.vue';
 
 jsPDF.prototype.autoTable = autoTable.default;
 
@@ -658,14 +659,15 @@ export default {
 <template>
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
         <div class="max-w-6xl mx-auto space-y-3">
-            <header class="bg-white shadow-sm p-3 flex justify-between items-center sticky top-0 z-40 rounded-lg">
+            <header
+                class="bg-white shadow-sm p-3 flex flex-col sm:flex-row sm:justify-between sm:items-center sticky top-0 z-40 rounded-lg gap-4 sm:gap-0">
                 <h1 class="text-lg font-bold text-gray-900 animate-fade-in">My Salary Slips</h1>
-                <div class="flex items-center gap-3">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     <input v-model="selectedMonth" type="month"
-                        class="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-300 placeholder-gray-400 shadow-sm"
+                        class="w-full sm:w-auto p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-300 placeholder-gray-400 shadow-sm"
                         @change="fetchPayslipHistory" />
                     <button @click="fetchPayslipHistory"
-                        class="bg-indigo-600 text-white px-2 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 flex items-center gap-2 animate-pulse-once"
+                        class="bg-indigo-600 text-white px-4 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2 animate-pulse-once"
                         :disabled="isLoading">
                         <span class="material-icons text-sm">{{ isLoading ? 'sync' : 'refresh' }}</span>
                         {{ isLoading ? 'Refreshing...' : 'Refresh' }}
@@ -754,7 +756,7 @@ export default {
 
                 <!-- Payslip Viewer Modal -->
                 <div v-if="showPayslipModal"
-                    class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    class="fixed inset-0 flex items-center justify-center bg-black/50 z-[1000]">
                     <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl m-4 max-h-[90vh] flex flex-col">
                         <div class="p-6 border-b border-gray-300 flex justify-between items-center">
                             <h2 class="text-xl font-bold text-gray-800">
@@ -762,7 +764,8 @@ export default {
                                 selectedPayslip?.expectedPaydays.midMonthPayday :
                                 selectedPayslip?.expectedPaydays.endMonthPayday }}
                             </h2>
-                            <button @click="showPayslipModal = false" class="text-gray-500 hover:text-gray-700 cursor-pointer">
+                            <button @click="showPayslipModal = false"
+                                class="text-gray-500 hover:text-gray-700 cursor-pointer">
                                 <span class="material-icons">close</span>
                             </button>
                         </div>

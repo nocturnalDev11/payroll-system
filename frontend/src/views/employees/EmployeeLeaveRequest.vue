@@ -121,6 +121,8 @@ onMounted(() => {
     <div class="min-h-screen p-1">
         <div class="max-w-8xl mx-auto">
             <!-- Header and Action Buttons -->
+
+
             <header class="bg-white shadow-sm p-3 flex justify-between items-center sticky top-0 z-40 rounded-lg">
                 <h1 class="text-lg font-bold text-gray-900 animate-fade-in">My Leave Management</h1>
                 <div class="flex items-center gap-3">
@@ -133,6 +135,13 @@ onMounted(() => {
                     </button>
                 </div>
             </header>
+
+            <!-- Search Bar -->
+            <!-- <div class="mb-6">
+                <input v-model="searchQuery" type="text"
+                    class="w-full md:w-1/2 lg:w-1/3 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-300 placeholder-gray-400 shadow-sm"
+                    placeholder="Search by name, reason, or status..." />
+            </div> -->
 
             <!-- Leave Requests Card -->
             <div class="bg-white p-6 rounded-2xl shadow-lg transform transition-all hover:shadow-xl">

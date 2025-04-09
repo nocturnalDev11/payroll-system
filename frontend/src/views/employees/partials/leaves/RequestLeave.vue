@@ -3,15 +3,12 @@ import { ref } from 'vue';
 import Modal from '@/components/Modal.vue';
 import { BASE_API_URL } from '@/utils/constants.js';
 
-// Define props
 const props = defineProps({
     show: Boolean,
-    onSubmit: Function,
 });
 
-const emit = defineEmits(['open', 'close']);
+const emit = defineEmits(['close', 'submit']);
 
-// State
 const newLeave = ref({
     startDate: '',
     endDate: '',
@@ -21,37 +18,24 @@ const newLeave = ref({
 const isSubmitting = ref(false);
 const statusMessage = ref('');
 
-// Helper to get token and employeeId from localStorage
 const getAuthData = () => {
     const token = localStorage.getItem('token');
-    if (!token) {
-        console.error('No token found in localStorage');
-        return { employeeId: null, token: null };
-    }
-
+    if (!token) return { employeeId: null, token: null };
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.exp * 1000 < Date.now()) {
-            console.error('Token has expired');
-            return { employeeId: null, token: null };
-        }
-        console.log('Frontend decoded employeeId:', payload.employeeId); // Debug log
+        if (payload.exp * 1000 < Date.now()) return { employeeId: null, token: null };
         return { employeeId: payload.employeeId, token };
     } catch (error) {
-        console.error('Failed to parse token:', error);
         return { employeeId: null, token: null };
     }
 };
 
 const submitLeaveRequest = async () => {
     isSubmitting.value = true;
-    const { employeeId, token } = getAuthData();
+    const { token } = getAuthData();
 
-    console.log('Token:', token);
-    console.log('Employee ID from frontend:', employeeId);
-
-    if (!token || !employeeId) {
-        statusMessage.value = 'Authentication required. Please log in again.';
+    if (!token) {
+        statusMessage.value = 'Authentication required.';
         isSubmitting.value = false;
         setTimeout(() => (statusMessage.value = ''), 3000);
         return;
@@ -64,26 +48,18 @@ const submitLeaveRequest = async () => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
             },
-            body: JSON.stringify({
-                employeeId, // Include employeeId in payload
-                ...newLeave.value,
-                status: 'Pending',
-            }),
+            body: JSON.stringify(newLeave.value), // No need to send employeeId or status here
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server error: ${errorText}`);
-        }
+        if (!response.ok) throw new Error(`Server error: ${await response.text()}`);
 
         const newRequest = await response.json();
         statusMessage.value = 'Request submitted successfully!';
         resetForm();
-        if (props.onSubmit) props.onSubmit(newRequest);
+        emit('submit', newRequest);
         emit('close');
     } catch (error) {
-        console.error('Failed to submit leave request:', error);
-        statusMessage.value = error.message || 'Failed to submit leave request. Please try again.';
+        statusMessage.value = error.message || 'Failed to submit request.';
     } finally {
         isSubmitting.value = false;
         setTimeout(() => (statusMessage.value = ''), 3000);
@@ -91,11 +67,7 @@ const submitLeaveRequest = async () => {
 };
 
 const resetForm = () => {
-    newLeave.value = {
-        startDate: '',
-        endDate: '',
-        reason: '',
-    };
+    newLeave.value = { startDate: '', endDate: '', reason: '' };
 };
 
 const closeModal = () => {

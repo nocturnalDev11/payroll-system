@@ -33,25 +33,15 @@ exports.getLeaveRequestsByEmployee = asyncHandler(async (req, res) => {
 // Create a new leave request
 exports.createLeaveRequest = asyncHandler(async (req, res) => {
     const { startDate, endDate, reason } = req.body;
-    const employeeId = req.employeeId; // Set by restrictToEmployee middleware
-
-    console.log('Request Body:', req.body);
-    console.log('Employee ID from token:', employeeId);
+    const employeeId = req.employeeId;
 
     const start = moment(startDate);
     const end = moment(endDate);
-    if (!start.isValid() || !end.isValid()) {
-        return res.status(400).json({ message: 'Invalid date format' });
-    }
-    if (end.isBefore(start)) {
-        return res.status(400).json({ message: 'End date cannot be before start date' });
-    }
+    if (!start.isValid() || !end.isValid()) return res.status(400).json({ message: 'Invalid date format' });
+    if (end.isBefore(start)) return res.status(400).json({ message: 'End date cannot be before start date' });
 
-    if (!Employee) throw new Error('Employee model is not initialized');
     const employee = await Employee.findById(employeeId);
-    if (!employee) {
-        return res.status(404).json({ message: 'Employee not found' });
-    }
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
     const leaveRequest = new LeaveRequest({
         employeeId,
@@ -59,11 +49,11 @@ exports.createLeaveRequest = asyncHandler(async (req, res) => {
         startDate: start.toISOString(),
         endDate: end.toISOString(),
         reason,
-        status: 'Pending',
+        status: 'Pending'
     });
 
-    await leaveRequest.save();
-    res.status(201).json(leaveRequest);
+    const savedRequest = await leaveRequest.save();
+    res.status(201).json({ _id: savedRequest._id.toString(), ...savedRequest._doc });
 });
 
 // Approve a leave request

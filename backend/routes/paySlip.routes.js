@@ -5,15 +5,6 @@ const Employee = require('../models/employee.model.js');
 const Payslip = require('../models/paySlip.model.js');
 const { verifyToken } = require('../middlewares/authMiddleware.js');
 
-// Middleware to check for admin role
-const isAdmin = (req, res, next) => {
-    const userRole = req.headers['user-role'];
-    if (!userRole || userRole.toLowerCase() !== 'admin') {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-    next();
-};
-
 // GET payslips for an employee
 router.get('/:employeeId', verifyToken, async (req, res) => {
     try {
