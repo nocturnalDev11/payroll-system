@@ -1,3 +1,4 @@
+<!-- UpdatePasswordForm.vue -->
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
@@ -6,10 +7,11 @@ import { useAuthStore } from '@/stores/auth.store.js';
 import TextInput from '@/components/TextInput.vue';
 import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
+import Toast from '@/components/Toast.vue';
 
 const route = useRoute();
 const authStore = useAuthStore();
-const employeeId = computed(() => authStore.employee?.value?.id || route.params.id);
+const employeeId = computed(() => authStore.employee?._id || route.params._id);
 
 const newRequest = ref({ password: '' });
 const confirmPassword = ref('');
@@ -17,27 +19,34 @@ const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 const passwordError = ref('');
 const isSubmitting = ref(false);
-const updateMessage = ref('');
-const signupMessage = ref('');
 const isLoading = ref(false);
+const toasts = ref([]); // Array to manage multiple toasts
 
 onMounted(async () => {
-    if (!employeeId.value && route.params.id) {
+    if (!employeeId.value && route.params._id) {
         isLoading.value = true;
         try {
-            await authStore.fetchEmployeeDetails(route.params.id);
-            if (!authStore.employee?.value?.id) {
-                updateMessage.value = 'Employee ID could not be retrieved after fetch.';
+            await authStore.fetchEmployeeDetails(route.params._id);
+            if (!authStore.employee?._id) {
+                addToast('Employee ID could not be retrieved.', 'error');
             }
         } catch (error) {
-            updateMessage.value = `Failed to load employee details: ${error.message}`;
+            addToast(`Failed to load employee details: ${error.message}`, 'error');
         } finally {
             isLoading.value = false;
         }
     } else if (!employeeId.value) {
-        updateMessage.value = 'No employee ID provided in route or auth store.';
+        addToast('No employee ID provided.', 'error');
     }
 });
+
+const addToast = (message, type = 'info', description = '') => {
+    toasts.value.push({ id: Date.now(), message, type, description });
+};
+
+const removeToast = (id) => {
+    toasts.value = toasts.value.filter(toast => toast.id !== id);
+};
 
 const resetForm = () => {
     newRequest.value = { password: '' };
@@ -45,30 +54,18 @@ const resetForm = () => {
     showPassword.value = false;
     showConfirmPassword.value = false;
     passwordError.value = '';
-    updateMessage.value = '';
-    signupMessage.value = '';
 };
 
 const validatePassword = () => {
     const password = newRequest.value.password;
-    if (!password) {
-        passwordError.value = 'Password is required.';
-    } else if (password.length < 8) {
-        passwordError.value = 'Password must be at least 8 characters long.';
-    } else if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
-        passwordError.value = 'Password must contain letters and numbers.';
-    } else {
-        passwordError.value = '';
-    }
+    if (!password) passwordError.value = 'Password is required.';
+    else if (password.length < 8) passwordError.value = 'Password must be at least 8 characters.';
+    else if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) passwordError.value = 'Password must contain letters and numbers.';
+    else passwordError.value = '';
 };
 
-const togglePasswordVisibility = () => {
-    showPassword.value = !showPassword.value;
-};
-
-const toggleConfirmPasswordVisibility = () => {
-    showConfirmPassword.value = !showConfirmPassword.value;
-};
+const togglePasswordVisibility = () => { showPassword.value = !showPassword.value; };
+const toggleConfirmPasswordVisibility = () => { showConfirmPassword.value = !showConfirmPassword.value; };
 
 const passwordStrength = computed(() => {
     const password = newRequest.value.password;
@@ -84,40 +81,32 @@ const passwordStrength = computed(() => {
     return 'Weak';
 });
 
-const passwordStrengthClass = computed(() => {
-    return {
-        'text-red-500': passwordStrength.value === 'Weak',
-        'text-yellow-500': passwordStrength.value === 'Medium',
-        'text-green-500': passwordStrength.value === 'Strong'
-    };
-});
+const passwordStrengthClass = computed(() => ({
+    'text-red-500': passwordStrength.value === 'Weak',
+    'text-yellow-500': passwordStrength.value === 'Medium',
+    'text-green-500': passwordStrength.value === 'Strong'
+}));
 
-const passwordsMatch = computed(() => {
-    return newRequest.value.password === confirmPassword.value;
-});
-
-const isSubmitDisabled = computed(() => {
-    return isSubmitting.value || !passwordsMatch.value || !!passwordError.value || isLoading.value;
-});
+const passwordsMatch = computed(() => newRequest.value.password === confirmPassword.value);
+const isSubmitDisabled = computed(() => isSubmitting.value || !passwordsMatch.value || !!passwordError.value || isLoading.value);
 
 const submitRequest = async () => {
     if (!passwordsMatch.value) {
-        updateMessage.value = 'Passwords do not match.';
+        addToast('Passwords do not match.', 'error');
         return;
     }
 
     if (passwordError.value) {
-        updateMessage.value = 'Please fix all validation errors before submitting.';
+        addToast('Please fix validation errors.', 'error');
         return;
     }
 
     if (!employeeId.value) {
-        updateMessage.value = 'Employee ID is missing.';
+        addToast('Employee ID is missing.', 'error');
         return;
     }
 
     isSubmitting.value = true;
-    updateMessage.value = '';
 
     try {
         const payload = { password: newRequest.value.password };
@@ -141,12 +130,11 @@ const submitRequest = async () => {
             }
         }
 
-        const data = await response.json();
-        signupMessage.value = 'Your password has been updated successfully.';
+        await response.json();
+        addToast('Password updated successfully.', 'success');
         resetForm();
     } catch (error) {
-        console.error('Error during password update:', error);
-        updateMessage.value = `Update password failed: ${error.message}`;
+        addToast(`Update failed: ${error.message}`, 'error');
     } finally {
         isSubmitting.value = false;
     }
@@ -156,13 +144,8 @@ const submitRequest = async () => {
 <template>
     <div>
         <header>
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                Update Password
-            </h2>
-
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Ensure your account is using a long, random password to stay secure.
-            </p>
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Update Password</h2>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Ensure your account is secure.</p>
         </header>
 
         <form @submit.prevent="submitRequest" class="mt-6 space-y-6">
@@ -170,27 +153,18 @@ const submitRequest = async () => {
             <div>
                 <InputLabel for="password" value="New Password" />
                 <div class="relative">
-                    <TextInput
-                        id="password"
-                        class="mt-1 block w-full"
-                        v-model="newRequest.password"
-                        :type="showPassword ? 'text' : 'password'"
-                        required autocomplete="new-password"
+                    <TextInput id="password" class="mt-1 block w-full" v-model="newRequest.password"
+                        :type="showPassword ? 'text' : 'password'" required autocomplete="new-password"
                         @input="validatePassword" />
                     <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5"
                         @click="togglePasswordVisibility">
-                        <span class="material-icons">
-                            {{ showPassword ? 'visibility_off' : 'visibility' }}
-                        </span>
+                        <span class="material-icons">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
                     </button>
                 </div>
                 <InputError :message="passwordError" class="mt-2" />
-                <p class="mt-1 text-xs" :class="passwordStrengthClass">
-                    Password Strength: {{ passwordStrength }}
-                </p>
+                <p class="mt-1 text-xs" :class="passwordStrengthClass">Password Strength: {{ passwordStrength }}</p>
             </div>
 
-            <!-- Confirm Password Input -->
             <div>
                 <InputLabel for="confirm_password" value="Confirm Password" />
                 <div class="relative">
@@ -198,19 +172,12 @@ const submitRequest = async () => {
                         :type="showConfirmPassword ? 'text' : 'password'" required autocomplete="new-password" />
                     <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5"
                         @click="toggleConfirmPasswordVisibility">
-                        <span class="material-icons">
-                            {{ showConfirmPassword ? 'visibility_off' : 'visibility' }}
-                        </span>
+                        <span class="material-icons">{{ showConfirmPassword ? 'visibility_off' : 'visibility' }}</span>
                     </button>
                 </div>
                 <InputError :message="passwordsMatch ? '' : 'Passwords do not match.'" class="mt-2" />
             </div>
 
-            <!-- Messages -->
-            <div v-if="updateMessage" class="text-red-600 text-sm">{{ updateMessage }}</div>
-            <div v-if="signupMessage" class="text-green-600 text-sm">{{ signupMessage }}</div>
-
-            <!-- Submit Button -->
             <div class="flex items-center gap-4">
                 <button type="submit" :disabled="isSubmitDisabled"
                     class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-white tracking-wide hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -222,9 +189,11 @@ const submitRequest = async () => {
                 </button>
             </div>
         </form>
+
+        <!-- Toast Container -->
+        <div class="fixed bottom-6 right-6 space-y-2">
+            <Toast v-for="toast in toasts" :key="toast.id" :message="toast.message" :type="toast.type"
+                :description="toast.description" :duration="3000" @close="removeToast(toast.id)" />
+        </div>
     </div>
 </template>
-
-<style scoped>
-/* Add any additional scoped styles if needed */
-</style>

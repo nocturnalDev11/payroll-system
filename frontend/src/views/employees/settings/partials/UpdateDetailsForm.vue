@@ -1,7 +1,9 @@
+<!-- UpdateDetailsForm.vue -->
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
+import Toast from '@/components/Toast.vue';
 import TextInput from '@/components/TextInput.vue';
 import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
@@ -9,18 +11,29 @@ import InputLabel from '@/components/InputLabel.vue';
 const props = defineProps(['employee']);
 const emit = defineEmits(['employee-updated']);
 const authStore = useAuthStore();
-const form = ref({ firstName: '', middleName: '', lastName: '', username: '', email: '', contactInfo: '', position: '', civilStatus: '', salary: '', sss: '', philhealth: '', pagibig: '', hireDate: new Date().toISOString().slice(0, 10) });
+const form = ref({ firstName: '', middleName: '', lastName: '', username: '', email: '', contactInfo: '', civilStatus: '', salary: '', sss: '', philhealth: '', pagibig: '', hireDate: new Date().toISOString().slice(0, 10) });
 const isUpdating = ref(false);
 const updateMessage = ref('');
 const successMessage = ref('');
-const employeePositions = ref(['Developer', 'Manager', 'Designer', 'Analyst']);
 const civilStatusOptions = ref(['Single', 'Married', 'Separated', 'Widowed']);
 const emailError = ref('');
 const phoneError = ref('');
 const salaryError = ref('');
 
+// Store the initial form values to reset if needed
+const initialFormValues = ref({ ...form.value });
+
 watch(() => props.employee, (employee) => {
-    if (employee) form.value = { ...form.value, ...employee, hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().slice(0, 10) : form.value.hireDate, salary: employee.salary != null ? String(employee.salary) : '' };
+    if (employee) {
+        form.value = {
+            ...form.value,
+            ...employee,
+            hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().slice(0, 10) : form.value.hireDate,
+            salary: employee.salary != null ? String(employee.salary) : ''
+        };
+        // Update initial values whenever employee prop changes
+        initialFormValues.value = { ...form.value };
+    }
 }, { immediate: true });
 
 const validateEmail = () => { emailError.value = form.value.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email) ? 'Invalid email' : ''; };
@@ -41,13 +54,33 @@ const updateEmployee = async () => {
         if (payload.salary) payload.salary = Number(payload.salary);
 
         const response = await fetch(`${BASE_API_URL}/api/employees/update/${props.employee._id}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload),
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload),
         });
+
         if (!response.ok) throw new Error(await response.text());
         const updatedEmployee = await response.json();
         successMessage.value = 'Updated successfully';
+
+        // Update the form with the returned data from server
+        form.value = {
+            ...form.value,
+            ...updatedEmployee.updatedEmployee,
+            salary: updatedEmployee.updatedEmployee.salary != null ? String(updatedEmployee.updatedEmployee.salary) : ''
+        };
+
         emit('employee-updated', updatedEmployee.updatedEmployee);
-    } catch (error) { updateMessage.value = `Failed: ${error.message}`; } finally { isUpdating.value = false; }
+    } catch (error) {
+        updateMessage.value = `Failed: ${error.message}`;
+        // Reset to initial values on error
+        form.value = { ...initialFormValues.value };
+    } finally {
+        isUpdating.value = false;
+    }
 };
 </script>
 
@@ -88,13 +121,6 @@ const updateEmployee = async () => {
                     <InputError :message="phoneError" class="mt-2" />
                 </div>
                 <div>
-                    <InputLabel for="position" value="Position" /><select v-model="form.position" id="position"
-                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
-                        <option value="">Select</option>
-                        <option v-for="pos in employeePositions" :key="pos" :value="pos">{{ pos }}</option>
-                    </select>
-                </div>
-                <div>
                     <InputLabel for="civilStatus" value="Civil Status" /><select v-model="form.civilStatus"
                         id="civilStatus"
                         class="mt-1 block w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
@@ -125,11 +151,11 @@ const updateEmployee = async () => {
                     <TextInput v-model="form.hireDate" id="hireDate" type="date" class="mt-1 block w-full" />
                 </div>
             </div>
-            <div v-if="updateMessage" class="text-red-600 text-sm">{{ updateMessage }}</div>
-            <div v-if="successMessage" class="text-green-600 text-sm">{{ successMessage }}</div>
             <div class="flex items-center gap-4"><button type="submit"
                     class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 disabled:opacity-50"
                     :disabled="isSubmitDisabled">Update</button></div>
         </form>
+        <Toast v-if="successMessage" :message="successMessage" type="success" />
+        <Toast v-if="updateMessage" :message="updateMessage" type="error" />
     </div>
 </template>

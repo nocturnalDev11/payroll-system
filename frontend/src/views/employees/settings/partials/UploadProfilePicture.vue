@@ -139,11 +139,11 @@ const handleImageError = () => {
         </header>
         <form @submit.prevent="uploadFile">
             <div class="hs-file-upload" data-hs-file-upload='{
-          "url": "/api/employees/profile-picture",
-          "acceptedFiles": "image/*",
-          "maxFiles": 1,
-          "singleton": true
-        }'>
+                    "url": "/api/employees/profile-picture",
+                    "acceptedFiles": "image/*",
+                    "maxFiles": 1,
+                    "singleton": true
+                }'>
                 <div class="flex flex-wrap items-center gap-3 sm:gap-5">
                     <div class="flex-shrink-0">
                         <div v-if="previewUrl" class="size-20 flex items-center justify-center overflow-hidden">
@@ -165,9 +165,9 @@ const handleImageError = () => {
 
                     <div class="grow">
                         <div class="flex items-center gap-x-2">
-                            <button type="button"
+                            <button type="submit"
                                 class="py-2 px-3 inline-flex items-center gap-x-2 text-xs font-medium rounded-lg border border-transparent bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:pointer-events-none"
-                                @click="triggerUpload">
+                                @click="triggerUpload" :disabled="!selectedFile">
                                 <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round">
@@ -197,13 +197,6 @@ const handleImageError = () => {
                         </div>
                         <p v-if="error" class="text-red-500 text-xs mt-1">{{ error }}</p>
                     </div>
-                </div>
-                <div class="flex justify-end mt-4">
-                    <button type="submit"
-                        class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-white tracking-wide hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                        :disabled="!selectedFile">
-                        Update Photo
-                    </button>
                 </div>
             </div>
         </form>
