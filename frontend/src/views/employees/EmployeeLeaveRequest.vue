@@ -121,21 +121,18 @@ onMounted(() => {
     <div class="min-h-screen p-1">
         <div class="max-w-8xl mx-auto">
             <!-- Header and Action Buttons -->
-            <div class="flex justify-between items-center mb-8">
-                <h1 class="text-4xl font-bold text-gray-900 animate-fade-in">My Leave Management</h1>
-                <button @click="showRequestLeave = true"
-                    class="bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 flex items-center gap-2 animate-pulse-once">
-                    <span class="material-icons-outlined">add</span>
-                    Request Leave
-                </button>
-            </div>
-
-            <!-- Search Bar -->
-            <div class="mb-6">
-                <input v-model="searchQuery" type="text"
-                    class="w-full md:w-1/2 lg:w-1/3 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-300 placeholder-gray-400 shadow-sm"
-                    placeholder="Search by name, reason, or status..." />
-            </div>
+            <header class="bg-white shadow-sm p-3 flex justify-between items-center sticky top-0 z-40 rounded-lg">
+                <h1 class="text-lg font-bold text-gray-900 animate-fade-in">My Leave Management</h1>
+                <div class="flex items-center gap-3">
+                    <input v-model="searchQuery" type="text" placeholder="Search by name, reason, or status..."
+                        class="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-300 placeholder-gray-400 shadow-sm" />
+                    <button @click="showRequestLeave = true"
+                        class="bg-indigo-600 text-white px-2 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 flex items-center gap-2 animate-pulse-once">
+                        <span class="material-icons">add</span>
+                        Request Leave
+                    </button>
+                </div>
+            </header>
 
             <!-- Leave Requests Card -->
             <div class="bg-white p-6 rounded-2xl shadow-lg transform transition-all hover:shadow-xl">
@@ -146,7 +143,7 @@ onMounted(() => {
                     </div>
 
                     <div v-if="paginatedRequests.length === 0" class="text-center py-12 text-gray-500">
-                        <span class="material-icons-outlined text-4xl text-gray-400 mb-2">event_busy</span>
+                        <span class="material-icons text-4xl text-gray-400 mb-2">event_busy</span>
                         <p>No leave requests found.{{ searchQuery ? ' Try adjusting your search.' : '' }}</p>
                     </div>
 
@@ -192,12 +189,12 @@ onMounted(() => {
                         <div class="flex items-center gap-2">
                             <button @click="previousPage" :disabled="currentPage === 1"
                                 class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
-                                <span class="material-icons-outlined">chevron_left</span>
+                                <span class="material-icons">chevron_left</span>
                             </button>
                             <span class="text-gray-700">{{ currentPage }} of {{ totalPages }}</span>
                             <button @click="nextPage" :disabled="currentPage === totalPages"
                                 class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
-                                <span class="material-icons-outlined">chevron_right</span>
+                                <span class="material-icons">chevron_right</span>
                             </button>
                         </div>
                     </div>
@@ -213,7 +210,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Custom animations */
 .animate-fade-in {
     animation: fadeIn 0.5s ease-in;
 }

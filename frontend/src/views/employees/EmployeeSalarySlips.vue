@@ -1,151 +1,3 @@
-<template>
-    <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
-        <div class="max-w-6xl mx-auto">
-            <div class="bg-white rounded-xl shadow-md overflow-hidden">
-                <!-- Header Section -->
-                <div class="p-6 border-b">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                            <span class="material-icons text-gray-600">description</span>
-                            My Salary Slips
-                        </h2>
-                        <div class="flex items-center gap-3">
-                            <input v-model="selectedMonth" type="month"
-                                class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                @change="fetchPayslipHistory" />
-                            <button @click="fetchPayslipHistory"
-                                class="flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 px-4 rounded-md"
-                                :disabled="isLoading">
-                                <span class="material-icons text-sm">{{ isLoading ? 'sync' : 'refresh' }}</span>
-                                {{ isLoading ? 'Refreshing...' : 'Refresh' }}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Payslip History Table -->
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Pay Date
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Position
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Salary
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            <tr v-for="payslip in payslipHistory" :key="`${payslip.salaryMonth}-${payslip.paydayType}`"
-                                class="hover:bg-blue-50 transition-colors cursor-pointer"
-                                :class="{ 'bg-blue-100': selectedPayslip?.salaryMonth === payslip.salaryMonth && selectedPayslip?.paydayType === payslip.paydayType }"
-                                @click="selectPayslip(payslip)">
-                                <td class="px-6 py-4 text-sm text-gray-900">
-                                    {{ payslip.paydayType === 'mid-month' ? payslip.expectedPaydays.midMonthPayday :
-                                        payslip.expectedPaydays.endMonthPayday }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-500">
-                                    {{ payslip.position }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-500">
-                                    ₱{{ formatNumber(payslip.totalSalary || payslip.salary) }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-500">
-                                    {{ payslip.payslipDataUrl ? 'Generated' : 'Pending' }}
-                                </td>
-                                <td class="px-6 py-4 text-sm">
-                                    <button v-if="!payslip.payslipDataUrl" @click.stop="generatePayslip(payslip)"
-                                        class="inline-flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-all"
-                                        :disabled="!canGeneratePayslip(payslip) || payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating">
-                                        <span class="material-icons text-sm">description</span>
-                                        {{
-                                            payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
-                                                ? 'Generating...' : 'Generate' }}
-                                    </button>
-                                    <button v-else @click.stop="viewPayslip(payslip)"
-                                        class="inline-flex items-center gap-1 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-all">
-                                        <span class="material-icons text-sm">visibility</span>
-                                        View
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr v-if="payslipHistory.length === 0 && !isLoading">
-                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">
-                                    No payslips found for this period.
-                                </td>
-                            </tr>
-                            <tr v-if="isLoading">
-                                <td colspan="5" class="px-6 py-8 text-center">
-                                    <div class="flex flex-col items-center gap-2">
-                                        <span class="material-icons text-blue-500 animate-spin text-3xl">sync</span>
-                                        <p class="text-sm text-gray-500">Loading payslips...</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Payslip Viewer Modal -->
-                <div v-if="showPayslipModal"
-                    class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl m-4 max-h-[90vh] flex flex-col">
-                        <div class="p-6 border-b flex justify-between items-center">
-                            <h2 class="text-xl font-bold text-gray-800">
-                                Payslip for {{ employee?.name }} - {{ selectedPayslip?.paydayType === 'mid-month' ?
-                                    selectedPayslip?.expectedPaydays.midMonthPayday :
-                                    selectedPayslip?.expectedPaydays.endMonthPayday }}
-                            </h2>
-                            <button @click="showPayslipModal = false" class="text-gray-500 hover:text-gray-700">
-                                <span class="material-icons-outlined">close</span>
-                            </button>
-                        </div>
-                        <div class="p-6 flex-1 overflow-y-auto">
-                            <iframe :src="selectedPayslip?.payslipDataUrl" class="w-full h-[70vh]" frameborder="0"
-                                @load="onIframeLoad" @error="onIframeError"></iframe>
-                            <p v-if="iframeError" class="text-red-500 text-sm mt-2">
-                                Error loading payslip. Please try generating it again.
-                            </p>
-                            <div class="mt-4 flex justify-end">
-                                <button @click="downloadPayslip"
-                                    class="flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 px-4 rounded-md">
-                                    <span class="material-icons text-sm">download</span>
-                                    Download PDF
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Status Message -->
-                <div v-if="statusMessage"
-                    :class="statusMessage.includes('successfully') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'"
-                    class="fixed bottom-4 right-4 p-3 rounded-lg shadow-lg flex items-center gap-1 animate-fade-in text-sm">
-                    <span class="material-icons text-sm">
-                        {{ statusMessage.includes('successfully') ? 'check_circle' : 'error' }}
-                    </span>
-                    {{ statusMessage }}
-                </div>
-            </div>
-        </div>
-    </div>
-</template>
-
 <script>
 import axios from 'axios';
 import jsPDF from 'jspdf';
@@ -162,7 +14,7 @@ export default {
         return {
             employee: null,
             payslipHistory: [],
-            selectedMonth: new Date().toISOString().slice(0, 7), // Default to current month
+            selectedMonth: new Date().toISOString().slice(0, 7),
             selectedPayslip: null,
             payslipGenerationStatus: {},
             isLoading: false,
@@ -174,10 +26,10 @@ export default {
             config: {
                 minimumWage: 610,
                 deMinimisLimit: 10000,
-                regularHolidays: ['03/31/2025'], // Hardcoded defaults
+                regularHolidays: ['03/31/2025'],
                 specialNonWorkingDays: [],
             },
-            currentDate: new Date('2025-03-23'), // Matches your context
+            currentDate: new Date().toISOString().split('T')[0],
         };
     },
     setup() {
@@ -194,8 +46,7 @@ export default {
             try {
                 const userId = this.authStore.employee?._id || localStorage.getItem('userId');
                 const token = localStorage.getItem('token');
-                console.log('Fetching payslips with:', { userId, token: token.slice(0, 20) + '...' });
-                if (!userId) {
+                if (!userId || !token) {
                     this.errorMessage = 'User not logged in. Redirecting to login...';
                     setTimeout(() => this.$router.push('/employee/login'), 2000);
                     return;
@@ -212,7 +63,7 @@ export default {
                 });
                 this.employee = employeeResponse.data;
 
-                // Fetch payslip history
+                // Fetch payslip history for this employee only
                 const payslipResponse = await axios.get(`${BASE_API_URL}/api/payslips/${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -220,13 +71,87 @@ export default {
                         'user-id': userId,
                     },
                 });
-                console.log('Payslip response:', payslipResponse.data);
                 const backendPayslips = payslipResponse.data || [];
-                // Rest of the method...
+
+                // Generate payslip history based on hire date and current date
+                const today = moment(this.currentDate);
+                const hireDate = moment(this.employee.hireDate || this.currentDate);
+                const payslipHistory = [];
+                let currentDate = hireDate.clone().startOf('month');
+
+                while (currentDate.isSameOrBefore(today, 'day')) {
+                    const salaryMonth = currentDate.format('YYYY-MM');
+                    const expectedPaydays = this.getExpectedPayday(hireDate.toDate(), salaryMonth);
+
+                    // Mid-month payslip
+                    const midMonthDate = moment(`${salaryMonth}-15`, 'YYYY-MM-DD');
+                    if (midMonthDate.isSameOrAfter(hireDate, 'day')) {
+                        const midPayslip = backendPayslips.find(p =>
+                            p.salaryMonth === salaryMonth && p.paydayType === 'mid-month'
+                        ) || {};
+                        const activePosition = this.getActivePositionForDate(this.employee.positionHistory, midMonthDate);
+                        payslipHistory.push({
+                            salaryMonth,
+                            paydayType: 'mid-month',
+                            payDate: midMonthDate.format('YYYY-MM-DD'),
+                            position: activePosition.position,
+                            salary: activePosition.salary,
+                            totalSalary: midPayslip.salary ? this.calculateNetSalary({
+                                ...this.employee,
+                                position: activePosition.position,
+                                salary: activePosition.salary
+                            }) : null,
+                            payslipDataUrl: midPayslip.payslipData ? `data:application/pdf;base64,${midPayslip.payslipData}` : null,
+                            employee: {
+                                ...this.employee,
+                                position: activePosition.position,
+                                salary: activePosition.salary,
+                                salaryMonth
+                            },
+                            expectedPaydays
+                        });
+                    }
+
+                    // End-month payslip
+                    const endMonthDate = moment(salaryMonth).endOf('month');
+                    if (endMonthDate.isSameOrAfter(hireDate, 'day')) {
+                        const endPayslip = backendPayslips.find(p =>
+                            p.salaryMonth === salaryMonth && p.paydayType === 'end-of-month'
+                        ) || {};
+                        const activePosition = this.getActivePositionForDate(this.employee.positionHistory, endMonthDate);
+                        payslipHistory.push({
+                            salaryMonth,
+                            paydayType: 'end-of-month',
+                            payDate: endMonthDate.format('YYYY-MM-DD'),
+                            position: activePosition.position,
+                            salary: activePosition.salary,
+                            totalSalary: endPayslip.salary ? this.calculateNetSalary({
+                                ...this.employee,
+                                position: activePosition.position,
+                                salary: activePosition.salary
+                            }) : null,
+                            payslipDataUrl: endPayslip.payslipData ? `data:application/pdf;base64,${endPayslip.payslipData}` : null,
+                            employee: {
+                                ...this.employee,
+                                position: activePosition.position,
+                                salary: activePosition.salary,
+                                salaryMonth
+                            },
+                            expectedPaydays
+                        });
+                    }
+
+                    currentDate.add(1, 'month');
+                }
+
+                this.payslipHistory = payslipHistory.filter(p =>
+                    p.salaryMonth === this.selectedMonth || p.payslipDataUrl
+                );
+                this.selectedPayslip = this.payslipHistory.find(p => p.payslipDataUrl) || null;
             } catch (error) {
-                console.error('Error fetching payslip history:', error.response?.data || error.message);
+                console.error('Error fetching payslip history:', error);
                 this.errorMessage = 'Failed to load payslip history.';
-                this.showErrorMessage(`Failed to load payslip history: ${error.response?.status === 403 ? 'Access denied (403). Check your authentication.' : error.message}`);
+                this.showErrorMessage(`Failed to load payslip history: ${error.message}`);
             } finally {
                 this.isLoading = false;
             }
@@ -265,13 +190,14 @@ export default {
                 const url = URL.createObjectURL(pdfBlob);
 
                 const payload = {
-                    employeeId: Number(employee._id),
+                    employeeId: employee._id,
                     empNo: String(employee.empNo),
-                    payslipData: base64Data.split(',')[1], // Remove "data:application/pdf;base64," prefix
+                    payslipData: base64Data.split(',')[1],
                     salaryMonth: payslip.salaryMonth,
                     paydayType: payslip.paydayType,
                     position: payslip.position,
                     salary: Number(payslip.salary),
+                    payDate: payslip.payDate,
                 };
 
                 const response = await axios.post(`${BASE_API_URL}/api/payslips/generate`, payload, {
@@ -326,7 +252,7 @@ export default {
                 this.showErrorMessage('Failed to download payslip.');
             }
         },
-        // Salary Calculation Methods (Mirrored from SalarySlips.vue)
+        // Salary Calculation Methods (Imported from SalarySlips.vue)
         calculateTotalEarnings(employee) {
             const baseEarnings = (employee.earnings?.travelExpenses || 0) + (employee.earnings?.otherEarnings || 0);
             const monthlySalary = employee.salary || 0;
@@ -443,14 +369,34 @@ export default {
             return Math.round(408841.80 + (taxableIncome - 666667) * 0.35) || 0;
         },
         createPayslipData(employee) {
-            const salaryDate = moment(employee.salaryMonth, 'YYYY-MM-DD').format('MM/DD/YYYY');
+            const salaryDate = moment(employee.salaryMonth, 'YYYY-MM').format('MM/DD/YYYY');
             const basicSalary = employee.salary || 0;
             const sss = this.calculateSSSContribution(basicSalary) || 0;
             const philhealth = this.calculatePhilHealthContribution(basicSalary) || 0;
             const pagibig = this.calculatePagIBIGContribution(basicSalary) || 0;
-            const totalDeductions = sss + philhealth + pagibig + (this.calculateWithholdingTax(employee) || 0) || 0;
+            const withholdingTax = this.calculateWithholdingTax(employee) || 0;
+            const totalDeductions = sss + philhealth + pagibig + withholdingTax || 0;
             const netSalary = this.calculateNetSalary(employee) || 0;
-            const paydays = this.getExpectedPayday(employee.hireDate, employee.salaryMonth.split('-')[0] + '-' + employee.salaryMonth.split('-')[1]);
+
+            // Split payheads into earnings and deductions
+            const earnings = (employee.payheads || []).filter(p => p.type === 'Earnings').map(p => ({
+                name: p.name,
+                amount: Number(p.amount) || 0,
+            }));
+            const deductions = (employee.payheads || []).filter(p => p.type === 'Deductions').map(p => ({
+                name: p.name,
+                amount: Number(p.amount) || 0,
+            }));
+
+            // Add computed earnings like holiday pay or overtime if applicable
+            const holidayPay = this.calculateHolidayPay(employee);
+            if (holidayPay > 0) {
+                earnings.push({ name: 'Holiday Pay', amount: holidayPay });
+            }
+            const overtimePay = this.calculateOvertimePay(employee);
+            if (overtimePay > 0) {
+                earnings.push({ name: 'Overtime Pay', amount: overtimePay });
+            }
 
             return {
                 salaryDate,
@@ -461,7 +407,6 @@ export default {
                 birthDate: moment(employee.birthDate).isValid() ? moment(employee.birthDate).format('MM/DD/YYYY') : 'N/A',
                 hireDate: moment(employee.hireDate).isValid() ? moment(employee.hireDate).format('MM/DD/YYYY') : 'N/A',
                 civilStatus: employee.civilStatus || 'SINGLE',
-                dependents: employee.dependents || 0,
                 sss: employee.sss || 'N/A',
                 tin: employee.tin || 'N/A',
                 philhealth: employee.philhealth || 'N/A',
@@ -473,18 +418,13 @@ export default {
                 sssDeduction: this.formatNumber(sss),
                 philhealthDeduction: this.formatNumber(philhealth),
                 pagibigDeduction: this.formatNumber(pagibig),
-                withholdingTax: this.formatNumber(this.calculateWithholdingTax(employee) || 0),
-                payheads: employee.payheads || [],
-                expectedPaydays: paydays,
+                withholdingTax: this.formatNumber(withholdingTax),
+                earnings,
+                deductions,
             };
         },
         async generatePdf(payslipData) {
-            const doc = new jsPDF({
-                orientation: 'portrait<ActionBar>',
-                unit: 'mm',
-                format: [216, 279], // Letter size in mm
-            });
-
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [216, 279] });
             doc.setFont('Helvetica');
 
             const margin = 10;
@@ -492,18 +432,14 @@ export default {
             const contentWidth = pageWidth - 2 * margin;
             const columnWidth = (contentWidth - 20) / 2;
             const lineHeight = 5;
+            const pageHeight = doc.internal.pageSize.getHeight();
 
-            function addText(doc, text, x, y, options) {
-                options = options || {};
-                text = text || 'N/A';
+            function addText(doc, text, x, y, options = {}) {
+                text = text?.toString() || 'N/A';
                 text = text.replace('₱', 'P');
                 doc.setFontSize(options.fontSize || 10);
                 doc.setFont(options.font || 'Helvetica', options.fontStyle || 'normal');
-                doc.setTextColor(
-                    options.textColor ? options.textColor[0] : 0,
-                    options.textColor ? options.textColor[1] : 0,
-                    options.textColor ? options.textColor[2] : 0
-                );
+                doc.setTextColor(...(options.textColor || [0, 0, 0]));
                 doc.text(text, x, y, { align: options.align || 'left', maxWidth: options.maxWidth });
             }
 
@@ -515,16 +451,23 @@ export default {
             // Header
             doc.setFillColor(0, 128, 0);
             doc.rect(margin, margin, contentWidth, 10, 'F');
-            addText(doc, 'RIGHTJOB Solutions', margin + 5, margin + 7, { fontSize: 12, fontStyle: 'bold', textColor: [255, 255, 255] });
-            addText(doc, 'PAYSLIP', margin + contentWidth / 2, margin + 7, { fontSize: 12, fontStyle: 'bold', textColor: [255, 255, 255], align: 'center' });
+            addText(doc, 'RIGHTJOB Solutions', margin + 5, margin + 7, {
+                fontSize: 12,
+                fontStyle: 'bold',
+                textColor: [255, 255, 255],
+            });
+            addText(doc, 'PAYSLIP', margin + contentWidth / 2, margin + 7, {
+                fontSize: 12,
+                fontStyle: 'bold',
+                textColor: [255, 255, 255],
+                align: 'center',
+            });
 
             let y = margin + 15;
             addText(doc, 'Salary Date:', margin + contentWidth - 40, y, { fontSize: 9 });
             addText(doc, payslipData.salaryDate, margin + contentWidth - 20, y, { fontSize: 9 });
 
             y += 10;
-
-            // Personal Information
             addText(doc, 'Personal Information', margin, y, { fontSize: 11, fontStyle: 'bold' });
             y += lineHeight;
             const leftPersonalInfo = [
@@ -546,7 +489,6 @@ export default {
             yRight += lineHeight;
             const rightPersonalInfo = [
                 ['Civil Status', payslipData.civilStatus],
-                ['Dependents', payslipData.dependents.toString()],
                 ['SSS', payslipData.sss],
                 ['TIN', payslipData.tin],
                 ['Philhealth', payslipData.philhealth],
@@ -558,16 +500,7 @@ export default {
 
             y = Math.max(y + leftPersonalInfo.length * lineHeight, yRight + rightPersonalInfo.length * lineHeight) + 10;
 
-            // Expected Paydays
-            addText(doc, 'Expected Paydays', margin, y, { fontSize: 11, fontStyle: 'bold' });
-            y += lineHeight;
-            addText(doc, 'Mid-Month:', margin, y);
-            addText(doc, payslipData.expectedPaydays.midMonthPayday, margin + 35, y, { maxWidth: columnWidth - 35 });
-            addText(doc, 'End-of-Month:', margin + columnWidth + 10, y);
-            addText(doc, payslipData.expectedPaydays.endMonthPayday, margin + columnWidth + 45, y, { maxWidth: columnWidth - 35 });
-            y += 2 * lineHeight + 10;
-
-            // Deductions
+            // Deductions Section (Mandatory Taxes Only)
             addText(doc, 'Deductions', margin, y, { fontSize: 11, fontStyle: 'bold' });
             y += lineHeight;
             const leftDeductions = [
@@ -575,17 +508,14 @@ export default {
                 ['Philhealth', `P${payslipData.philhealthDeduction}`],
                 ['PAG-IBIG', `P${payslipData.pagibigDeduction}`],
             ];
+            const rightDeductions = [['Withholding Tax', `P${payslipData.withholdingTax}`]];
             leftDeductions.forEach(([label, value], index) => {
                 addLabelValue(doc, label, value, margin, y + index * lineHeight);
             });
-
-            const rightDeductions = [
-                ['Withholding Tax', `P${payslipData.withholdingTax}`],
-            ];
             rightDeductions.forEach(([label, value], index) => {
                 addLabelValue(doc, label, value, margin + columnWidth + 10, y + index * lineHeight);
             });
-            y += Math.max(leftDeductions.length, rightDeductions.length) * lineHeight + 10;
+            y += Math.max(leftDeductions.length, rightDeductions.length) * lineHeight + 5;
 
             // Summary
             addText(doc, 'Summary', margin, y, { fontSize: 11, fontStyle: 'bold' });
@@ -594,36 +524,70 @@ export default {
             addText(doc, `(P${payslipData.totalDeductions})`, margin + 35, y, { fontSize: 9 });
             addText(doc, 'Net Salary:', margin + columnWidth + 10, y, { fontSize: 9, fontStyle: 'bold' });
             addText(doc, `P${payslipData.netSalary}`, margin + columnWidth + 45, y, { fontSize: 9 });
+            y += lineHeight + 10;
 
-            // Payheads Table
-            if (payslipData.payheads.length > 0) {
-                y += 10;
-                addText(doc, 'Miscellaneous Computations', margin, y, { fontSize: 11, fontStyle: 'bold' });
-                y += lineHeight;
-
-                const miscTableData = payslipData.payheads.map(payhead => [
-                    payhead.name,
-                    payhead.type === 'Earnings' ? `${payhead.amount} day(s)` : '',
-                    `P${this.formatNumber(payhead.amount)}`,
+            // Earnings Table
+            addText(doc, 'Earnings', margin, y, { fontSize: 11, fontStyle: 'bold' });
+            y += lineHeight;
+            if (payslipData.earnings.length > 0) {
+                const earningsTableData = payslipData.earnings.map((earning) => [
+                    earning.name,
+                    `P${this.formatNumber(earning.amount)}`,
                 ]);
-
                 doc.autoTable({
                     startY: y,
-                    head: [['Description', 'Description2', 'Amount']],
-                    body: miscTableData,
-                    theme: 'grid',
-                    styles: { fontSize: 9, cellPadding: 2 },
+                    head: [['Description', 'Amount']],
+                    body: earningsTableData,
+                    margin: { left: margin, right: margin },
+                    styles: { fontSize: 9, cellPadding: 1.5 },
+                    headStyles: { fillColor: [0, 128, 0], textColor: [255, 255, 255] },
                     columnStyles: {
-                        0: { cellWidth: 70 },
-                        1: { cellWidth: 50 },
-                        2: { cellWidth: 50, halign: 'right' },
+                        0: { cellWidth: contentWidth * 0.7 },
+                        1: { cellWidth: contentWidth * 0.3, halign: 'right' },
                     },
                 });
+                y = doc.lastAutoTable.finalY + 5;
+            } else {
+                addText(doc, 'None', margin, y, { fontSize: 9 });
+                y += lineHeight + 5;
+            }
+
+            // Other Deductions Table (Non-Recurring, Excluding Taxes)
+            addText(doc, 'Other Deductions', margin, y, { fontSize: 11, fontStyle: 'bold' });
+            y += lineHeight;
+            if (payslipData.deductions.length > 0) {
+                const deductionsTableData = payslipData.deductions.map((deduction) => [
+                    deduction.name,
+                    `P${this.formatNumber(deduction.amount)}`,
+                ]);
+                doc.autoTable({
+                    startY: y,
+                    head: [['Description', 'Amount']],
+                    body: deductionsTableData,
+                    margin: { left: margin, right: margin },
+                    styles: { fontSize: 9, cellPadding: 1.5 },
+                    headStyles: { fillColor: [0, 128, 0], textColor: [255, 255, 255] },
+                    columnStyles: {
+                        0: { cellWidth: contentWidth * 0.7 },
+                        1: { cellWidth: contentWidth * 0.3, halign: 'right' },
+                    },
+                });
+                y = doc.lastAutoTable.finalY + 5;
+            } else {
+                addText(doc, 'None', margin, y, { fontSize: 9 });
+                y += lineHeight + 5;
             }
 
             // Footer
-            const footerY = doc.internal.pageSize.getHeight() - margin - 5;
-            addText(doc, 'This is a computer-generated payslip; no signature required.', margin + contentWidth / 2, footerY, { fontSize: 8, align: 'center' });
+            const footerY = pageHeight - margin - 5;
+            if (y > footerY - 10) {
+                doc.addPage();
+                y = margin;
+            }
+            addText(doc, 'This is a computer-generated payslip; no signature required.', margin + contentWidth / 2, footerY, {
+                fontSize: 8,
+                align: 'center',
+            });
 
             return doc.output('blob');
         },
@@ -691,9 +655,149 @@ export default {
 };
 </script>
 
-<style scoped>
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined');
+<template>
+    <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+        <div class="max-w-6xl mx-auto space-y-3">
+            <header class="bg-white shadow-sm p-3 flex justify-between items-center sticky top-0 z-40 rounded-lg">
+                <h1 class="text-lg font-bold text-gray-900 animate-fade-in">My Salary Slips</h1>
+                <div class="flex items-center gap-3">
+                    <input v-model="selectedMonth" type="month"
+                        class="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-300 placeholder-gray-400 shadow-sm"
+                        @change="fetchPayslipHistory" />
+                    <button @click="fetchPayslipHistory"
+                        class="bg-indigo-600 text-white px-2 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 flex items-center gap-2 animate-pulse-once"
+                        :disabled="isLoading">
+                        <span class="material-icons text-sm">{{ isLoading ? 'sync' : 'refresh' }}</span>
+                        {{ isLoading ? 'Refreshing...' : 'Refresh' }}
+                    </button>
+                </div>
+            </header>
 
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <!-- Payslip History Table -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Pay Date
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Position
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Salary
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <tr v-for="payslip in payslipHistory" :key="`${payslip.salaryMonth}-${payslip.paydayType}`"
+                                class="hover:bg-blue-50 transition-colors cursor-pointer"
+                                :class="{ 'bg-blue-100': selectedPayslip?.salaryMonth === payslip.salaryMonth && selectedPayslip?.paydayType === payslip.paydayType }"
+                                @click="selectPayslip(payslip)">
+                                <td class="px-6 py-4 text-sm text-gray-900">
+                                    {{ payslip.paydayType === 'mid-month' ? payslip.expectedPaydays.midMonthPayday :
+                                    payslip.expectedPaydays.endMonthPayday }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-500">
+                                    {{ payslip.position }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-500">
+                                    ₱{{ formatNumber(payslip.totalSalary || payslip.salary) }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-500">
+                                    {{ payslip.payslipDataUrl ? 'Generated' : 'Pending' }}
+                                </td>
+                                <td class="px-6 py-4 text-sm">
+                                    <button v-if="!payslip.payslipDataUrl" @click.stop="generatePayslip(payslip)"
+                                        class="inline-flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-all"
+                                        :disabled="!canGeneratePayslip(payslip) || payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating">
+                                        <span class="material-icons text-sm">description</span>
+                                        {{
+                                        payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
+                                        ? 'Generating...' : 'Generate' }}
+                                    </button>
+                                    <button v-else @click.stop="viewPayslip(payslip)"
+                                        class="inline-flex items-center gap-1 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-all">
+                                        <span class="material-icons text-sm">visibility</span>
+                                        View
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="payslipHistory.length === 0 && !isLoading">
+                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                                    No payslips found for this period.
+                                </td>
+                            </tr>
+                            <tr v-if="isLoading">
+                                <td colspan="5" class="px-6 py-8 text-center">
+                                    <div class="flex flex-col items-center gap-2">
+                                        <span class="material-icons text-blue-500 animate-spin text-3xl">sync</span>
+                                        <p class="text-sm text-gray-500">Loading payslips...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Payslip Viewer Modal -->
+                <div v-if="showPayslipModal"
+                    class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl m-4 max-h-[90vh] flex flex-col">
+                        <div class="p-6 border-b border-gray-300 flex justify-between items-center">
+                            <h2 class="text-xl font-bold text-gray-800">
+                                Payslip for {{ employee?.name }} - {{ selectedPayslip?.paydayType === 'mid-month' ?
+                                selectedPayslip?.expectedPaydays.midMonthPayday :
+                                selectedPayslip?.expectedPaydays.endMonthPayday }}
+                            </h2>
+                            <button @click="showPayslipModal = false" class="text-gray-500 hover:text-gray-700 cursor-pointer">
+                                <span class="material-icons">close</span>
+                            </button>
+                        </div>
+                        <div class="p-6 flex-1 overflow-y-auto">
+                            <iframe :src="selectedPayslip?.payslipDataUrl" class="w-full h-[70vh]" frameborder="0"
+                                @load="onIframeLoad" @error="onIframeError"></iframe>
+                            <p v-if="iframeError" class="text-red-500 text-sm mt-2">
+                                Error loading payslip. Please try generating it again.
+                            </p>
+                            <div class="mt-4 flex justify-end">
+                                <button @click="downloadPayslip"
+                                    class="flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 px-4 rounded-md">
+                                    <span class="material-icons text-sm">download</span>
+                                    Download PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Message -->
+                <div v-if="statusMessage"
+                    :class="statusMessage.includes('successfully') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'"
+                    class="fixed bottom-4 right-4 p-3 rounded-lg shadow-lg flex items-center gap-1 animate-fade-in text-sm">
+                    <span class="material-icons text-sm">
+                        {{ statusMessage.includes('successfully') ? 'check_circle' : 'error' }}
+                    </span>
+                    {{ statusMessage }}
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style scoped>
 button:disabled {
     cursor: not-allowed;
     opacity: 0.7;
