@@ -36,18 +36,18 @@ const handleEmployeeUpdated = (updatedEmployee) => { employeeData.value = update
 
 <template>
     <div class="space-y-2">
-        <h2 class="pb-5 text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">Settings</h2>
+        <h2 class="pb-5 text-xl font-semibold leading-tight text-gray-800">Settings</h2>
         <div v-if="isLoading" class="text-center text-gray-600">Loading...</div>
         <div v-else-if="error" class="text-red-600 text-center">{{ error }}</div>
         <div v-else-if="employee" class="space-y-3">
-            <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
+            <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8">
                 <UploadProfilePicture :employee="employeeData" @employee-updated="handleEmployeeUpdated"
                     class="max-w-3xl" />
             </div>
-            <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
+            <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8">
                 <UpdateDetailsForm :employee="employee" @employee-updated="handleEmployeeUpdated" class="max-w-3xl" />
             </div>
-            <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
+            <div class="bg-white p-4 shadow sm:rounded-lg sm:p-8">
                 <UpdatePasswordForm class="max-w-3xl" />
             </div>
         </div>
