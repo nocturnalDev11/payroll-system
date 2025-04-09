@@ -31,7 +31,7 @@ const navigationLinks = [
     { path: '/employee/dashboard', name: 'Dashboard' },
     { path: '/employee/salary-slips', name: 'Salary Slips' },
     { path: '/employee/employee-leave-request', name: 'Leave Management' },
-    { path: '/employee/holidays', name: 'Holidays' },
+    { path: '/settings/:id', name: 'Holidays' },
 ];
 
 const getLinkIcon = (name) => {
@@ -53,6 +53,31 @@ const handleImageError = async () => {
         console.error('Failed to refetch employee data:', err);
     }
 };
+
+const toggleSidebar = () => {
+    isSidebarMinimized.value = !isSidebarMinimized.value;
+    localStorage.setItem('sidebarMinimized', isSidebarMinimized.value);
+};
+
+const isSidebarMinimized = ref(() => {
+    const savedState = localStorage.getItem('sidebarMinimized');
+    if (savedState !== null) {
+        return savedState === 'true';
+    }
+
+    return window.innerWidth < 640;
+});
+
+onMounted(() => {
+    const savedState = localStorage.getItem('sidebarMinimized');
+    if (savedState !== null) {
+        isSidebarMinimized.value = savedState === 'true';
+    } else {
+
+        isSidebarMinimized.value = window.innerWidth < 640;
+        localStorage.setItem('sidebarMinimized', isSidebarMinimized.value);
+    }
+});
 </script>
 
 <template>
@@ -110,17 +135,26 @@ const handleImageError = async () => {
         </header>
 
         <div class="flex flex-1 overflow-hidden">
-            <aside
-                class="fixed top-[4rem] left-0 sm:w-72 w-[60px] h-[calc(100vh-4rem)] bg-white shadow-sm border-r border-gray-100 overflow-y-auto">
-                <nav class="py-8 px-2 md:px-4">
+            <aside :class="[
+                'fixed top-0 left-0 h-full bg-white shadow-sm border-r border-gray-100 overflow-y-auto transition-all duration-300 z-20',
+                isSidebarMinimized ? 'w-16' : 'w-72'
+            ]">
+                <nav class="pt-24 pb-4 px-2">
+                    <button @click="toggleSidebar" class="w-full flex justify-end px-2 mb-4 cursor-pointer"
+                        title="Toggle Sidebar">
+                        <span class="material-icons text-gray-600 hover:text-blue-700">
+                            {{ isSidebarMinimized ? 'chevron_right' : 'chevron_left' }}
+                        </span>
+                    </button>
+                    <div class="border-b border-gray-200 mb-4" :class="{ 'hidden': isSidebarMinimized }"></div>
                     <div class="space-y-1">
                         <router-link v-for="link in navigationLinks" :key="link.path" :to="link.path"
                             class="flex items-center px-3 py-3 rounded-xl text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition-all group"
                             active-class="bg-blue-50 text-blue-700">
-                            <span class="material-icons text-xl md:text-lg text-gray-400 group-hover:text-blue-600">
+                            <span class="material-icons text-xl text-gray-400 group-hover:text-blue-600">
                                 {{ getLinkIcon(link.name) }}
                             </span>
-                            <span class="ml-3 text-sm font-medium sm:hidden xl:block lg:block md:block hidden">
+                            <span class="ml-3 text-sm font-medium" :class="{ 'hidden': isSidebarMinimized }">
                                 {{ link.name }}
                             </span>
                         </router-link>
@@ -128,7 +162,9 @@ const handleImageError = async () => {
                 </nav>
             </aside>
 
-            <main class="flex-1 sm:ml-72 ml-12 overflow-auto bg-slate-50 px-6 py-4">
+            <main class="flex-1 overflow-auto bg-slate-50 px-6 py-4" :class="[
+                isSidebarMinimized ? 'ml-16' : 'ml-72'
+            ]">
                 <router-view v-slot="{ Component }">
                     <transition name="fade" mode="out-in">
                         <component :is="Component" />
