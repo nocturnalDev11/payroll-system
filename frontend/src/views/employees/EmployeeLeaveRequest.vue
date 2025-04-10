@@ -101,8 +101,8 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-100 p-4">
-        <div class="max-w-7xl mx-auto">
+    <div class="min-h-screen p-4">
+        <div class="mx-auto">
             <!-- Header -->
             <header
                 class="bg-white rounded-xl shadow-lg p-6 flex justify-between items-center sticky top-6 z-50 backdrop-blur-md bg-opacity-90">
@@ -119,7 +119,7 @@ onMounted(() => {
                             class="pl-10 pr-4 py-2 w-full rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-gray-50 text-gray-700 shadow-sm transition-all duration-300" />
                     </div>
                     <button @click="showRequestLeave = true"
-                        class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2">
+                        class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2">
                         <span class="material-icons">add_circle</span>
                         New Request
                     </button>
@@ -150,35 +150,40 @@ onMounted(() => {
                             class="bg-gradient-to-r from-white to-gray-50 rounded-xl p-5 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group border border-indigo-100">
                             <div class="flex justify-between items-center gap-4">
                                 <div class="flex-1">
-                                    <h3
-                                        class="text-xl font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
-                                        <span class="material-icons text-indigo-500">person</span>
-                                        {{ request.employeeName }}
-                                    </h3>
+                                    <div class="flex justify-between">
+                                        <h3
+                                            class="text-xl font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors flex items-center gap-2">
+                                            {{ request.employeeName }}
+                                        </h3>
+
+                                        <span :class="{
+                                            'bg-yellow-100 text-yellow-800': request.status === 'Pending',
+                                            'bg-green-100 text-green-800': request.status === 'Approved',
+                                            'bg-red-100 text-red-800': request.status === 'Disapproved'
+                                        }"
+                                            class="px-4 py-1 rounded-full text-sm font-medium shadow-sm group-hover:scale-110 transition-transform flex items-center gap-1">
+                                            <span class="material-icons text-sm"
+                                                v-if="request.status === 'Pending'">hourglass_empty</span>
+                                            <span class="material-icons text-sm"
+                                                v-if="request.status === 'Approved'">check</span>
+                                            <span class="material-icons text-sm"
+                                                v-if="request.status === 'Disapproved'">close</span>
+                                            {{ request.status }}
+                                        </span>
+                                    </div>
                                     <p class="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                                        <span class="material-icons text-sm">calendar_today</span>
+                                        <span class="material-icons text-[0.65rem]">calendar_today</span>
                                         {{ formatDate(request.startDate) }} - {{ formatDate(request.endDate) }}
                                     </p>
-                                    <p class="mt-2 text-gray-700 flex items-start gap-2">
-                                        <span class="material-icons text-sm mt-1">notes</span>
-                                        {{ request.reason }}
-                                    </p>
-                                </div>
-                                <div class="flex-shrink-0">
-                                    <span :class="{
-                                        'bg-yellow-100 text-yellow-800': request.status === 'Pending',
-                                        'bg-green-100 text-green-800': request.status === 'Approved',
-                                        'bg-red-100 text-red-800': request.status === 'Disapproved'
-                                    }"
-                                        class="px-4 py-1 rounded-full text-sm font-medium shadow-sm group-hover:scale-110 transition-transform flex items-center gap-1">
-                                        <span class="material-icons text-sm"
-                                            v-if="request.status === 'Pending'">hourglass_empty</span>
-                                        <span class="material-icons text-sm"
-                                            v-if="request.status === 'Approved'">check</span>
-                                        <span class="material-icons text-sm"
-                                            v-if="request.status === 'Disapproved'">close</span>
-                                        {{ request.status }}
-                                    </span>
+
+                                    <div class="bg-gray-50 p-4 rounded-lg mt-4 border border-gray-200 space-y-2">
+                                        <p class="text-lg font-bold text-gray-700">
+                                            Reason
+                                        </p>
+                                        <p class="text-sm text-gray-700 whitespace-pre-wrap">
+                                            {{ request.reason }}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

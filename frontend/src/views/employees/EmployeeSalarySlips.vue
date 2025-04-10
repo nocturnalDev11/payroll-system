@@ -31,7 +31,27 @@ export default {
                 specialNonWorkingDays: [],
             },
             currentDate: new Date().toISOString().split('T')[0],
+            currentPage: 1,
+            itemsPerPage: 10,
+            sortOrder: 'desc',
         };
+    },
+    computed: {
+        sortedPayslipHistory() {
+            return [...this.payslipHistory].sort((a, b) => {
+                const dateA = new Date(a.payDate);
+                const dateB = new Date(b.payDate);
+                return this.sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+            });
+        },
+        paginatedPayslipHistory() {
+            const start = (this.currentPage - 1) * this.itemsPerPage;
+            const end = start + this.itemsPerPage;
+            return this.sortedPayslipHistory.slice(start, end);
+        },
+        totalPages() {
+            return Math.ceil(this.payslipHistory.length / this.itemsPerPage);
+        },
     },
     setup() {
         const authStore = useAuthStore();
@@ -41,6 +61,13 @@ export default {
         await this.fetchPayslipHistory();
     },
     methods: {
+        changePage(page) {
+            this.currentPage = Math.max(1, Math.min(page, this.totalPages));
+        },
+        updateSortOrder(order) {
+            this.sortOrder = order;
+            this.currentPage = 1;
+        },
         async fetchPayslipHistory() {
             this.isLoading = true;
             this.statusMessage = '';
@@ -658,24 +685,49 @@ export default {
 
 <template>
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
-        <div class="max-w-6xl mx-auto space-y-3">
+        <div class="mx-auto space-y-3">
             <header
-                class="bg-white shadow-sm p-3 flex flex-col sm:flex-row sm:justify-between sm:items-center sticky top-0 z-40 rounded-lg gap-4 sm:gap-0">
+                class="bg-white rounded-xl shadow-lg p-6 flex justify-between items-center sticky top-6 z-50 backdrop-blur-md bg-opacity-90">
                 <h1 class="text-2xl font-bold text-gray-900 animate-fade-in">My Salary Slips</h1>
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-                    <input v-model="selectedMonth" type="month"
-                        class="w-full sm:w-auto p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-300 placeholder-gray-400 shadow-sm"
-                        @change="fetchPayslipHistory" />
+                <div class="flex items-center gap-4">
+                    <div class="relative w-full">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </span>
+                        <input v-model="selectedMonth" type="month"
+                            class="pl-10 pr-4 py-2 w-full rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-gray-50 text-gray-700 shadow-sm transition-all duration-300"
+                            @change="fetchPayslipHistory" />
+                    </div>
                     <button @click="fetchPayslipHistory"
-                        class="bg-indigo-600 text-white px-4 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2 animate-pulse-once"
-                        :disabled="isLoading">
+                        class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2">
                         <span class="material-icons text-sm">{{ isLoading ? 'sync' : 'refresh' }}</span>
                         {{ isLoading ? 'Refreshing...' : 'Refresh' }}
                     </button>
                 </div>
             </header>
 
-            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="mt-6 bg-white bg-opacity-95 backdrop-blur-md rounded-2xl shadow-xl transition-all duration-300">
+                <div class="p-4 flex justify-end space-x-3">
+                    <div class="flex justify-between items-center gap-2">
+                        <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1"
+                            class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50">
+                            Previous
+                        </button>
+                        <span>{{ currentPage }} of {{ totalPages }}</span>
+                        <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages"
+                            class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50">
+                            Next
+                        </button>
+                    </div>
+                    <select v-model="sortOrder" @change="updateSortOrder(sortOrder)"
+                        class="p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-300 shadow-sm">
+                        <option value="desc">Sort by Date (Newest First)</option>
+                        <option value="asc">Sort by Date (Oldest First)</option>
+                    </select>
+                </div>
                 <!-- Payslip History Table -->
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
@@ -703,8 +755,10 @@ export default {
                                 </th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            <tr v-for="payslip in payslipHistory" :key="`${payslip.salaryMonth}-${payslip.paydayType}`"
+
+                        <tbody class="divide-y divide-gray-200 overflow-x-auto">
+                            <tr v-for="payslip in paginatedPayslipHistory"
+                                :key="`${payslip.salaryMonth}-${payslip.paydayType}`"
                                 class="hover:bg-blue-50 transition-colors cursor-pointer"
                                 :class="{ 'bg-blue-100': selectedPayslip?.salaryMonth === payslip.salaryMonth && selectedPayslip?.paydayType === payslip.paydayType }"
                                 @click="selectPayslip(payslip)">
@@ -712,15 +766,11 @@ export default {
                                     {{ payslip.paydayType === 'mid-month' ? payslip.expectedPaydays.midMonthPayday :
                                     payslip.expectedPaydays.endMonthPayday }}
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-500">
-                                    {{ payslip.position }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-500">
-                                    ₱{{ formatNumber(payslip.totalSalary || payslip.salary) }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-500">
-                                    {{ payslip.payslipDataUrl ? 'Generated' : 'Pending' }}
-                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-500">{{ payslip.position }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-500">₱{{ formatNumber(payslip.totalSalary ||
+                                    payslip.salary) }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-500">{{ payslip.payslipDataUrl ? 'Generated' :
+                                    'Pending' }}</td>
                                 <td class="px-6 py-4 text-sm">
                                     <button v-if="!payslip.payslipDataUrl" @click.stop="generatePayslip(payslip)"
                                         class="inline-flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-all"
@@ -737,10 +787,9 @@ export default {
                                     </button>
                                 </td>
                             </tr>
-                            <tr v-if="payslipHistory.length === 0 && !isLoading">
-                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">
-                                    No payslips found for this period.
-                                </td>
+                            <tr v-if="paginatedPayslipHistory.length === 0 && !isLoading">
+                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">No payslips found for this
+                                    period.</td>
                             </tr>
                             <tr v-if="isLoading">
                                 <td colspan="5" class="px-6 py-8 text-center">

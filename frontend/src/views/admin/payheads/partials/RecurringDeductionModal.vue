@@ -141,7 +141,7 @@
                                                 </div>
                                                 <button v-for="day in calendarDays" :key="day.date.toISOString()"
                                                     @click="toggleDate(day.date)" :disabled="!isPayrollDay(day.date)"
-                                                    class="relative aspect-square rounded-full text-sm flex items-center justify-center m-0.5 text-xs md:text-sm"
+                                                    class="relative aspect-square rounded-full text-sm flex items-center justify-center m-0.5 md:text-xs"
                                                     :class="[
                                                         isSelectedPeriod(day.date)
                                                             ? 'bg-blue-600 text-white hover:bg-blue-700 font-medium'
