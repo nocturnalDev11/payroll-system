@@ -403,27 +403,42 @@ export default {
                 <table v-if="employees && employees.length" class="min-w-full border border-gray-300 overflow-y-auto">
                     <thead class="bg-gray-200">
                         <tr>
-                            <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                            <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                            <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Position
+                            <th
+                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                ID</th>
+                            <th
+                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Name</th>
+                            <th
+                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Position
                             </th>
-                            <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Salary
+                            <th
+                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Salary
                             </th>
-                            <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Hire Date
+                            <th
+                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Hire Date
                             </th>
-                            <th class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period
+                            <th
+                                class=" border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Period
                             </th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="emp in employees" :key="emp.id" class="hover:bg-gray-50 cursor-pointer"
                             @click="openTaxModal(emp)">
-                            <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.id }}</td>
-                            <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.name }}</td>
-                            <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.position }}</td>
-                            <td class="border px-4 py-2 text-sm text-gray-900">₱{{ emp.salary.toLocaleString() }}</td>
-                            <td class="border px-4 py-2 text-sm text-gray-900">{{ formatDate(emp.hireDate) }}</td>
-                            <td class="border px-4 py-2 text-sm text-gray-900">{{ emp.salaryMonth }}</td>
+                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{ emp.id }}</td>
+                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{ emp.name }}</td>
+                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{ emp.position }}</td>
+                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
+                                emp.salary.toLocaleString() }}</td>
+                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{
+                                formatDate(emp.hireDate) }}</td>
+                            <td class="border  border-gray-300 px-4 py-2 text-sm text-gray-900">{{ emp.salaryMonth }}
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -448,7 +463,7 @@ export default {
                             <div class="mb-4">
                                 <label class="text-sm font-medium text-gray-700">Filter by Month (optional):</label>
                                 <input v-model="selectedMonth" type="month"
-                                    class="border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all w-full mt-1"
+                                    class="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all w-full mt-1"
                                     @change="filterTaxContributions" />
                             </div>
 
@@ -457,48 +472,50 @@ export default {
                                     <thead class="bg-gray-100">
                                         <tr>
                                             <th
-                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                                 Pay Date</th>
                                             <th
-                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                                 Position</th>
                                             <th
-                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                                 Salary</th>
                                             <th
-                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                                 SSS</th>
                                             <th
-                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                                 PhilHealth</th>
                                             <th
-                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                                 HDMF</th>
                                             <th
-                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                                 Withholding Tax</th>
                                             <th
-                                                class="border px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                                 Total</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr v-for="entry in filteredTaxContributions" :key="entry.payDate"
                                             class="hover:bg-gray-50">
-                                            <td class="border px-4 py-2 text-sm text-gray-900">{{
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{
                                                 formatDate(entry.payDate) }}</td>
-                                            <td class="border px-4 py-2 text-sm text-gray-900">{{ entry.position }}</td>
-                                            <td class="border px-4 py-2 text-sm text-gray-900">₱{{
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{
+                                                entry.position }}</td>
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
                                                 entry.salary.toLocaleString() }}</td>
-                                            <td class="border px-4 py-2 text-sm text-gray-900">₱{{
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
                                                 entry.sss.toLocaleString() }}</td>
-                                            <td class="border px-4 py-2 text-sm text-gray-900">₱{{
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
                                                 entry.philhealth.toLocaleString() }}</td>
-                                            <td class="border px-4 py-2 text-sm text-gray-900">₱{{
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
                                                 entry.hdmf.toLocaleString() }}</td>
-                                            <td class="border px-4 py-2 text-sm text-gray-900">₱{{
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
                                                 entry.withholdingTax.toLocaleString() }}</td>
-                                            <td class="border px-4 py-2 text-sm text-gray-900 font-semibold">
+                                            <td
+                                                class="border border-gray-300 px-4 py-2 text-sm text-gray-900 font-semibold">
                                                 ₱{{ (entry.sss + entry.philhealth + entry.hdmf +
                                                 entry.withholdingTax).toLocaleString() }}
                                             </td>

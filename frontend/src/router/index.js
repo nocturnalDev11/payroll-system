@@ -109,7 +109,7 @@ const routes = [
             { 
                 path: 'manage-pay-heads', 
                 name: 'ManagePayHeads',
-                component: () => import('../views/admin/ManagePayHeads.vue'),
+                component: () => import('../views/admin/payheads/ManagePayHeads.vue'),
                 meta: {
                     title: 'Manage Pay Heads',
                 }
