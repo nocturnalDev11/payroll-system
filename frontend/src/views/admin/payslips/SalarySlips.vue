@@ -131,7 +131,7 @@
             <!-- Payslip History Modal -->
             <div v-if="showHistoryModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                 <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl h-[80vh] flex flex-col">
-                    <div class="flex items-center justify-between p-4 border-b">
+                    <div class="flex items-center justify-between p-4 border-b border-gray-300">
                         <h2 class="text-base font-medium text-gray-800 flex items-center gap-1">
                             <span class="material-icons text-sm">history</span>
                             Payslip History - {{ selectedEmployee?.name }}
@@ -149,7 +149,7 @@
                         </div>
                     </div>
                     <div class="flex flex-1 overflow-hidden">
-                        <div class="w-1/2 p-4 overflow-y-auto border-r">
+                        <div class="w-1/2 p-4 overflow-y-auto border-r border-gray-300">
                             <!-- Previous Position Payslips (Initial Position) -->
                             <h3 class="text-sm font-medium text-gray-700 mb-2">Previous Position Payslips</h3>
                             <table class="min-w-full divide-y divide-gray-200">
@@ -180,8 +180,8 @@
                                         @click="selectPayslip(payslip)">
                                         <td class="px-4 py-2 text-sm text-gray-900">
                                             {{ payslip.paydayType === 'mid-month' ?
-                                                payslip.expectedPaydays.midMonthPayday :
-                                                payslip.expectedPaydays.endMonthPayday }}
+                                            payslip.expectedPaydays.midMonthPayday :
+                                            payslip.expectedPaydays.endMonthPayday }}
                                         </td>
                                         <td class="px-4 py-2 text-sm text-gray-500">
                                             {{ getPositionName(payslip.position) }}
@@ -199,9 +199,9 @@
                                                 :disabled="!canGeneratePayslip(payslip) || payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating">
                                                 <span class="material-icons text-sm">description</span>
                                                 {{
-                                                    payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
-                                                        ?
-                                                        'Generating...' : 'Generate' }}
+                                                payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
+                                                ?
+                                                'Generating...' : 'Generate' }}
                                             </button>
                                         </td>
                                     </tr>
@@ -223,13 +223,13 @@
                                                 @click="sortNewPayslips('payDate')">
                                                 Pay Date <span class="material-icons text-xs">{{ sortNewField ===
                                                     'payDate' ? (sortNewAsc ?
-                                                        'arrow_upward' : 'arrow_downward') : '' }}</span>
+                                                    'arrow_upward' : 'arrow_downward') : '' }}</span>
                                             </th>
                                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 cursor-pointer"
                                                 @click="sortNewPayslips('position')">
                                                 Position <span class="material-icons text-xs">{{ sortNewField ===
                                                     'position' ? (sortNewAsc ?
-                                                        'arrow_upward' : 'arrow_downward') : '' }}</span>
+                                                    'arrow_upward' : 'arrow_downward') : '' }}</span>
                                             </th>
                                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Salary
                                             </th>
@@ -247,8 +247,8 @@
                                             @click="selectPayslip(payslip)">
                                             <td class="px-4 py-2 text-sm text-gray-900">
                                                 {{ payslip.paydayType === 'mid-month' ?
-                                                    payslip.expectedPaydays.midMonthPayday :
-                                                    payslip.expectedPaydays.endMonthPayday }}
+                                                payslip.expectedPaydays.midMonthPayday :
+                                                payslip.expectedPaydays.endMonthPayday }}
                                             </td>
                                             <td class="px-4 py-2 text-sm text-gray-500">
                                                 {{ getPositionName(payslip.position) }}
@@ -266,9 +266,9 @@
                                                     :disabled="!canGeneratePayslip(payslip) || payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating">
                                                     <span class="material-icons text-sm">description</span>
                                                     {{
-                                                        payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
-                                                            ?
-                                                            'Generating...' : 'Generate' }}
+                                                    payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
+                                                    ?
+                                                    'Generating...' : 'Generate' }}
                                                 </button>
                                             </td>
                                         </tr>
