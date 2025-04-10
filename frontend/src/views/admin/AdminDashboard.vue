@@ -121,22 +121,43 @@ const closeModal = (recordId) => {
 
 // Computed properties for stats
 const presentCount = computed(() => {
-    return attendanceStore.attendanceRecords.filter(r => r.status === 'On Time' || r.status === 'Present').length;
+    return attendanceStore.attendanceRecords.filter(r =>
+        r.status === 'On Time' ||
+        r.status === 'Late' ||
+        r.status === 'Early Departure' ||
+        r.status === 'Present' ||
+        r.status === 'Half Day'
+    ).length;
 });
 
 const lateCount = computed(() => {
-    return attendanceStore.attendanceRecords.filter(r => r.status === 'Late').length;
+    return attendanceStore.attendanceRecords.filter(r => 
+        r.status === 'Late'
+    ).length;
 });
 
 const absentCount = computed(() => {
     const todayStart = new Date().setHours(0, 0, 0, 0);
     const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false });
-    const CUTOFF_TIME = "13:00:00";
+    const CUTOFF_TIME = "00:00:00";
     if (currentTime > CUTOFF_TIME) {
         const presentIds = new Set(attendanceStore.attendanceRecords.map(r => r.employeeId._id.toString()));
         return totalEmployees.value - presentIds.size;
     }
-    return 0; // Before cutoff, only show absent if explicitly marked
+    // Before cutoff, only show absent if explicitly marked
+    return 0; 
+});
+
+const halfdayCount = computed(() => {
+    return attendanceStore.attendanceRecords.filter(r =>
+        r.status === 'Half Day'
+    ).length;
+});
+
+const onTimeCount = computed(() => {
+    return attendanceStore.attendanceRecords.filter(r =>
+        r.status === 'On Time'
+    ).length;
 });
 
 onMounted(() => {
@@ -150,11 +171,12 @@ onMounted(() => {
         <div class="mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <!-- Stats Overview -->
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <!-- Total Employees -->
                 <div
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="p-6">
                         <div class="flex items-center">
-                            <div class="rounded-full bg-indigo-100 p-3">
+                            <div class="rounded-full bg-indigo-100 p-3 flex items-center justify-center">
                                 <span class="material-icons text-indigo-600">groups</span>
                             </div>
                             <div class="ml-5">
@@ -164,10 +186,12 @@ onMounted(() => {
                         </div>
                     </div>
                 </div>
+
+                <!-- Present Today -->
                 <div
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="flex items-center p-6 gap-4">
-                        <div class="rounded-full bg-green-100 p-3">
+                        <div class="rounded-full bg-green-100 p-3 flex items-center justify-center">
                             <span class="material-icons text-green-600">how_to_reg</span>
                         </div>
                         <div>
@@ -176,11 +200,13 @@ onMounted(() => {
                         </div>
                     </div>
                 </div>
+
+                <!-- Late Today -->
                 <div
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="p-6">
                         <div class="flex items-center">
-                            <div class="rounded-full bg-yellow-100 p-3">
+                            <div class="rounded-full bg-yellow-100 p-3 flex items-center justify-center">
                                 <span class="material-icons text-yellow-600">schedule</span>
                             </div>
                             <div class="ml-5">
@@ -190,16 +216,50 @@ onMounted(() => {
                         </div>
                     </div>
                 </div>
+
+                <!-- Absent today -->
                 <div
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="p-6">
                         <div class="flex items-center">
-                            <div class="rounded-full bg-red-100 p-3">
+                            <div class="rounded-full bg-red-100 p-3 flex items-center justify-center">
                                 <span class="material-icons text-red-600">cancel</span>
                             </div>
                             <div class="ml-5">
                                 <p class="text-sm font-medium text-gray-600">Absent Today</p>
                                 <h3 class="text-2xl font-bold text-gray-900">{{ absentCount }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Halfday Today -->
+                <div
+                    class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="p-6">
+                        <div class="flex items-center">
+                            <div class="rounded-full bg-purple-100 p-3 flex items-center justify-center">
+                                <span class="material-icons text-purple-600">priority_high</span>
+                            </div>
+                            <div class="ml-5">
+                                <p class="text-sm font-medium text-gray-600">Halfday Today</p>
+                                <h3 class="text-2xl font-bold text-gray-900">{{ halfdayCount }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- On time -->
+                <div
+                    class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="p-6">
+                        <div class="flex items-center">
+                            <div class="rounded-full bg-orange-100 p-3 flex items-center justify-center">
+                                <span class="material-symbols text-orange-600">early_on</span>
+                            </div>
+                            <div class="ml-5">
+                                <p class="text-sm font-medium text-gray-600">On Time</p>
+                                <h3 class="text-2xl font-bold text-gray-900">{{ onTimeCount }}</h3>
                             </div>
                         </div>
                     </div>
