@@ -65,22 +65,22 @@ const seedEmployee = async () => {
         // Create position history with past positions
         const positionHistory = [
             {
-                position: (await Position.findOne({ name: 'Junior Developer' }))._id,
+                position: 'Junior Developer',
                 salary: 20000,
                 startDate: new Date('2020-01-15'),
                 endDate: new Date('2022-06-30'),
             },
             {
-                position: (await Position.findOne({ name: 'Mid-Level Developer' }))._id,
+                position: 'Mid-Level Developer',
                 salary: 25000,
                 startDate: new Date('2022-07-01'),
                 endDate: new Date('2023-12-31'),
             },
             {
-                position: position._id,
+                position: position.name,
                 salary: position.salary,
                 startDate: new Date('2024-01-01'),
-                endDate: null,
+                endDate: null, // Current position
             },
         ];
 
@@ -100,6 +100,7 @@ const seedEmployee = async () => {
             role: employeeData.role,
             contactInfo: employeeData.contactInfo,
             hireDate: employeeData.hireDate,
+            status: employeeData.status,
         });
 
         await employee.save();

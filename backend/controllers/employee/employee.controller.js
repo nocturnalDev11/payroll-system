@@ -220,9 +220,21 @@ exports.getEmployeeById = asyncHandler(async (req, res) => {
 
     const employee = await Employee.findById(employeeId)
         .populate({ path: 'payheads', select: 'name amount type' })
+        .populate({ path: 'positionHistory.position', select: 'name' })
         .select('-password');
     if (!employee) return res.status(404).json({ error: `Employee with id ${employeeId} not found` });
-    res.status(200).json(employee);
+
+    const transformedEmployee = {
+        ...employee.toObject(),
+        positionHistory: employee.positionHistory.map(history => ({
+            position: history.position ? history.position.name : 'Unknown', // Fallback if position is null
+            salary: history.salary,
+            startDate: history.startDate,
+            endDate: history.endDate
+        }))
+    };
+
+    res.status(200).json(transformedEmployee); // Return transformed data
 });
 
 // Get salary data
