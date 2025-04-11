@@ -217,17 +217,15 @@ export default {
                 const base64Data = await this.blobToBase64(pdfBlob);
                 const url = URL.createObjectURL(pdfBlob);
 
-                // Get active position for the payDate
-                const activePosition = this.getActivePositionForDate(this.employee.positionHistory, payslip.payDate);
-
+                // Use active position and salary from payslip
                 const payload = {
                     employeeId: employee._id,
                     empNo: String(employee.empNo),
                     payslipData: base64Data.split(',')[1],
                     salaryMonth: payslip.salaryMonth,
                     paydayType: payslip.paydayType,
-                    position: activePosition.position, // Use active position
-                    salary: Number(activePosition.salary), // Use active salary
+                    position: payslip.position, // Use position from payslip
+                    salary: Number(payslip.salary), // Use salary from payslip
                     payDate: payslip.payDate,
                 };
 
@@ -249,7 +247,7 @@ export default {
                     this.showSuccessMessage(`Payslip generated successfully for ${payslip.paydayType === 'mid-month' ? payslip.expectedPaydays.midMonthPayday : payslip.expectedPaydays.endMonthPayday}!`);
                 }
             } catch (error) {
-                console.error('Error generating payslip:', error.response?.data || error.message);
+                console.error('Error generating payslip:', error);
                 this.showErrorMessage(`Failed to generate payslip: ${error.response?.data?.error || error.message}`);
             } finally {
                 this.payslipGenerationStatus[key] = { generating: false };
