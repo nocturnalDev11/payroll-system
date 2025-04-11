@@ -31,7 +31,7 @@ const navigationLinks = [
     { path: '/employee/dashboard', name: 'Dashboard' },
     { path: '/employee/salary-slips', name: 'Salary Slips' },
     { path: '/employee/employee-leave-request', name: 'Leave Management' },
-    { path: '/settings/:id', name: 'Holidays' },
+    { path: '/employee/holidays', name: 'Holidays' },
 ];
 
 const getLinkIcon = (name) => {
