@@ -200,7 +200,6 @@ export default {
             return today.isSameOrAfter(payDate, 'day') && !payslip.payslipDataUrl;
         },
         async generatePayslip(payslip) {
-            const employee = payslip.employee;
             const key = `${payslip.salaryMonth}-${payslip.paydayType}`;
             this.payslipGenerationStatus[key] = { generating: true };
             this.isGenerating = true;
@@ -212,8 +211,8 @@ export default {
                 const url = URL.createObjectURL(pdfBlob);
 
                 const payload = {
-                    employeeId: employee._id,
-                    empNo: String(employee.empNo),
+                    employeeId: payslip.employee._id,
+                    empNo: String(payslip.employee.empNo),
                     payslipData: base64Data.split(',')[1],
                     salaryMonth: payslip.salaryMonth,
                     paydayType: payslip.paydayType,
@@ -232,7 +231,7 @@ export default {
 
                 if (response.status === 201 || response.status === 200) {
                     payslip.payslipDataUrl = url;
-                    payslip.totalSalary = this.calculateNetSalary(employee);
+                    payslip.totalSalary = this.calculateNetSalary(payslip.employee);
                     this.payslipHistory = this.payslipHistory.map(p =>
                         p.salaryMonth === payslip.salaryMonth && p.paydayType === payslip.paydayType ? payslip : p
                     );
