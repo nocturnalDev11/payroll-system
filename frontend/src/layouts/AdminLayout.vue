@@ -133,13 +133,13 @@ onMounted(() => {
                         </router-link>
                     </div>
                     <div class="mt-6 pt-6 border-t border-gray-100">
-                        <router-link :to="{ name: 'ListHolidays' }"
+                        <router-link :to="{ name: 'EmployeeHolidays' }"
                             class="flex items-center px-3 py-3 rounded-xl text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition-all group"
                             active-class="bg-blue-50">
                             <span class="material-icons text-xl text-gray-400 group-hover:text-blue-600">event</span>
                             <span class="ml-3 text-sm font-medium" :class="{ 'hidden': isSidebarMinimized }">
                                 Holiday Selection
-                            </span>
+                            </span> 
                         </router-link>
                     </div>
                 </nav>
