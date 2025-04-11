@@ -217,7 +217,7 @@ export default {
                 const base64Data = await this.blobToBase64(pdfBlob);
                 const url = URL.createObjectURL(pdfBlob);
 
-                // Ensure correct position and salary from active history
+                // Get active position for the payDate
                 const activePosition = this.getActivePositionForDate(this.employee.positionHistory, payslip.payDate);
 
                 const payload = {
@@ -226,12 +226,10 @@ export default {
                     payslipData: base64Data.split(',')[1],
                     salaryMonth: payslip.salaryMonth,
                     paydayType: payslip.paydayType,
-                    position: activePosition.position,
-                    salary: Number(activePosition.salary),
+                    position: activePosition.position, // Use active position
+                    salary: Number(activePosition.salary), // Use active salary
                     payDate: payslip.payDate,
                 };
-
-                console.log('Generating payslip with payload:', payload); // Debug
 
                 const response = await axios.post(`${BASE_API_URL}/api/payslips/generate`, payload, {
                     headers: {
