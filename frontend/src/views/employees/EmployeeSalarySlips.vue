@@ -706,10 +706,14 @@ export default {
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
         <div class="mx-auto space-y-3">
             <header
-                class="bg-white rounded-xl shadow-lg p-6 flex justify-between items-center sticky top-6 z-50 backdrop-blur-md bg-opacity-90">
-                <h1 class="text-2xl font-bold text-gray-900 animate-fade-in">My Salary Slips</h1>
-                <div class="flex items-center gap-4">
-                    <div class="relative w-full">
+                class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 sticky top-6 z-50 backdrop-blur-md bg-opacity-90">
+
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-900 animate-fade-in">
+                    My Salary Slips
+                </h1>
+
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
+                    <div class="relative w-full sm:w-auto">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -717,151 +721,157 @@ export default {
                             </svg>
                         </span>
                         <input v-model="selectedMonth" type="month"
-                            class="pl-10 pr-4 py-2 w-full rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-gray-50 text-gray-700 shadow-sm transition-all duration-300"
+                            class="pl-10 pr-4 py-2 w-full sm:w-48 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-gray-50 text-gray-700 shadow-sm transition-all duration-300"
                             @change="fetchPayslipHistory" />
                     </div>
+
                     <button @click="fetchPayslipHistory"
-                        class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2">
+                        class="w-full sm:w-auto bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2">
                         <span class="material-icons text-sm">{{ isLoading ? 'sync' : 'refresh' }}</span>
                         {{ isLoading ? 'Refreshing...' : 'Refresh' }}
                     </button>
                 </div>
             </header>
 
-            <div class="mt-6 bg-white bg-opacity-95 backdrop-blur-md rounded-2xl shadow-xl transition-all duration-300">
-                <div class="p-4 flex justify-end space-x-3">
-                    <div class="flex justify-between items-center gap-2">
-                        <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1"
-                            class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50">
-                            Previous
-                        </button>
-                        <span>{{ currentPage }} of {{ totalPages }}</span>
-                        <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages"
-                            class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50">
-                            Next
-                        </button>
+            <div class="flex flex-col">
+                <div class=" overflow-x-auto pb-4">
+                    <div class="block">
+                        <div class="overflow-x-auto w-full rounded-2xl shadow-xl mt-3">
+                            <table class="w-full rounded-xl">
+                                <thead>
+                                    <tr class="bg-white">
+                                        <th scope="col"
+                                            class="p-5 text-left whitespace-nowrap text-sm leading-6 font-semibold text-gray-900 capitalize">
+                                            Pay Date </th>
+                                        <th scope="col"
+                                            class="p-5 text-left whitespace-nowrap text-sm leading-6 font-semibold text-gray-900 capitalize">
+                                            Position </th>
+                                        <th scope="col"
+                                            class="p-5 text-left whitespace-nowrap text-sm leading-6 font-semibold text-gray-900 capitalize min-w-[150px]">
+                                            Salary </th>
+                                        <th scope="col"
+                                            class="p-5 text-left whitespace-nowrap text-sm leading-6 font-semibold text-gray-900 capitalize">
+                                            Status </th>
+                                        <th scope="col"
+                                            class="p-5 text-left whitespace-nowrap text-sm leading-6 font-semibold text-gray-900 capitalize">
+                                            Actions </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-300 ">
+                                    <tr v-for="payslip in paginatedPayslipHistory"
+                                        :key="`${payslip.salaryMonth}-${payslip.paydayType}`"
+                                        class="bg-white transition-all duration-500 hover:bg-gray-50"
+                                        :class="{ 'bg-blue-100': selectedPayslip?.salaryMonth === payslip.salaryMonth && selectedPayslip?.paydayType === payslip.paydayType }"
+                                        @click="selectPayslip(payslip)">
+                                        <td class="p-5 whitespace-nowrap text-sm leading-6 font-medium text-gray-900 ">
+                                            {{ payslip.paydayType === 'mid-month' ?
+                                            payslip.expectedPaydays.midMonthPayday :
+                                            payslip.expectedPaydays.endMonthPayday }}
+                                        </td>
+                                        <td class="p-5 whitespace-nowrap text-sm leading-6 font-medium text-gray-900">
+                                            {{ payslip.position }}
+                                        </td>
+                                        <td class="p-5 whitespace-nowrap text-sm leading-6 font-medium text-gray-900">
+                                            ₱{{ formatNumber(payslip.totalSalary ||
+                                            payslip.salary) }}
+                                        </td>
+                                        <td class="p-5 whitespace-nowrap text-sm leading-6 font-medium text-gray-900">
+                                            <div
+                                                class="py-1.5 px-2.5 bg-emerald-50 rounded-full flex justify-center w-20 items-center gap-1">
+                                                <svg width="5" height="6" viewBox="0 0 5 6" fill="none"
+                                                    xmlns="http://www.w3.org/2000/svg">
+                                                    <circle cx="2.5" cy="3" r="2.5" fill="#059669"></circle>
+                                                </svg>
+                                                <span class="font-medium text-xs text-emerald-600 ">
+                                                    {{ payslip.payslipDataUrl ? 'Generated' :
+                                                    'Pending' }}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="flex p-5 items-center gap-0.5">
+                                            <button v-if="!payslip.payslipDataUrl"
+                                                @click.stop="generatePayslip(payslip)"
+                                                class="inline-flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-all"
+                                                :disabled="!canGeneratePayslip(payslip) || payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating">
+                                                <span class="material-icons text-sm">description</span>
+                                                {{
+                                                payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
+                                                ? 'Generating...' : 'Generate' }}
+                                            </button>
+                                            <button v-if="payslip.payslipDataUrl" @click.stop="viewPayslip(payslip)"
+                                                class="inline-flex items-center gap-1 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-all">
+                                                <span class="material-icons text-sm">visibility</span>
+                                                View
+                                            </button>
+                                            <button v-if="payslip.payslipDataUrl" @click.stop="generatePayslip(payslip)"
+                                                class="inline-flex items-center gap-1 px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-all"
+                                                :disabled="!canGeneratePayslip(payslip) || payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating">
+                                                <span class="material-icons text-sm">refresh</span>
+                                                {{
+                                                payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
+                                                ? 'Regenerating...' : 'Regenerate' }}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="flex items-center justify-center py-4 " aria-label="Table navigation">
+                            <div class="flex items-center justify-center text-sm h-auto gap-12">
+                                <div>
+                                    <button type="button" @click="changePage(currentPage - 1)"
+                                        :disabled="currentPage === 1"
+                                        class="shadow-lg flex items-center justify-center gap-2 px-3 py-2 h-8 ml-0 text-gray-500 bg-white font-medium text-base leading-7  hover:text-gray-700 disabled:opacity-50">
+                                        <span class="material-symbols">
+                                            arrow_back_ios
+                                        </span>
+                                    </button>
+                                </div>
+                                <div>
+                                    Page {{ currentPage }} of {{ totalPages }}
+                                </div>
+                                <div>
+                                    <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages"
+                                        class="shadow-lg flex items-center justify-center gap-2 px-3 py-2 h-8 ml-0 text-gray-500 bg-white font-medium text-base leading-7  hover:text-gray-700 disabled:opacity-50">
+                                        <span class="material-symbols">
+                                            arrow_forward_ios
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <select v-model="sortOrder" @change="updateSortOrder(sortOrder)"
-                        class="p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all duration-300 shadow-sm">
-                        <option value="desc">Sort by Date (Newest First)</option>
-                        <option value="asc">Sort by Date (Oldest First)</option>
-                    </select>
                 </div>
-                <!-- Payslip History Table -->
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Pay Date
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Position
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Salary
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
-                                </th>
-                                <th
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
+            </div>
 
-                        <tbody class="divide-y divide-gray-200 overflow-x-auto">
-                            <tr v-for="payslip in paginatedPayslipHistory"
-                                :key="`${payslip.salaryMonth}-${payslip.paydayType}`"
-                                class="hover:bg-blue-50 transition-colors cursor-pointer"
-                                :class="{ 'bg-blue-100': selectedPayslip?.salaryMonth === payslip.salaryMonth && selectedPayslip?.paydayType === payslip.paydayType }"
-                                @click="selectPayslip(payslip)">
-                                <td class="px-6 py-4 text-sm text-gray-900">
-                                    {{ payslip.paydayType === 'mid-month' ? payslip.expectedPaydays.midMonthPayday :
-                                    payslip.expectedPaydays.endMonthPayday }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-500">{{ payslip.position }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-500">₱{{ formatNumber(payslip.totalSalary ||
-                                    payslip.salary) }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-500">{{ payslip.payslipDataUrl ? 'Generated' :
-                                    'Pending' }}</td>
-                                <td class="px-6 py-4 text-sm">
-                                    <div class="flex gap-2">
-                                        <button v-if="!payslip.payslipDataUrl" @click.stop="generatePayslip(payslip)"
-                                            class="inline-flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-all"
-                                            :disabled="!canGeneratePayslip(payslip) || payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating">
-                                            <span class="material-icons text-sm">description</span>
-                                            {{
-                                            payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
-                                            ? 'Generating...' : 'Generate' }}
-                                        </button>
-                                        <button v-if="payslip.payslipDataUrl" @click.stop="viewPayslip(payslip)"
-                                            class="inline-flex items-center gap-1 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-all">
-                                            <span class="material-icons text-sm">visibility</span>
-                                            View
-                                        </button>
-                                        <button v-if="payslip.payslipDataUrl" @click.stop="generatePayslip(payslip)"
-                                            class="inline-flex items-center gap-1 px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-all"
-                                            :disabled="!canGeneratePayslip(payslip) || payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating">
-                                            <span class="material-icons text-sm">refresh</span>
-                                            {{
-                                            payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
-                                            ? 'Regenerating...' : 'Regenerate' }}
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-if="paginatedPayslipHistory.length === 0 && !isLoading">
-                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">No payslips found for this
-                                    period.</td>
-                            </tr>
-                            <tr v-if="isLoading">
-                                <td colspan="5" class="px-6 py-8 text-center">
-                                    <div class="flex flex-col items-center gap-2">
-                                        <span class="material-icons text-blue-500 animate-spin text-3xl">sync</span>
-                                        <p class="text-sm text-gray-500">Loading payslips...</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Payslip Viewer Modal -->
-                <Modal :show="showPayslipModal" max-width="4xl" max-height="90vh" @close="showPayslipModal = false">
-                    <div class="p-6 flex flex-col h-full">
-                        <div class="flex justify-between items-center border-b border-gray-300 pb-4">
-                            <h2 class="text-xl font-bold text-gray-800">
-                                Payslip for {{ employee?.name }} - {{ selectedPayslip?.paydayType === 'mid-month' ?
+            <Modal :show="showPayslipModal" max-width="4xl" max-height="90vh" @close="showPayslipModal = false">
+                <div class="p-6 flex flex-col h-full">
+                    <div class="flex justify-between items-center border-b border-gray-300 pb-4">
+                        <h2 class="text-xl font-bold text-gray-800">
+                            Payslip for {{ employee?.name }} - {{ selectedPayslip?.paydayType === 'mid-month' ?
                                 selectedPayslip?.expectedPaydays.midMonthPayday :
                                 selectedPayslip?.expectedPaydays.endMonthPayday }}
-                            </h2>
-                            <button @click="showPayslipModal = false" class="text-gray-500 hover:text-gray-700">
-                                <span class="material-icons">close</span>
-                            </button>
-                        </div>
-                        <div class="flex-1 overflow-y-auto mt-4">
-                            <iframe :src="selectedPayslip?.payslipDataUrl" class="w-full h-[70vh]" frameborder="0"
-                                @load="onIframeLoad" @error="onIframeError"></iframe>
-                            <p v-if="iframeError" class="text-red-500 text-sm mt-2">
-                                Error loading payslip. Please try generating it again.
-                            </p>
-                        </div>
-                        <div class="mt-4 flex justify-end">
-                            <button @click="downloadPayslip"
-                                class="flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 px-4 rounded-md">
-                                <span class="material-icons text-sm">download</span>
-                                Download PDF
-                            </button>
-                        </div>
+                        </h2>
+                        <button @click="showPayslipModal = false" class="text-gray-500 hover:text-gray-700">
+                            <span class="material-icons">close</span>
+                        </button>
                     </div>
-                </Modal>
-            </div>
+                    <div class="flex-1 overflow-y-auto mt-4">
+                        <iframe :src="selectedPayslip?.payslipDataUrl" class="w-full h-[70vh]" frameborder="0"
+                            @load="onIframeLoad" @error="onIframeError"></iframe>
+                        <p v-if="iframeError" class="text-red-500 text-sm mt-2">
+                            Error loading payslip. Please try generating it again.
+                        </p>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button @click="downloadPayslip"
+                            class="flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 px-4 rounded-md">
+                            <span class="material-icons text-sm">download</span>
+                            Download PDF
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
         <!-- Status Message -->
         <div v-if="statusMessage"
