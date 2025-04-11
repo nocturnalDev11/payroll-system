@@ -100,7 +100,7 @@
                         </option>
                     </select>
                     <button @click="addPayhead"
-                        class="mt-2 p-1.5 text-gray-700 hover:text-blue-600 bg-blue-500 rounded-lg hover:bg-blue-600 transition duration-200 transform hover:scale-105 flex items-center gap-1"
+                        class="mt-2 py-1.5 px-3 text-white hover:text-blue-600 bg-blue-500 rounded-lg hover:bg-blue-600 transition duration-200 transform hover:scale-105 flex items-center gap-1"
                         :disabled="!selectedPayhead || isUpdate" title="Add Payhead">
                         <span class="material-icons text-base">add</span>Add
                     </button>
@@ -128,7 +128,7 @@
 
             <div v-if="!mode || mode !== 'bulkAssign'" class="mt-6 flex justify-end gap-4">
                 <button @click="$emit('close')"
-                    class="p-1.5 text-gray-700 hover:text-gray-900 bg-gray-500 rounded-lg hover:bg-gray-600 transition duration-200 transform hover:scale-105 flex items-center gap-1"
+                    class="p-1.5 text-white hover:text-gray-900 bg-gray-500 rounded-lg hover:bg-gray-600 transition duration-200 transform hover:scale-105 flex items-center gap-1"
                     title="Cancel">
                     <span class="material-icons text-base">close</span>Close
                 </button>

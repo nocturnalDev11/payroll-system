@@ -992,14 +992,15 @@ export default {
                     salaryMonth: payslipData.salaryMonth,
                     paydayType: payslipData.paydayType,
                     position: activePosition.position,
-                    salary: Number(activePosition.salary)
+                    salary: Number(activePosition.salary),
+                    payDate: payDate.format('YYYY-MM-DD') // Add payDate to payload
                 };
 
                 console.log('Sending payload to backend (generatePayslipNow):', payload);
 
                 if (!payload.employeeId || !payload.empNo || !payload.payslipData ||
                     !payload.salaryMonth || !payload.paydayType || !payload.position ||
-                    payload.salary === undefined || isNaN(payload.salary)) {
+                    payload.salary === undefined || isNaN(payload.salary) || !payload.payDate) {
                     throw new Error('Payload is missing required fields or contains invalid data');
                 }
 
@@ -1015,7 +1016,6 @@ export default {
                     },
                 });
 
-                console.log('Payslip generated successfully (generatePayslipNow):', response.data);
                 if (response.status === 201 || response.status === 200) {
                     payslipData.payslipDataUrl = url;
                     payslipData.totalSalary = this.calculateNetSalary(payslipData.employee);

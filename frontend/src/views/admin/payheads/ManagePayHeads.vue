@@ -380,11 +380,12 @@ export default {
 
         totalPayableSalary() {
             if (!this.selectedEmployee) return 0;
+            const baseSalary = Number(this.selectedEmployee.salary || 0);
             const earnings = this.calculateEarnings(this.selectedEmployeePayheads);
             const deductions = this.calculateDeductions(this.selectedEmployeePayheads);
             const recurringDeductions = this.calculateRecurringDeductions(this.selectedEmployeePayheads);
-            return (this.selectedEmployee.salary || 0) + earnings - deductions - recurringDeductions;
-        },
+            return baseSalary + earnings - deductions - recurringDeductions;
+        }
     },
 
     methods: {

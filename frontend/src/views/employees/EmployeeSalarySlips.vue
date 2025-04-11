@@ -765,15 +765,15 @@ export default {
                                         @click="selectPayslip(payslip)">
                                         <td class="p-5 whitespace-nowrap text-sm leading-6 font-medium text-gray-900 ">
                                             {{ payslip.paydayType === 'mid-month' ?
-                                            payslip.expectedPaydays.midMonthPayday :
-                                            payslip.expectedPaydays.endMonthPayday }}
+                                                payslip.expectedPaydays.midMonthPayday :
+                                                payslip.expectedPaydays.endMonthPayday }}
                                         </td>
                                         <td class="p-5 whitespace-nowrap text-sm leading-6 font-medium text-gray-900">
                                             {{ payslip.position }}
                                         </td>
                                         <td class="p-5 whitespace-nowrap text-sm leading-6 font-medium text-gray-900">
                                             ₱{{ formatNumber(payslip.totalSalary ||
-                                            payslip.salary) }}
+                                                payslip.salary) }}
                                         </td>
                                         <td class="p-5 whitespace-nowrap text-sm leading-6 font-medium text-gray-900">
                                             <div
@@ -784,7 +784,7 @@ export default {
                                                 </svg>
                                                 <span class="font-medium text-xs text-emerald-600 ">
                                                     {{ payslip.payslipDataUrl ? 'Generated' :
-                                                    'Pending' }}
+                                                        'Pending' }}
                                                 </span>
                                             </div>
                                         </td>
@@ -795,8 +795,8 @@ export default {
                                                 :disabled="!canGeneratePayslip(payslip) || payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating">
                                                 <span class="material-icons text-sm">description</span>
                                                 {{
-                                                payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
-                                                ? 'Generating...' : 'Generate' }}
+                                                    payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
+                                                        ? 'Generating...' : 'Generate' }}
                                             </button>
                                             <button v-if="payslip.payslipDataUrl" @click.stop="viewPayslip(payslip)"
                                                 class="inline-flex items-center gap-1 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-all">
@@ -808,8 +808,8 @@ export default {
                                                 :disabled="!canGeneratePayslip(payslip) || payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating">
                                                 <span class="material-icons text-sm">refresh</span>
                                                 {{
-                                                payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
-                                                ? 'Regenerating...' : 'Regenerate' }}
+                                                    payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
+                                                        ? 'Regenerating...' : 'Regenerate' }}
                                             </button>
                                         </td>
                                     </tr>
