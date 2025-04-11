@@ -217,16 +217,21 @@ export default {
                 const base64Data = await this.blobToBase64(pdfBlob);
                 const url = URL.createObjectURL(pdfBlob);
 
+                // Ensure correct position and salary from active history
+                const activePosition = this.getActivePositionForDate(this.employee.positionHistory, payslip.payDate);
+
                 const payload = {
                     employeeId: employee._id,
                     empNo: String(employee.empNo),
                     payslipData: base64Data.split(',')[1],
                     salaryMonth: payslip.salaryMonth,
                     paydayType: payslip.paydayType,
-                    position: payslip.position,
-                    salary: Number(payslip.salary),
+                    position: activePosition.position,
+                    salary: Number(activePosition.salary),
                     payDate: payslip.payDate,
                 };
+
+                console.log('Generating payslip with payload:', payload); // Debug
 
                 const response = await axios.post(`${BASE_API_URL}/api/payslips/generate`, payload, {
                     headers: {
@@ -246,8 +251,8 @@ export default {
                     this.showSuccessMessage(`Payslip generated successfully for ${payslip.paydayType === 'mid-month' ? payslip.expectedPaydays.midMonthPayday : payslip.expectedPaydays.endMonthPayday}!`);
                 }
             } catch (error) {
-                console.error('Error generating payslip:', error);
-                this.showErrorMessage(`Failed to generate payslip: ${error.message}`);
+                console.error('Error generating payslip:', error.response?.data || error.message);
+                this.showErrorMessage(`Failed to generate payslip: ${error.response?.data?.error || error.message}`);
             } finally {
                 this.payslipGenerationStatus[key] = { generating: false };
                 this.isGenerating = false;
