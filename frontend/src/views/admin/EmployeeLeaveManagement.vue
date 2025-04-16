@@ -128,7 +128,7 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-for="leave in filteredLeaveRequests" :key="leave.id"
+                            <tr v-for="leave in filteredLeaveRequests" :key="leave._id"
                                 class="transition-all duration-200 hover:bg-gray-50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ leave.employeeName }}
                                 </td>
@@ -147,13 +147,13 @@
                                         <span class="material-icons text-xs">visibility</span>
                                         View
                                     </button>
-                                    <button @click="approveLeave(leave.id)" :disabled="leave.status === 'Approved'"
+                                    <button @click="approveLeave(leave._id)" :disabled="leave.status === 'Approved'"
                                         class="inline-flex items-center gap-1.5 bg-green-50 text-green-600 py-1.5 px-2.5 rounded-md text-sm font-medium 
                                  hover:bg-green-100 transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 disabled:opacity-50">
                                         <span class="material-icons text-xs">check</span>
                                         Approve
                                     </button>
-                                    <button @click="disapproveLeave(leave.id)"
+                                    <button @click="disapproveLeave(leave._id)"
                                         :disabled="leave.status === 'Disapproved'"
                                         class="inline-flex items-center gap-1.5 bg-red-50 text-red-600 py-1.5 px-2.5 rounded-md text-sm font-medium 
                                             hover:bg-red-100 transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 disabled:opacity-50">
@@ -229,12 +229,12 @@
                         </div>
 
                         <div class="mt-6 flex justify-end gap-3">
-                            <button @click="approveLeave(selectedLeave.id)"
+                            <button @click="approveLeave(selectedLeave._id)"
                                 :disabled="selectedLeave.status === 'Approved'"
                                 class="px-4 py-2 bg-green-500 text-white rounded-md text-sm font-medium hover:bg-green-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50">
                                 Approve
                             </button>
-                            <button @click="disapproveLeave(selectedLeave.id)"
+                            <button @click="disapproveLeave(selectedLeave._id)"
                                 :disabled="selectedLeave.status === 'Disapproved'"
                                 class="px-4 py-2 bg-red-500 text-white rounded-md text-sm font-medium hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50">
                                 Disapprove
@@ -354,6 +354,7 @@ export default {
                 const response = await axios.get(`${BASE_API_URL}/api/leaves/all`);
                 this.leaveRequests = response.data.map(leave => ({
                     ...leave,
+                    _id: leave._id,
                     startDate: moment(leave.startDate).format('YYYY-MM-DD'),
                     endDate: moment(leave.endDate).format('YYYY-MM-DD')
                 })) || [];
@@ -376,16 +377,16 @@ export default {
             this.showDetailsModalVisible = false;
             this.selectedLeave = {};
         },
-        async approveLeave(id) {
-            if (!id) {
+        async approveLeave(_id) {
+            if (!_id) {
                 this.showToast('Invalid leave ID', 'error');
                 return;
             }
             try {
-                const response = await axios.put(`${BASE_API_URL}/api/leaves/${id}/approve`);
+                const response = await axios.put(`${BASE_API_URL}/api/leaves/${_id}/approve`);
                 if (response.status === 200) {
                     this.leaveRequests = this.leaveRequests.map(leave =>
-                        leave.id === id ? { ...leave, status: 'Approved' } : leave
+                        leave._id === _id ? { ...leave, status: 'Approved' } : leave
                     );
                     if (this.showDetailsModalVisible) {
                         this.selectedLeave.status = 'Approved';
@@ -397,12 +398,12 @@ export default {
                 this.showToast('Failed to approve leave. Please try again.', 'error');
             }
         },
-        async disapproveLeave(id) {
+        async disapproveLeave(_id) {
             try {
-                const response = await axios.put(`${BASE_API_URL}/api/leaves/${id}/disapprove`);
+                const response = await axios.put(`${BASE_API_URL}/api/leaves/${_id}/disapprove`);
                 if (response.status === 200) {
                     this.leaveRequests = this.leaveRequests.map(leave =>
-                        leave.id === id ? { ...leave, status: 'Disapproved' } : leave
+                        leave._id === _id ? { ...leave, status: 'Disapproved' } : leave
                     );
                     if (this.showDetailsModalVisible) {
                         this.selectedLeave.status = 'Disapproved';

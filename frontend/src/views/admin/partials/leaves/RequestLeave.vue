@@ -76,7 +76,10 @@ const submitLeaveRequest = async () => {
         const newRequest = await response.json();
         statusMessage.value = 'Request submitted successfully!';
         resetForm();
-        if (props.onSubmit) props.onSubmit(newRequest); // Use props variable
+        if (props.onSubmit) props.onSubmit({
+            ...newRequest,
+            _id: newRequest._id
+        });
         emit('close');
     } catch (error) {
         console.error('Failed to submit leave request:', error);
