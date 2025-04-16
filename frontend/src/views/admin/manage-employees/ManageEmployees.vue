@@ -68,7 +68,7 @@ export default {
                 positionHistory: [],
             },
             newPosition: { name: '', salary: 0 },
-            editPositionData: { id: null, name: '', salary: 0 },
+            editPositionData: { _id: null, name: '', salary: 0 },
             config: {
                 minimumWage: 610,
                 deMinimisLimit: 10000,
@@ -150,10 +150,9 @@ export default {
                     .filter(emp => emp.status === 'approved')
                     .map(emp => ({
                         ...emp,
-                        id: emp.id,
                         _id: emp._id,
                         hourlyRate: emp.hourlyRate || Number((emp.salary / (8 * 22)).toFixed(2)),
-                        empNo: emp.empNo || `EMP-${String(emp.id).padStart(4, '0')}`,
+                        empNo: emp.empNo || `EMP-${String(emp._id).padStart(4, '0')}`,
                         hireDate: new Date(emp.hireDate).toISOString().slice(0, 10),
                         payheads: Array.isArray(emp.payheads) ? emp.payheads : [],
                         positionHistory: Array.isArray(emp.positionHistory) ? emp.positionHistory : [{
@@ -199,7 +198,7 @@ export default {
                     },
                 });
                 this.adminPositions = response.data.map(pos => ({
-                    id: pos.id || pos._id,
+                    _id: pos._id,
                     name: pos.name,
                     salary: pos.salary
                 })) || [];
@@ -254,7 +253,7 @@ export default {
             this.showSuccessMessage('Employee updated successfully');
         },
 
-        confirmMoveToTrash(employee) {
+        confirmMoveToArchive(employee) {
             this.selectedEmployee = employee;
             this.showDeleteModal = true;
         },
@@ -262,7 +261,7 @@ export default {
         handleEmployeeDeleted(employeeId) {
             this.employees = this.employees.filter(emp => emp._id !== employeeId);
             this.showDeleteModal = false;
-            this.showSuccessMessage('Employee moved to trash successfully');
+            this.showSuccessMessage('Employee moved to archive successfully');
         },
 
         viewRequestInfo(request) {
@@ -300,12 +299,12 @@ export default {
         },
 
         editPosition(position) {
-            this.editPositionData = { id: position.id || position._id, name: position.name, salary: position.salary };
+            this.editPositionData = { _id: position._id, name: position.name, salary: position.salary };
             this.showEditPositionModal = true;
         },
 
         handlePositionUpdated(updatedPosition) {
-            const index = this.adminPositions.findIndex(pos => pos.id === updatedPosition.id || pos._id === updatedPosition.id);
+            const index = this.adminPositions.findIndex(pos => pos._id === updatedPosition._id);
             if (index !== -1) this.adminPositions[index] = { ...updatedPosition };
             this.showEditPositionModal = false;
             this.showSuccessMessage('Position updated successfully');
@@ -317,7 +316,7 @@ export default {
         },
 
         async handlePositionDeleted(deletedPosition) {
-            this.adminPositions = this.adminPositions.filter(pos => pos.id !== deletedPosition.id && pos._id !== deletedPosition._id);
+            this.adminPositions = this.adminPositions.filter(pos => pos._id !== deletedPosition._id);
             this.showDeletePositionModal = false;
             this.showSuccessMessage('Position deleted successfully');
             await this.fetchPositions();
@@ -399,7 +398,6 @@ export default {
 };
 </script>
 
-<!-- Template and styles remain unchanged -->
 <template>
     <div class="min-h-screen bg-gray-50 flex flex-col">
         <!-- Header -->
@@ -416,7 +414,6 @@ export default {
                 </button>
             </div>
         </header>
-
 
         <!-- Main Content -->
         <main class="flex-1 py-2">
@@ -440,7 +437,7 @@ export default {
                             <select v-model="positionFilter"
                                 class="p-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500 w-full sm:w-auto">
                                 <option value="">All</option>
-                                <option v-for="pos in adminPositions" :key="pos.name" :value="pos.name">{{ pos.name }}
+                                <option v-for="pos in adminPositions" :key="pos._id" :value="pos.name">{{ pos.name }}
                                 </option>
                             </select>
                         </div>
@@ -450,7 +447,7 @@ export default {
                         <span class="material-icons animate-spin mr-1 text-lg">autorenew</span>
                         Loading...
                     </div>
-                    
+
                     <div v-else class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
                             <thead class="bg-gray-50">
@@ -464,7 +461,7 @@ export default {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
-                                <tr v-for="employee in paginatedEmployees" :key="employee.id"
+                                <tr v-for="employee in paginatedEmployees" :key="employee._id"
                                     class="hover:bg-gray-50 transition">
                                     <td class="px-4 py-2">{{ employee.empNo || 'N/A' }}</td>
                                     <td class="px-4 py-2">{{ (employee.firstName || '') + ' ' + (employee.lastName ||
@@ -472,13 +469,14 @@ export default {
                                     <td class="px-4 py-2">{{ employee.position || 'N/A' }}</td>
                                     <td class="px-4 py-2">
                                         ₱{{ (employee.hourlyRate && !isNaN(employee.hourlyRate) ? employee.hourlyRate :
-                                        0).toLocaleString('en-US', {
-                                        minimumFractionDigits: 2, maximumFractionDigits: 2
-                                        }) }}
+                                            0).toLocaleString('en-US', {
+                                                minimumFractionDigits: 2, maximumFractionDigits: 2
+                                            }) }}
                                     </td>
                                     <td class="px-4 py-2">
                                         ₱{{ (getNetSalary(employee) || 0).toLocaleString('en-US', {
-                                        minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                                            minimumFractionDigits: 2, maximumFractionDigits: 2
+                                        }) }}
                                     </td>
                                     <td class="px-4 py-2 text-right flex justify-end gap-1">
                                         <button @click="viewEmployeeDetails(employee)"
@@ -489,7 +487,7 @@ export default {
                                             class="text-yellow-600 hover:text-yellow-800 p-1 rounded-full hover:bg-yellow-100">
                                             <span class="material-icons text-lg">edit</span>
                                         </button>
-                                        <button @click="confirmMoveToTrash(employee)"
+                                        <button @click="confirmMoveToArchive(employee)"
                                             class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100">
                                             <span class="material-icons text-lg">delete</span>
                                         </button>
@@ -525,7 +523,7 @@ export default {
                         Loading...
                     </div>
                     <div v-else class="divide-y divide-gray-100">
-                        <div v-for="request in pendingRequests" :key="request.id"
+                        <div v-for="request in pendingRequests" :key="request._id"
                             class="p-3 hover:bg-gray-50 transition">
                             <div class="flex justify-between items-start mb-1">
                                 <div>

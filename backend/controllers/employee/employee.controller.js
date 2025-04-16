@@ -89,7 +89,7 @@ exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
     res.status(200).json({ message: 'Employee details updated successfully', updatedEmployee: employeeObj });
 });
 
-// Delete employee (move to trash)
+// Delete employee (move to archive)
 exports.deleteEmployee = asyncHandler(async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -98,17 +98,17 @@ exports.deleteEmployee = asyncHandler(async (req, res) => {
     const employee = await Employee.findById(id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
-    employee.status = 'trashed';
-    employee.trashedAt = new Date();
+    employee.status = 'archived';
+    employee.archivedAt = new Date();
     await employee.save({ validateBeforeSave: true });
 
-    res.status(200).json({ message: 'Employee moved to trash successfully', employeeId: id });
+    res.status(200).json({ message: 'Employee moved to archive successfully', employeeId: id });
 });
 
-// Get trashed employees
-exports.getTrashedEmployees = asyncHandler(async (req, res) => {
-    const trashed = await Employee.find({ status: 'trashed' }).select('-password');
-    res.status(200).json(trashed);
+// Get archived employees
+exports.getArchivedEmployees = asyncHandler(async (req, res) => {
+    const archived = await Employee.find({ status: 'archived' }).select('-password');
+    res.status(200).json(archived);
 });
 
 // Restore employee
@@ -119,10 +119,10 @@ exports.restoreEmployee = asyncHandler(async (req, res) => {
     }
     const employee = await Employee.findById(id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
-    if (employee.status !== 'trashed') return res.status(400).json({ message: 'Employee is not in trash' });
+    if (employee.status !== 'archived') return res.status(400).json({ message: 'Employee is not in archive' });
 
     employee.status = 'approved';
-    employee.trashedAt = null;
+    employee.archivedAt = null;
     await employee.save();
     res.status(200).json({ message: 'Employee restored successfully' });
 });
@@ -158,12 +158,12 @@ exports.getAllEmployees = asyncHandler(async (req, res) => {
             return res.status(400).json({ error: 'Invalid month format: must be YYYY-MM' });
         }
 
-        let query = { status: { $ne: 'trashed' } };
+        let query = { status: { $ne: 'archived' } };
         if (month) {
             const endOfMonth = new Date(`${month}-31T23:59:59.999Z`);
             const startOfMonth = new Date(`${month}-01T00:00:00.000Z`);
             query.$and = [
-                { status: { $ne: 'trashed' } },
+                { status: { $ne: 'archived' } },
                 {
                     $or: [
                         {
@@ -198,13 +198,13 @@ exports.getAllEmployees = asyncHandler(async (req, res) => {
     }
 });
 
-// Get single employee by ID (with /trash workaround)
+// Get single employee by ID (with /archive workaround)
 exports.getEmployeeById = asyncHandler(async (req, res) => {
     const employeeId = req.params.id;
 
-    if (employeeId === 'trash') {
-        const trashed = await Employee.find({ status: 'trashed' }).select('-password');
-        return res.status(200).json(trashed);
+    if (employeeId === 'archive') {
+        const archived = await Employee.find({ status: 'archived' }).select('-password');
+        return res.status(200).json(archived);
     }
 
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {

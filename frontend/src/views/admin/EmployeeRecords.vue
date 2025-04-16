@@ -54,9 +54,9 @@ export default {
                     return;
                 }
 
-                // Filter out 'pending' and 'trashed' employees
+                // Filter out 'pending' and 'archived' employees
                 this.employees = employeeData
-                    .filter(emp => emp.status !== 'pending' && emp.status !== 'trashed')
+                    .filter(emp => emp.status !== 'pending' && emp.status !== 'archived')
                     .map(emp => {
                         const positionHistory = Array.isArray(emp.positionHistory) && emp.positionHistory.length > 0
                             ? emp.positionHistory.map(history => ({

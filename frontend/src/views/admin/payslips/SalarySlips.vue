@@ -629,7 +629,7 @@ export default {
                     },
                 });
                 this.employees = response.data
-                    .filter(employee => employee.status !== 'pending' && employee.status !== 'trashed') // Filter out pending and trashed
+                    .filter(employee => employee.status !== 'pending' && employee.status !== 'archived')
                     .map((employee) => {
                         const latestPosition = this.getLatestPosition(employee);
                         const name = `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Unnamed Employee';

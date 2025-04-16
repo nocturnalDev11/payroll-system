@@ -17,7 +17,7 @@ const navigationLinks = ref([
     { path: '/admin/manage-pay-heads', name: 'Manage Pay Heads' },
     { path: '/admin/employee-leave-management', name: 'Leave Management' },
     { path: '/admin/employee-records', name: 'Records' },
-    { path: '/admin/trash', name: 'Trash' },
+    { path: '/admin/archive', name: 'Archive' },
 ]);
 
 const username = computed(() => authStore.admin?.username || 'Admin');
@@ -36,7 +36,7 @@ const getLinkIcon = (name) => {
         'Salary Slips': 'receipt',
         'Manage Pay Heads': 'attach_money',
         'Leave Management': 'event_available',
-        'Trash': 'delete_sweep'
+        'Archive': 'archive'
     }[name] || 'widgets';
 };
 

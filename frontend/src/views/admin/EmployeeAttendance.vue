@@ -120,7 +120,7 @@ export default {
                 });
 
                 const baseEmployees = (empResponse.data || [])
-                    .filter(emp => emp.status !== 'pending' && emp.status !== 'trashed')
+                    .filter(emp => emp.status !== 'pending' && emp.status !== 'archived')
                     .map(emp => ({
                         id: parseInt(emp.id),
                         employeeId: emp._id,

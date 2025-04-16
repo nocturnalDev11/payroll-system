@@ -437,7 +437,7 @@ export default {
                     },
                 });
                 this.employees = response.data
-                    .filter(emp => emp.status !== 'pending' && emp.status !== 'trashed') // Filter out pending and trashed
+                    .filter(emp => emp.status !== 'pending' && emp.status !== 'archived')
                     .map(emp => {
                         const payheads = (emp.payheads || []).map(ph => ({
                             _id: ph._id,

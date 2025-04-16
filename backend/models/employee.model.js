@@ -72,10 +72,10 @@ const employeeSchema = new mongoose.Schema({
     },
     status: { 
         type: String, 
-        enum: ['pending', 'approved', 'rejected', 'trashed'], 
+        enum: ['pending', 'approved', 'rejected', 'archived'], 
         default: 'pending' 
     },
-    trashedAt: {
+    archivedAt: {
         type: Date,
         default: null
     },

@@ -358,12 +358,12 @@ export default {
             }
         },
 
-        confirmMoveToTrash(employee) {
+        confirmMoveToArchive(employee) {
             this.selectedEmployee = employee;
             this.showDeleteModal = true;
         },
 
-        async moveToTrash(id) {
+        async moveToArchive(id) {
             this.isDeleting = true;
             try {
                 const employee = this.employees.find(emp => emp.id === id);
@@ -372,7 +372,7 @@ export default {
                     return;
                 }
                 const response = await axios.put(
-                    `${BASE_API_URL}/api/employees/${employee._id}/trash`,
+                    `${BASE_API_URL}/api/employees/${employee._id}/archive`,
                     {},
                     {
                         headers: {
@@ -384,11 +384,11 @@ export default {
                 if (response.status === 200) {
                     this.employees = this.employees.filter(emp => emp._id !== employee._id);
                     this.showDeleteModal = false;
-                    this.showSuccessMessage('Employee moved to trash successfully');
+                    this.showSuccessMessage('Employee moved to archive successfully');
                 }
             } catch (error) {
-                console.error('Error moving employee to trash:', error);
-                this.showErrorMessage('Failed to move employee to trash');
+                console.error('Error moving employee to archive:', error);
+                this.showErrorMessage('Failed to move employee to archive');
             } finally {
                 this.isDeleting = false;
             }
@@ -789,7 +789,7 @@ export default {
                                             class="text-yellow-600 hover:text-yellow-800 p-1 rounded-full hover:bg-yellow-100">
                                             <span class="material-icons text-lg">edit</span>
                                         </button>
-                                        <button @click="confirmMoveToTrash(employee)"
+                                        <button @click="confirmMoveToArchive(employee)"
                                             class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100">
                                             <span class="material-icons text-lg">delete</span>
                                         </button>
@@ -1546,17 +1546,17 @@ export default {
         <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-sm">
                 <div class="p-4 border-b border-gray-300">
-                    <h2 class="text-lg font-semibold text-gray-800">Confirm Move to Trash</h2>
+                    <h2 class="text-lg font-semibold text-gray-800">Confirm Move to Archive</h2>
                 </div>
                 <div class="p-4">
                     <p class="text-sm text-gray-700">Move {{ selectedEmployee.firstName }} {{ selectedEmployee.lastName
-                    }} to trash? This can be restored later.</p>
+                    }} to archive? This can be restored later.</p>
                 </div>
                 <div class="p-2 border-t border-gray-300 flex justify-end gap-2">
-                    <button @click="moveToTrash(selectedEmployee.id)"
+                    <button @click="moveToArchive(selectedEmployee.id)"
                         class="px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
                         :disabled="isDeleting">
-                        {{ isDeleting ? 'Moving...' : 'Move to Trash' }}
+                        {{ isDeleting ? 'Moving...' : 'Move to Archive' }}
                     </button>
                     <button @click="showDeleteModal = false"
                         class="px-3 py-1.5 border border-gray-300 text-sm rounded-md text-gray-700 hover:bg-gray-100">Cancel</button>

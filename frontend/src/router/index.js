@@ -163,11 +163,11 @@ const routes = [
                 }
             },
             {
-                path: 'trash',
-                name: 'Trash',
+                path: 'archive',
+                name: 'Archive',
                 component: () => import('../views/admin/Trash.vue'),
                 meta: {
-                    title: 'Trash',
+                    title: 'Archive',
                 }
             }
         ],
