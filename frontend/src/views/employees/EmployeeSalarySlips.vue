@@ -2,29 +2,28 @@
     <div class="min-h-screen p-4">
         <div class="w-full mx-auto space-y-6">
             <header
-                class="bg-white rounded-xl shadow-lg p-6 flex justify-between items-center sticky top-6 z-50 backdrop-blur-md bg-opacity-90">
-                <h1 class="text-2xl font-bold text-gray-900 animate-fade-in">My Payslip History</h1>
-                <div class="flex items-center gap-4">
-                    <div class="relative w-full sm:w-auto">
+                class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-0 justify-between items-start sm:items-center sticky top-6 z-50 backdrop-blur-md bg-opacity-90">
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-900 animate-fade-in">
+                    My Payslip History
+                </h1>
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                    <div class="relative w-full sm:w-48">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </span>
-                        <div class="flex gap-2">
-                            <input v-model="selectedMonth" type="month"
-                                class="pl-10 pr-4 py-2 w-full sm:w-48 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-gray-50 text-gray-700 shadow-sm transition-all duration-300"
-                                @change="fetchPayslips" />
-                            <button @click="generatePayslipNow"
-                                class="w-full bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg hover:from-amber-700 hover:to-amber-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
-                                :disabled="isLoading || payslipGenerationStatus.generating">
-                                <span class="material-icons text-sm">play_arrow</span>
-                                {{ payslipGenerationStatus.generating ? 'Generating...' : 'Generate Now'
-                                }}
-                            </button>
-                        </div>
+                        <input v-model="selectedMonth" type="month"
+                            class="pl-10 pr-4 py-2 w-full rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-gray-50 text-gray-700 shadow-sm transition-all duration-300"
+                            @change="fetchPayslips" />
                     </div>
+                    <button @click="generatePayslipNow"
+                        class="w-full sm:w-auto bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg hover:from-amber-700 hover:to-amber-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                        :disabled="isLoading || payslipGenerationStatus.generating">
+                        <span class="material-icons text-sm">play_arrow</span>
+                        {{ payslipGenerationStatus.generating ? 'Generating...' : 'Generate Now' }}
+                    </button>
                 </div>
             </header>
 
@@ -33,8 +32,7 @@
                 <div class="flex flex-col">
                     <div class="-m-1.5">
                         <div class="p-1.5 w-full inline-block align-middle">
-                            <div
-                                class="bg-white rounded-xl shadow-lg overflow-hidden">
+                            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
 
                                 <!-- Table -->
                                 <table class="min-w-full divide-y divide-gray-200">
@@ -42,8 +40,7 @@
                                         <tr>
                                             <th scope="col" class="px-6 py-4 text-start">
                                                 <div class="flex items-center gap-x-2">
-                                                    <span
-                                                        class="text-xs font-semibold uppercase text-gray-800">
+                                                    <span class="text-xs font-semibold uppercase text-gray-800">
                                                         Pay date
                                                     </span>
                                                 </div>
@@ -51,8 +48,7 @@
 
                                             <th scope="col" class="px-6 py-4 text-start">
                                                 <div class="flex items-center gap-x-2">
-                                                    <span
-                                                        class="text-xs font-semibold uppercase text-gray-800">
+                                                    <span class="text-xs font-semibold uppercase text-gray-800">
                                                         Position
                                                     </span>
                                                 </div>
@@ -60,8 +56,7 @@
 
                                             <th scope="col" class="px-6 py-4 text-start">
                                                 <div class="flex items-center gap-x-2">
-                                                    <span
-                                                        class="text-xs font-semibold uppercase text-gray-800">
+                                                    <span class="text-xs font-semibold uppercase text-gray-800">
                                                         Salary
                                                     </span>
                                                 </div>
@@ -69,8 +64,7 @@
 
                                             <th scope="col" class="px-6 py-4 text-start">
                                                 <div class="flex items-center gap-x-2">
-                                                    <span
-                                                        class="text-xs font-semibold uppercase text-gray-800">
+                                                    <span class="text-xs font-semibold uppercase text-gray-800">
                                                         Status
                                                     </span>
                                                 </div>
@@ -78,8 +72,7 @@
 
                                             <th scope="col" class="px-6 py-4 text-end">
                                                 <div class="flex items-center gap-x-2">
-                                                    <span
-                                                        class="text-xs font-semibold uppercase text-gray-800">
+                                                    <span class="text-xs font-semibold uppercase text-gray-800">
                                                         Action
                                                     </span>
                                                 </div>
@@ -1013,7 +1006,7 @@ export default {
                 this.showErrorMessage('Failed to download payslip.');
             }
         },
-        
+
         formatNumber(value) {
             return Number(value || 0).toFixed(2);
         },
