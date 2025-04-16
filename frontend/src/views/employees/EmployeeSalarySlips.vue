@@ -12,9 +12,18 @@
                                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </span>
-                        <input v-model="selectedMonth" type="month"
-                            class="pl-10 pr-4 py-2 w-full sm:w-48 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-gray-50 text-gray-700 shadow-sm transition-all duration-300"
-                            @change="fetchPayslips" />
+                        <div class="flex gap-2">
+                            <input v-model="selectedMonth" type="month"
+                                class="pl-10 pr-4 py-2 w-full sm:w-48 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-gray-50 text-gray-700 shadow-sm transition-all duration-300"
+                                @change="fetchPayslips" />
+                            <button @click="generatePayslipNow"
+                                class="w-full bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg hover:from-amber-700 hover:to-amber-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                                :disabled="isLoading || payslipGenerationStatus.generating">
+                                <span class="material-icons text-sm">play_arrow</span>
+                                {{ payslipGenerationStatus.generating ? 'Generating...' : 'Generate Now'
+                                }}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -25,68 +34,52 @@
                     <div class="-m-1.5">
                         <div class="p-1.5 w-full inline-block align-middle">
                             <div
-                                class="bg-white rounded-xl shadow-lg overflow-hidden dark:bg-neutral-900 dark:border-neutral-700">
-                                <!-- Header -->
-                                <div
-                                    class="px-6 py-4 grid gap-3 md:flex md:justify-end md:items-center border-b border-gray-200 dark:border-neutral-700">
-                                    <div>
-                                        <div class="inline-flex gap-x-2">
-                                            <button @click="generatePayslipNow"
-                                                class="w-full bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg hover:from-amber-700 hover:to-amber-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
-                                                :disabled="isLoading || payslipGenerationStatus.generating">
-                                                <span class="material-icons text-sm">play_arrow</span>
-                                                {{ payslipGenerationStatus.generating ? 'Generating...' : 'Generate Now'
-                                                }}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- End Header -->
+                                class="bg-white rounded-xl shadow-lg overflow-hidden">
 
                                 <!-- Table -->
-                                <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
-                                    <thead class="bg-gray-50 dark:bg-neutral-900">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-white">
                                         <tr>
-                                            <th scope="col" class="px-6 py-3 text-start">
+                                            <th scope="col" class="px-6 py-4 text-start">
                                                 <div class="flex items-center gap-x-2">
                                                     <span
-                                                        class="text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
+                                                        class="text-xs font-semibold uppercase text-gray-800">
                                                         Pay date
                                                     </span>
                                                 </div>
                                             </th>
 
-                                            <th scope="col" class="px-6 py-3 text-start">
+                                            <th scope="col" class="px-6 py-4 text-start">
                                                 <div class="flex items-center gap-x-2">
                                                     <span
-                                                        class="text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
+                                                        class="text-xs font-semibold uppercase text-gray-800">
                                                         Position
                                                     </span>
                                                 </div>
                                             </th>
 
-                                            <th scope="col" class="px-6 py-3 text-start">
+                                            <th scope="col" class="px-6 py-4 text-start">
                                                 <div class="flex items-center gap-x-2">
                                                     <span
-                                                        class="text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
+                                                        class="text-xs font-semibold uppercase text-gray-800">
                                                         Salary
                                                     </span>
                                                 </div>
                                             </th>
 
-                                            <th scope="col" class="px-6 py-3 text-start">
+                                            <th scope="col" class="px-6 py-4 text-start">
                                                 <div class="flex items-center gap-x-2">
                                                     <span
-                                                        class="text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
+                                                        class="text-xs font-semibold uppercase text-gray-800">
                                                         Status
                                                     </span>
                                                 </div>
                                             </th>
 
-                                            <th scope="col" class="px-6 py-3 text-end">
+                                            <th scope="col" class="px-6 py-4 text-end">
                                                 <div class="flex items-center gap-x-2">
                                                     <span
-                                                        class="text-xs font-semibold uppercase text-gray-800 dark:text-neutral-200">
+                                                        class="text-xs font-semibold uppercase text-gray-800">
                                                         Action
                                                     </span>
                                                 </div>
@@ -94,19 +87,17 @@
                                         </tr>
                                     </thead>
 
-                                    <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
+                                    <tbody class="divide-y divide-gray-200">
                                         <tr v-for="payslip in paginatedPayslipHistory"
                                             :key="`${payslip.salaryMonth}-${payslip.paydayType}`"
                                             :class="{ 'bg-blue-100': selectedPayslip?.salaryMonth === payslip.salaryMonth && selectedPayslip?.paydayType === payslip.paydayType }"
-                                            class="bg-white hover:bg-gray-50 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+                                            class="bg-white hover:bg-gray-50 cursor-pointer"
                                             @click="selectPayslip(payslip)">
 
                                             <td class="size-px whitespace-nowrap">
-                                                <button type="button" class="block" aria-haspopup="dialog"
-                                                    aria-expanded="false" aria-controls="hs-ai-invoice-modal"
-                                                    data-hs-overlay="#hs-ai-invoice-modal">
+                                                <button type="button" class="block">
                                                     <span class="block px-6 py-2">
-                                                        <span class="text-sm text-gray-600 dark:text-neutral-400">
+                                                        <span class="text-sm text-gray-600">
                                                             {{ payslip.paydayType === 'mid-month' ?
                                                             payslip.expectedPaydays.midMonthPayday :
                                                             payslip.expectedPaydays.endMonthPayday }}
@@ -115,34 +106,28 @@
                                                 </button>
                                             </td>
                                             <td class="size-px whitespace-nowrap">
-                                                <button type="button" class="block" aria-haspopup="dialog"
-                                                    aria-expanded="false" aria-controls="hs-ai-invoice-modal"
-                                                    data-hs-overlay="#hs-ai-invoice-modal">
+                                                <button type="button" class="block">
                                                     <span class="block px-6 py-2">
-                                                        <span class="text-sm text-gray-600 dark:text-neutral-400">
+                                                        <span class="text-sm text-gray-600">
                                                             {{ payslip.position || 'N/A' }}
                                                         </span>
                                                     </span>
                                                 </button>
                                             </td>
                                             <td class="size-px whitespace-nowrap">
-                                                <button type="button" class="block" aria-haspopup="dialog"
-                                                    aria-expanded="false" aria-controls="hs-ai-invoice-modal"
-                                                    data-hs-overlay="#hs-ai-invoice-modal">
+                                                <button type="button" class="block">
                                                     <span class="block px-6 py-2">
-                                                        <span class="text-sm text-gray-600 dark:text-neutral-400">
+                                                        <span class="text-sm text-gray-600">
                                                             ₱{{ payslip.salary.toLocaleString() }}
                                                         </span>
                                                     </span>
                                                 </button>
                                             </td>
                                             <td class="size-px whitespace-nowrap">
-                                                <button type="button" class="block" aria-haspopup="dialog"
-                                                    aria-expanded="false" aria-controls="hs-ai-invoice-modal"
-                                                    data-hs-overlay="#hs-ai-invoice-modal">
+                                                <button type="button" class="block">
                                                     <span class="block px-6 py-2">
                                                         <span
-                                                            class="py-1 px-1.5 inline-flex items-center gap-x-1 text-xs font-medium bg-teal-100 text-teal-800 rounded-full dark:bg-teal-500/10 dark:text-teal-500">
+                                                            class="py-1 px-1.5 inline-flex items-center gap-x-1 text-xs font-medium bg-teal-100 text-teal-800 rounded-full">
                                                             <svg class="size-2.5" xmlns="http://www.w3.org/2000/svg"
                                                                 width="16" height="16" fill="currentColor"
                                                                 viewBox="0 0 16 16">
@@ -161,7 +146,7 @@
                                                     :disabled="!canGeneratePayslip(payslip) || payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating">
                                                     <span class="px-6 py-1.5">
                                                         <span
-                                                            class="py-1 px-2 inline-flex justify-center items-center gap-2 rounded-lg border border-gray-200 font-medium bg-white text-gray-700 shadow-2xs align-middle hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:hover:text-white dark:focus:ring-offset-gray-800">
+                                                            class="py-1 px-2 inline-flex justify-center items-center gap-2 rounded-lg border border-gray-200 font-medium bg-white text-gray-700 shadow-2xs align-middle hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm">
                                                             <span class="material-icons text-sm">description</span>
                                                             {{
                                                             payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
@@ -174,7 +159,7 @@
                                                     @click.stop="selectPayslip(payslip)">
                                                     <span class="px-6 py-1.5">
                                                         <span
-                                                            class="py-1 px-2 inline-flex justify-center items-center gap-2 rounded-lg border border-gray-200 font-medium bg-white text-gray-700 shadow-2xs align-middle hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 dark:hover:text-white dark:focus:ring-offset-gray-800">
+                                                            class="py-1 px-2 inline-flex justify-center items-center gap-2 rounded-lg border border-gray-200 font-medium bg-white text-gray-700 shadow-2xs align-middle hover:bg-gray-50 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all text-sm">
                                                             <span class="material-icons text-sm">visibility</span>
                                                             View
                                                         </span>
@@ -196,10 +181,10 @@
                                 </table>
 
                                 <div
-                                    class="px-6 py-4 grid gap-3 md:flex md:justify-between md:items-center border-t border-gray-200 dark:border-neutral-700">
+                                    class="px-6 py-2 grid gap-3 md:flex md:justify-between md:items-center border-t border-gray-200">
                                     <div>
-                                        <p class="text-sm text-gray-600 dark:text-neutral-400">
-                                            <span class="font-semibold text-gray-800 dark:text-neutral-200">{{
+                                        <p class="text-sm text-gray-600">
+                                            <span class="font-semibold text-gray-800">{{
                                                 payslipHistory.length }}</span>
                                             results
                                         </p>
@@ -209,7 +194,7 @@
                                         <div class="inline-flex gap-x-2">
                                             <button type="button" @click="changePage(currentPage - 1)"
                                                 :disabled="currentPage === 1"
-                                                class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 disabled:opacity-50">
+                                                class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:pointer-events-none disabled:opacity-50">
                                                 <svg class="size-3" width="16" height="16" viewBox="0 0 16 15"
                                                     fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path
@@ -221,7 +206,7 @@
 
                                             <button type="button" @click="changePage(currentPage + 1)"
                                                 :disabled="currentPage === totalPages"
-                                                class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-700 dark:focus:bg-neutral-700">
+                                                class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none">
                                                 Next
                                                 <svg class="size-3" width="16" height="16" viewBox="0 0 16 16"
                                                     fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -240,7 +225,7 @@
             </div>
 
             <Modal :show="!!selectedPayslip" @close="selectedPayslip = null" max-width="lg" max-height="80vh">
-                <div class="p-4">
+                <div class="p-2">
                     <div v-if="selectedPayslip && selectedPayslip.payslipDataUrl">
                         <h3 class="text-sm font-medium text-gray-700 mb-2">Payslip Preview</h3>
                         <div class="mb-4">
