@@ -9,7 +9,7 @@ import {
     calculatePhilHealthContribution,
     calculatePagIBIGContribution,
     calculateWithholdingTax,
-    calculateNetSalary, // Replace calculateNewEmployeeNetSalary with this
+    calculateNetSalary,
 } from '@/utils/calculations.js';
 
 const props = defineProps(['show', 'request', 'positions']);
@@ -21,10 +21,10 @@ const statusMessage = ref('');
 
 // Define config for calculations
 const config = {
-    minimumWage: 610, // Adjust as needed
+    minimumWage: 610,
     deMinimisLimit: 10000,
-    regularHolidays: [], // Populate if needed
-    specialNonWorkingDays: [], // Populate if needed
+    regularHolidays: [],
+    specialNonWorkingDays: [],
 };
 
 // Reactive copy of the request to allow editing without mutating the prop directly
@@ -390,12 +390,6 @@ function getWithholdingTax(request) {
 
             <button @click="$emit('close')" :disabled="isUpdating"
                 class="px-3 py-1.5 border border-gray-300 text-sm rounded-md text-gray-700 hover:bg-gray-100">Close</button>
-        </div>
-
-        <!-- Status Toast -->
-        <div v-if="statusMessage" :class="statusMessage.includes('successfully') ? 'bg-green-500' : 'bg-red-500'"
-            class="fixed bottom-4 right-4 p-3 text-white text-sm rounded-md shadow-lg animate-fade-in">
-            {{ statusMessage }}
         </div>
     </Modal>
 </template>

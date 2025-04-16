@@ -261,9 +261,15 @@
     </div>
 
     <Modal :show="showRegisterModal" @close="closeModal">
-        <div class="p-6">
-            <h2 class="text-xl font-bold mb-4 text-gray-900">Request Account Creation</h2>
-            <form @submit.prevent="submitRequest" class="space-y-6">
+        <div class="p-2">
+            <!-- Header -->
+            <div
+                class="p-4 border-b border-gray-300 flex justify-between items-center sticky top-0 bg-white rounded-t-lg">
+                <h2 class="text-xl font-bold text-gray-900">Request Account Creation</h2>
+            </div>
+
+
+            <form @submit.prevent="submitRequest" class="flex-1 overflow-y-auto max-h-[65vh] p-4 space-y-6">
                 <!-- Basic Information -->
                 <div>
                     <h3 class="text-base font-semibold text-gray-800 mb-3">Basic Information</h3>
@@ -435,6 +441,11 @@
 
                 <!-- Buttons and Status Message -->
                 <div class="flex justify-end space-x-2 my-4">
+                    <div v-if="statusMessage"
+                        :class="statusMessage.includes('successfully') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'"
+                        class="mt-4 p-3 rounded-lg text-center animate-bounce-in">
+                        {{ statusMessage }}
+                    </div>
                     <button type="button" @click="closeModal"
                         class="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-all duration-300 ease-in-out transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed"
                         :disabled="isSubmitting">
@@ -445,11 +456,6 @@
                         :disabled="isSubmitDisabled">
                         {{ isSubmitting ? 'Submitting...' : 'Submit Request' }}
                     </button>
-                </div>
-                <div v-if="statusMessage"
-                    :class="statusMessage.includes('successfully') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'"
-                    class="mt-4 p-3 rounded-lg text-center animate-bounce-in">
-                    {{ statusMessage }}
                 </div>
             </form>
         </div>

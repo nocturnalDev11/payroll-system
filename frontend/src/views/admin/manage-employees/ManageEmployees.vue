@@ -571,7 +571,7 @@ export default {
 
         <!-- Status Toast -->
         <div v-if="statusMessage" :class="statusMessage.includes('successfully') ? 'bg-green-500' : 'bg-red-500'"
-            class="fixed bottom-4 right-4 p-3 text-white text-sm rounded-md shadow-lg animate-fade-in">
+            class="fixed bottom-4 right-4 p-3 text-white text-sm rounded-md shadow-lg animate-fade-in z-[3000]">
             {{ statusMessage }}
         </div>
     </div>
