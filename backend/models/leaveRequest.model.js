@@ -18,6 +18,11 @@ const leaveRequestSchema = new mongoose.Schema({
         type: Date, 
         required: true 
     },
+    type: { 
+        type: String, 
+        enum: ['Vacation', 'Sick', 'Personal', 'Family', 'Bereavement', 'Maternal', 'Paternity'], 
+        required: true
+    },
     reason: { 
         type: String, 
         required: true 

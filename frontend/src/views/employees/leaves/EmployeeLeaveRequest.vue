@@ -174,6 +174,13 @@ onMounted(() => {
                                         <th scope="col" class="px-6 py-3 text-start">
                                             <div class="flex items-center gap-x-2">
                                                 <span class="text-xs font-semibold uppercase text-gray-800">
+                                                    Type
+                                                </span>
+                                            </div>
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-start">
+                                            <div class="flex items-center gap-x-2">
+                                                <span class="text-xs font-semibold uppercase text-gray-800">
                                                     Start Date
                                                 </span>
                                             </div>
@@ -215,6 +222,13 @@ onMounted(() => {
                                             <a class="block p-6" href="#">
                                                 <span class="block text-sm text-gray-500 dark:text-neutral-500">
                                                     {{ request.reason }}
+                                                </span>
+                                            </a>
+                                        </td>
+                                        <td class="size-px whitespace-nowrap align-top">
+                                            <a class="block p-6" href="#">
+                                                <span class="text-sm text-gray-600 dark:text-neutral-400">
+                                                    {{ request.type }}
                                                 </span>
                                             </a>
                                         </td>

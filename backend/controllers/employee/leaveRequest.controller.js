@@ -32,13 +32,20 @@ exports.getLeaveRequestsByEmployee = asyncHandler(async (req, res) => {
 
 // Create a new leave request
 exports.createLeaveRequest = asyncHandler(async (req, res) => {
-    const { startDate, endDate, reason } = req.body;
+    const { startDate, endDate, type, reason } = req.body;
     const employeeId = req.employeeId;
 
     const start = moment(startDate);
     const end = moment(endDate);
+
     if (!start.isValid() || !end.isValid()) return res.status(400).json({ message: 'Invalid date format' });
     if (end.isBefore(start)) return res.status(400).json({ message: 'End date cannot be before start date' });
+
+    // Validate type
+    const validTypes = ['Vacation', 'Sick', 'Personal', 'Family', 'Bereavement', 'Maternal', 'Paternity'];
+    if (!validTypes.includes(type)) {
+        return res.status(400).json({ message: 'Invalid leave type' });
+    }
 
     const employee = await Employee.findById(employeeId);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
@@ -48,6 +55,7 @@ exports.createLeaveRequest = asyncHandler(async (req, res) => {
         employeeName: `${employee.firstName} ${employee.lastName}`,
         startDate: start.toISOString(),
         endDate: end.toISOString(),
+        type,
         reason,
         status: 'Pending'
     });
@@ -60,7 +68,7 @@ exports.createLeaveRequest = asyncHandler(async (req, res) => {
 exports.updateLeaveRequest = asyncHandler(async (req, res) => {
     if (!LeaveRequest) throw new Error('LeaveRequest model is not initialized');
     
-    const { startDate, endDate, reason } = req.body;
+    const { startDate, endDate, type, reason } = req.body;
     const employeeId = req.employeeId;
     const requestId = req.params.id;
 
@@ -73,8 +81,15 @@ exports.updateLeaveRequest = asyncHandler(async (req, res) => {
     // Validate dates
     const start = moment(startDate);
     const end = moment(endDate);
+
     if (!start.isValid() || !end.isValid()) return res.status(400).json({ message: 'Invalid date format' });
     if (end.isBefore(start)) return res.status(400).json({ message: 'End date cannot be before start date' });
+
+        // Validate type
+    const validTypes = ['Vacation', 'Sick', 'Personal', 'Family', 'Bereavement', 'Maternal', 'Paternity'];
+    if (!validTypes.includes(type)) {
+        return res.status(400).json({ message: 'Invalid leave type' });
+    }
 
     // Find the leave request
     const request = await LeaveRequest.findById(requestId);
@@ -91,6 +106,7 @@ exports.updateLeaveRequest = asyncHandler(async (req, res) => {
     request.startDate = start.toISOString();
     request.endDate = end.toISOString();
     request.reason = reason;
+    request.type = type;
     request.status = 'Pending';
 
     const updatedRequest = await request.save();
