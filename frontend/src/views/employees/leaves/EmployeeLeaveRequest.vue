@@ -14,6 +14,7 @@ const currentPage = ref(1);
 const requestsPerPage = ref(5);
 const statusMessage = ref('');
 const searchQuery = ref('');
+const authStore = useAuthStore();
 
 // Computed properties
 const totalPages = computed(() => Math.ceil(filteredRequests.value.length / requestsPerPage.value));
@@ -32,18 +33,21 @@ const paginatedRequests = computed(() => {
     return filteredRequests.value.slice(start, end);
 });
 
-// Helper to get employeeId and token from localStorage
+// Helper to get employeeId and token from auth store
 const getAuthData = () => {
-    const token = localStorage.getItem('token');
+    const token = authStore.accessToken;
     if (!token) return { employeeId: null, token: null };
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload.exp * 1000 < Date.now()) {
-            useAuthStore().logout();
+            authStore.logout();
             return { employeeId: null, token: null };
         }
+        // Debug: Log token payload
+        console.log('EmployeeLeaveRequest - Token payload:', payload);
         return { employeeId: payload.employeeId, token };
     } catch (error) {
+        console.log('EmployeeLeaveRequest - Error decoding token:', error);
         return { employeeId: null, token: null };
     }
 };
@@ -90,6 +94,13 @@ const handleLeaveRequestUpdated = (updatedRequest) => {
     setTimeout(() => statusMessage.value = '', 3000);
 };
 
+// Handle leave request deletion
+const handleLeaveRequestDeleted = (requestId) => {
+    leaveRequests.value = leaveRequests.value.filter(req => req._id !== requestId);
+    statusMessage.value = 'Leave request deleted successfully!';
+    setTimeout(() => statusMessage.value = '', 3000);
+};
+
 // Pagination methods
 const nextPage = () => {
     if (currentPage.value < totalPages.value) currentPage.value++;
@@ -127,7 +138,7 @@ onMounted(() => {
                         </svg>
                     </span>
                     <input v-model="searchQuery" type="text" placeholder="Search requests..."
-                        class="pl-10 pr-4 py-2 w-full rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-gray-50 text-gray-700 shadow-sm transition-all duration-300" />
+                        class="pl-10 pr-4 py-2 w-full rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-transparent bg-gray-50 text-gray-700 shadow-sm transition-all duration-300 outline-none" />
                 </div>
                 <button @click="showRequestLeave = true"
                     class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2">
@@ -258,7 +269,8 @@ onMounted(() => {
                                             <div class="flex p-6">
                                                 <UpdateLeaveRequest :request="request"
                                                     @update="handleLeaveRequestUpdated" />
-                                                <DeleteLeaveRequest />
+                                                <DeleteLeaveRequest :request="request"
+                                                    @delete="handleLeaveRequestDeleted" />
                                             </div>
                                         </td>
                                     </tr>

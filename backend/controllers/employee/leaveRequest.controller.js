@@ -126,11 +126,36 @@ exports.disapproveLeaveRequest = asyncHandler(async (req, res) => {
 });
 
 // Delete a leave request
+// Delete a leave request
 exports.deleteLeaveRequest = asyncHandler(async (req, res) => {
     if (!LeaveRequest) throw new Error('LeaveRequest model is not initialized');
-    const result = await LeaveRequest.findByIdAndDelete(req.params.id);
-    if (!result) {
+    
+    const requestId = req.params.id;
+    const employeeId = req.employeeId;
+    const role = req.role;
+
+    console.log('Delete request - employeeId:', employeeId, 'role:', role);
+
+    // Find the leave request
+    const request = await LeaveRequest.findById(requestId);
+    if (!request) {
         return res.status(404).json({ message: 'Leave request not found' });
     }
+
+    console.log('Request employeeId:', request.employeeId.toString());
+    console.log('Request ID:', requestId);
+    console.log('Comparing employeeId:', employeeId, 'with request.employeeId:', request.employeeId.toString());
+
+    // Allow deletion if user is admin or the employee who owns the request
+    const employeeIdStr = employeeId.toString ? employeeId.toString() : employeeId;
+    if (role !== 'admin' && request.employeeId.toString() !== employeeIdStr) {
+        console.log('Authorization failed:', {
+            isAdmin: role === 'admin',
+            employeeIdMatch: request.employeeId.toString() === employeeIdStr
+        });
+        return res.status(403).json({ message: 'Unauthorized to delete this request' });
+    }
+
+    await LeaveRequest.findByIdAndDelete(requestId);
     res.status(204).send();
 });

@@ -11,7 +11,8 @@ const {
 
 const { 
     restrictToAdmin, 
-    restrictToEmployee 
+    restrictToEmployee,
+    verifyToken
 } = require('../middlewares/authMiddleware.js');
 
 const router = express.Router();
@@ -21,7 +22,7 @@ router.get('/employee/:id', restrictToEmployee, getLeaveRequestsByEmployee);
 router.post('/', restrictToEmployee, createLeaveRequest);
 router.put('/:id/approve', approveLeaveRequest);
 router.put('/:id/disapprove', disapproveLeaveRequest);
-router.delete('/:id', deleteLeaveRequest);
+router.delete('/:id', verifyToken, deleteLeaveRequest);
 router.put('/:id', restrictToEmployee, updateLeaveRequest);
 
 module.exports = router;
