@@ -6,7 +6,7 @@ const moment = require('moment');
 // Get all leave requests
 exports.getAllLeaveRequests = asyncHandler(async (req, res) => {
     if (!LeaveRequest) throw new Error('LeaveRequest model is not initialized');
-    const requests = await LeaveRequest.find().populate('employeeId', 'firstName lastName');
+    const requests = await LeaveRequest.find().populate('employeeId', 'firstName lastName empNo');
 
     const formattedRequests = requests.map(req => ({
         ...req._doc,
@@ -20,7 +20,7 @@ exports.getAllLeaveRequests = asyncHandler(async (req, res) => {
 exports.getLeaveRequestsByEmployee = asyncHandler(async (req, res) => {
     if (!LeaveRequest) throw new Error('LeaveRequest model is not initialized');
     const requests = await LeaveRequest.find({ employeeId: req.params.id })
-        .populate('employeeId', 'firstName lastName email employeeIdNumber');
+        .populate('employeeId', 'firstName lastName email empNo');
 
     const formattedRequests = requests.map(req => ({
         ...req._doc,
@@ -54,6 +54,47 @@ exports.createLeaveRequest = asyncHandler(async (req, res) => {
 
     const savedRequest = await leaveRequest.save();
     res.status(201).json({ _id: savedRequest._id.toString(), ...savedRequest._doc });
+});
+
+// Update a leave request
+exports.updateLeaveRequest = asyncHandler(async (req, res) => {
+    if (!LeaveRequest) throw new Error('LeaveRequest model is not initialized');
+    
+    const { startDate, endDate, reason } = req.body;
+    const employeeId = req.employeeId;
+    const requestId = req.params.id;
+
+    console.log('Token employeeId:', employeeId);
+
+    if (!employeeId) {
+        return res.status(401).json({ message: 'Employee ID not provided by middleware' });
+    }
+
+    // Validate dates
+    const start = moment(startDate);
+    const end = moment(endDate);
+    if (!start.isValid() || !end.isValid()) return res.status(400).json({ message: 'Invalid date format' });
+    if (end.isBefore(start)) return res.status(400).json({ message: 'End date cannot be before start date' });
+
+    // Find the leave request
+    const request = await LeaveRequest.findById(requestId);
+    if (!request) return res.status(404).json({ message: 'Leave request not found' });
+
+    console.log('Request employeeId:', request.employeeId.toString()); // Debug log
+
+    // Check if the employee owns the request
+    if (request.employeeId.toString() !== employeeId) {
+        return res.status(403).json({ message: 'Unauthorized to update this request' });
+    }
+
+    // Update fields
+    request.startDate = start.toISOString();
+    request.endDate = end.toISOString();
+    request.reason = reason;
+    request.status = 'Pending';
+
+    const updatedRequest = await request.save();
+    res.status(200).json({ success: true, updatedRequest });
 });
 
 // Approve a leave request

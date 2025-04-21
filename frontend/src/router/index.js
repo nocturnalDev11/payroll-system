@@ -197,7 +197,7 @@ const routes = [
             },
             { 
                 path: 'leave-management', 
-                component: () => import('../views/employees/EmployeeLeaveRequest.vue'),
+                component: () => import('../views/employees/leaves/EmployeeLeaveRequest.vue'),
                 name: 'EmployeeLeaveManagement',
                 meta: {
                     title: 'Employee Leave Management',
@@ -214,7 +214,7 @@ const routes = [
             { 
                 path: 'employee-leave-request', 
                 name: 'EmployeeLeaveRequest', 
-                component: () => import('../views/employees/EmployeeLeaveRequest.vue'),
+                component: () => import('../views/employees/leaves/EmployeeLeaveRequest.vue'),
                 meta: {
                     title: 'Employee Leave Request',
                 } 

@@ -93,8 +93,10 @@ const restrictToEmployee = async (req, res, next) => {
             return res.status(403).json({ error: 'Employee not found or unauthorized' });
         }
 
-        req.employeeId = employee._id;
+        req.employeeId = employee._id.toString();
         req.role = 'employee';
+        console.log('Middleware set employeeId:', req.employeeId);
+
         next();
     } catch (error) {
         console.error('Employee token verification failed:', error.message);

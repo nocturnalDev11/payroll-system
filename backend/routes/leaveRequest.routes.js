@@ -5,7 +5,8 @@ const {
     createLeaveRequest,
     approveLeaveRequest,
     disapproveLeaveRequest,
-    deleteLeaveRequest
+    deleteLeaveRequest,
+    updateLeaveRequest
 } = require('../controllers/employee/leaveRequest.controller.js');
 
 const { 
@@ -21,5 +22,6 @@ router.post('/', restrictToEmployee, createLeaveRequest);
 router.put('/:id/approve', approveLeaveRequest);
 router.put('/:id/disapprove', disapproveLeaveRequest);
 router.delete('/:id', deleteLeaveRequest);
+router.put('/:id', restrictToEmployee, updateLeaveRequest);
 
 module.exports = router;
