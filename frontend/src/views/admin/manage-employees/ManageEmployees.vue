@@ -489,7 +489,7 @@ export default {
                                         </button>
                                         <button @click="confirmMoveToArchive(employee)"
                                             class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100">
-                                            <span class="material-icons text-lg">delete</span>
+                                            <span class="material-icons text-lg">archive</span>
                                         </button>
                                     </td>
                                 </tr>
