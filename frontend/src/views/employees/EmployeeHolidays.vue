@@ -360,7 +360,7 @@ export default {
             if (!request) return '';
             switch (request.status.toLowerCase()) {
                 case 'approved': return 'status-approved';
-                case 'rejected': return 'status-rejected';
+                case 'disapproved': return 'status-rejected'; // Map Disapproved to status-rejected
                 case 'pending': return 'status-pending';
                 default: return '';
             }
