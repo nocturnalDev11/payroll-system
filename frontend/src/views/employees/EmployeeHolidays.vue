@@ -577,19 +577,22 @@ export default {
 
 .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    /* Equal column width */
+    grid-auto-rows: 120px;
+    /* Fixed row height */
     gap: 1px;
     background-color: #e8e8e8;
 }
 
 .calendar-day {
     background: white;
-    min-height: 100px;
     display: flex;
     flex-direction: column;
     padding: 5px;
     position: relative;
     transition: background-color 0.2s;
+    overflow: hidden;
 }
 
 .calendar-day.empty {
