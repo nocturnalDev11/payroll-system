@@ -54,7 +54,7 @@
                         <span v-if="isHoliday(day)" class="holiday-type">{{ getHolidayType(day) }}</span>
                         <div v-if="hasLeaveRequest(day)" class="leave-badge" :class="getLeaveStatusClass(day)">
                             <span class="leave-type">{{ getLeaveType(day) }}</span>
-                            <span class="leave-reason">{{ getLeaveReason(day) }}</span>
+                            <span class="truncate text-green-800">{{ getLeaveReason(day) }}</span>
                             <span class="leave-status">{{ getLeaveStatus(day) }}</span>
                         </div>
                     </div>
@@ -542,7 +542,7 @@ export default {
 }
 
 .legend-color.leave-requested {
-    background-color: #d4edda;
+    background-color: #caecd2;
     border: 1px solid #c3e6cb;
 }
 

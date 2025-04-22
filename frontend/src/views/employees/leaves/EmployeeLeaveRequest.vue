@@ -208,39 +208,39 @@ onMounted(() => {
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
+                                <tbody class="divide-y divide-gray-200">
                                     <tr v-for="request in paginatedRequests" :key="request._id"
-                                        class="bg-white hover:bg-gray-50 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+                                        class="bg-white hover:bg-gray-50">
                                         <td class="size-px whitespace-nowrap align-top">
                                             <a class="block p-6" href="#">
-                                                <span class="text-sm text-gray-600 dark:text-neutral-400">
+                                                <span class="text-sm text-gray-600">
                                                     {{ request.employeeName }}
                                                 </span>
                                             </a>
                                         </td>
                                         <td class="h-px w-72 min-w-72 align-top">
                                             <a class="block p-6" href="#">
-                                                <span class="block text-sm text-gray-500 dark:text-neutral-500">
+                                                <span class="block text-sm text-gray-500">
                                                     {{ request.reason }}
                                                 </span>
                                             </a>
                                         </td>
                                         <td class="size-px whitespace-nowrap align-top">
                                             <a class="block p-6" href="#">
-                                                <span class="text-sm text-gray-600 dark:text-neutral-400">
+                                                <span class="text-sm text-gray-600">
                                                     {{ request.type }}
                                                 </span>
                                             </a>
                                         </td>
                                         <td class="size-px whitespace-nowrap align-top">
                                             <a class="block p-6" href="#">
-                                                <span class="text-sm text-gray-600 dark:text-neutral-400">{{
+                                                <span class="text-sm text-gray-600">{{
                                                     formatDate(request.startDate) }}</span>
                                             </a>
                                         </td>
                                         <td class="size-px whitespace-nowrap align-top">
                                             <a class="block p-6" href="#">
-                                                <span class="text-sm text-gray-600 dark:text-neutral-400">
+                                                <span class="text-sm text-gray-600">
                                                     {{ formatDate(request.endDate) }}
                                                 </span>
                                             </a>
@@ -291,7 +291,7 @@ onMounted(() => {
                                 </tbody>
                             </table>
                             <div v-if="filteredRequests.length > 0"
-                                class="px-6 py-4 grid gap-3 md:flex md:justify-between md:items-center border-t border-gray-200 dark:border-neutral-700">
+                                class="px-6 py-4 grid gap-3 md:flex md:justify-between md:items-center border-t border-gray-200">
                                 <div class="max-w-sm">
                                     <select v-model.number="requestsPerPage"
                                         class="py-2 px-3 pe-9 block border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500">
