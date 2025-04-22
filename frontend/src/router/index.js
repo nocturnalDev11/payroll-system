@@ -85,7 +85,7 @@ const routes = [
             { 
                 path: 'employee-attendance', 
                 name: 'EmployeeAttendance',
-                component: () => import('../views/admin/EmployeeAttendance.vue'),
+                component: () => import('../views/admin/attendances/EmployeeAttendance.vue'),
                 meta: {
                     title: 'Employee Attendance',
                 }

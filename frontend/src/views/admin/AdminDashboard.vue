@@ -172,7 +172,7 @@ onMounted(() => {
             <!-- Stats Overview -->
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 <!-- Total Employees -->
-                <div
+                <router-link to='/admin/employee-attendance'
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="p-6">
                         <div class="flex items-center">
@@ -185,10 +185,10 @@ onMounted(() => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </router-link>
 
                 <!-- Present Today -->
-                <div
+                <router-link :to="{ path: '/admin/employee-attendance', query: { status: 'present' } }"
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="flex items-center p-6 gap-4">
                         <div class="rounded-full bg-green-100 p-3 flex items-center justify-center">
@@ -199,10 +199,10 @@ onMounted(() => {
                             <h3 class="text-2xl font-bold text-gray-900">{{ presentCount }}</h3>
                         </div>
                     </div>
-                </div>
+                </router-link>
 
                 <!-- Late Today -->
-                <div
+                <router-link :to="{ path: '/admin/employee-attendance', query: { status: 'late' } }"
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="p-6">
                         <div class="flex items-center">
@@ -215,10 +215,10 @@ onMounted(() => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </router-link>
 
                 <!-- Absent today -->
-                <div
+                <router-link :to="{ path: '/admin/employee-attendance', query: { status: 'absent' } }"
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="p-6">
                         <div class="flex items-center">
@@ -231,10 +231,10 @@ onMounted(() => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </router-link>
 
                 <!-- Halfday Today -->
-                <div
+                <router-link :to="{ path: '/admin/employee-attendance', query: { status: 'halfday' } }"
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="p-6">
                         <div class="flex items-center">
@@ -247,10 +247,10 @@ onMounted(() => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </router-link>
 
                 <!-- On time -->
-                <div
+                <router-link :to="{ path: '/admin/employee-attendance', query: { status: 'ontime' } }"
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="p-6">
                         <div class="flex items-center">
@@ -263,7 +263,7 @@ onMounted(() => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </router-link>
             </div>
 
             <div class="mt-8 flex space-x-4">
