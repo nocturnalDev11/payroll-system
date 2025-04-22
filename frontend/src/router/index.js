@@ -165,7 +165,7 @@ const routes = [
             {
                 path: 'archive',
                 name: 'Archive',
-                component: () => import('../views/admin/Trash.vue'),
+                component: () => import('../views/admin/Archive.vue'),
                 meta: {
                     title: 'Archive',
                 }
