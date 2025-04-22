@@ -133,7 +133,7 @@ const routes = [
             { 
                 path: 'employee-leave-management', 
                 name: 'AdminLeaveManagement',
-                component: () => import('../views/admin/EmployeeLeaveManagement.vue'),
+                component: () => import('../views/admin/leaves/EmployeeLeaveManagement.vue'),
                 meta: {
                     title: 'Employee Leave Management',
                 }
