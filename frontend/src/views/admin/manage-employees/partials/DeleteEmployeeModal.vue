@@ -62,7 +62,7 @@ const moveToArchive = async () => {
         <div class="p-2 border-t border-gray-300 flex justify-end gap-2">
             <button @click="moveToArchive" :disabled="isDeleting"
                 class="px-3 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700">
-                {{ isDeleting ? 'Deleting...' : 'Move to Archive' }}
+                {{ isDeleting ? 'Moving to archive...' : 'Move to Archive' }}
             </button>
             <button @click="$emit('close')" :disabled="isDeleting"
                 class="px-3 py-1.5 border border-gray-300 text-sm rounded-md text-gray-700 hover:bg-gray-100">
