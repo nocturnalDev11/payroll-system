@@ -128,6 +128,7 @@ export const calculateOvertimePay = (employee) => {
 export const calculateSSSContribution = (salary) => {
     const monthlySalaryCredit = Math.min(Math.max(toNumber(salary), 5000), 35000);
     const employeeShareRate = 0.045;
+    // const employeeShareRate = 0.05;
     return Math.round(monthlySalaryCredit * employeeShareRate);
 };
 
