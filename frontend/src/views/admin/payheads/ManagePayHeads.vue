@@ -85,8 +85,8 @@
                     <h3 class="text-base font-medium text-gray-900">No {{ activeTab }} found</h3>
                     <p class="mt-1 text-gray-500 text-center max-w-sm text-xs">
                         {{ activeTab === 'payheads' ?
-                        'No pay heads exist yet. Add a new pay head to get started.' :
-                        'No employees match your criteria. Try adjusting your filters.' }}
+                            'No pay heads exist yet. Add a new pay head to get started.' :
+                            'No employees match your criteria. Try adjusting your filters.' }}
                     </p>
                     <!-- Add buttons for payheads empty state -->
                     <div v-if="activeTab === 'payheads'" class="mt-4 flex gap-2">
@@ -124,21 +124,40 @@
                         <div v-if="activeTab === 'payheads'" class="text-xs text-gray-500">
                             Showing {{ filteredPayHeads.length }} {{ filteredPayHeads.length === 1 ? 'item' : 'items' }}
                         </div>
+
+                        <div v-if="activeTab === 'employees'" class="text-xs text-gray-500">
+                            Showing {{ filteredEmployees.length }} {{ filteredEmployees.length === 1 ? 'employee' :
+                                'employees' }}
+                        </div>
+
                         <!-- Always show buttons when activeTab is 'payheads' -->
-                        <button v-if="activeTab === 'payheads'" @click="showAddModal = true"
-                            class="inline-flex items-center px-2 py-0.5 bg-blue-600 text-white rounded-sm 
+                        <div v-if="activeTab === 'payheads'" class="flex items-center space-x-2">
+                            <button @click="showAddModal = true"
+                                class="inline-flex items-center px-2 py-0.5 bg-blue-600 text-white rounded-sm 
                             text-xs font-medium hover:bg-blue-700 focus:outline-none focus:ring-1 
                             focus:ring-offset-1 focus:ring-blue-500 transition-all shadow-sm transform hover:scale-105">
-                            <span class="material-icons text-xs mr-1">add</span>
-                            New Pay Head
-                        </button>
-                        <button v-if="activeTab === 'payheads'" @click="showRecurringDeductionModal = true"
-                            class="inline-flex items-center px-2 py-0.5 bg-green-600 text-white rounded-sm 
+                                <span class="material-icons text-xs mr-1">add</span>
+                                New Pay Head
+                            </button>
+                            <button @click="showRecurringDeductionModal = true"
+                                class="inline-flex items-center px-2 py-0.5 bg-green-600 text-white rounded-sm 
                             text-xs font-medium hover:bg-green-700 focus:outline-none focus:ring-1 
                             focus:ring-offset-1 focus:ring-green-500 transition-all shadow-sm transform hover:scale-105">
-                            <span class="material-icons text-xs mr-1">repeat</span>
-                            Add Recurring Deduction
-                        </button>
+                                <span class="material-icons text-xs mr-1">repeat</span>
+                                Add Recurring Deduction
+                            </button>
+                        </div>
+
+                        <!-- Always show buttons when activeTab is 'employees' -->
+                        <div v-if="activeTab === 'employees'">
+                            <button @click="showAddPayheadsToEmployeesModal = true"
+                                class="inline-flex items-center px-2 py-0.5 bg-green-600 text-white rounded-sm 
+                            text-xs font-medium hover:bg-green-700 focus:outline-none focus:ring-1 
+                            focus:ring-offset-1 focus:ring-green-500 transition-all shadow-sm transform hover:scale-105">
+                                <span class="material-icons text-xs mr-1">group_add</span>
+                                Add All Payheads to Employees
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -155,7 +174,7 @@
                     <div class="text-xs text-gray-700">
                         Showing <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span> to
                         <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, filteredEmployees.length)
-                            }}</span> of
+                        }}</span> of
                         <span class="font-medium">{{ filteredEmployees.length }}</span> entries
                     </div>
 
@@ -212,6 +231,11 @@
                 :employees="employees" @close="showRecurringDeductionModal = false" @save="saveRecurringDeductions" />
         </transition>
 
+        <transition name="modal-fade">
+            <AddPayheadsToEmployeesModal v-if="showAddPayheadsToEmployeesModal" :payheads="payHeads"
+                :employees="employees" @close="showAddPayheadsToEmployeesModal = false" @save="saveBulkPayheads" />
+        </transition>
+
         <!-- Toast Notifications -->
         <div class="fixed bottom-2 right-2 z-50 space-y-2">
             <TransitionGroup enter-active-class="transform ease-out duration-300 transition"
@@ -255,6 +279,7 @@ import PayHeadTable from './partials/PayHeadTable.vue';
 import EmployeePayrollTable from './partials/EmployeePayrollTable.vue';
 import AddPayheadModal from './partials/AddPayheadModal.vue';
 import RecurringDeductionModal from './partials/RecurringDeductionModal.vue';
+import AddPayheadsToEmployeesModal from './partials/AddPayheadsToEmployeesModal.vue';
 
 export default {
     name: 'ManagePayHeads',
@@ -264,6 +289,7 @@ export default {
         EmployeePayrollTable,
         AddPayheadModal,
         RecurringDeductionModal,
+        AddPayheadsToEmployeesModal,
     },
 
     data() {
@@ -291,6 +317,7 @@ export default {
             showUpdateModal: false,
             showAddPayheadModal: false,
             showRecurringDeductionModal: false,
+            showAddPayheadsToEmployeesModal: false,
             selectedEmployee: null,
             selectedEmployeePayheads: [],
             availablePayheads: [],
@@ -397,7 +424,7 @@ export default {
                     headers: {
                         'Authorization': `Bearer ${authStore.accessToken}`,
                         'user-role': 'admin',
-                        'user-id': authStore.admin?.id || authStore.employee?.id, // Optional, based on backend needs
+                        'user-id': authStore.admin?.id || authStore.employee?.id,
                     },
                 });
                 this.payHeads = response.data.map(item => ({
@@ -486,7 +513,7 @@ export default {
                     name: payHead.name,
                     amount: Number(payHead.amount || 0),
                     type: payHead.type,
-                    isRecurring: payHead.isRecurring || false // Include isRecurring
+                    isRecurring: payHead.isRecurring || false
                 };
                 const response = await axios.post(`${BASE_API_URL}/api/payheads`, payload, {
                     headers: { 'user-role': 'admin' },
@@ -524,7 +551,7 @@ export default {
                     name: updatedPayHead.name,
                     amount: Number(updatedPayHead.amount || 0),
                     type: updatedPayHead.type,
-                    isRecurring: updatedPayHead.isRecurring || false // Include isRecurring
+                    isRecurring: updatedPayHead.isRecurring || false
                 };
                 const response = await axios.put(
                     `${BASE_API_URL}/api/payheads/${updatedPayHead.id}`,
@@ -663,11 +690,75 @@ export default {
             }
         },
 
-        async saveRecurringDeductions({ deductions, employees, periods }) { // Destructure the object
+        async saveBulkPayheads({ payheads, employees }) {
             try {
                 this.isLoading = true;
                 const authStore = useAuthStore();
-                for (const employee of employees) { // Now employees is correctly iterable
+                for (const employee of employees) {
+                    const existingPayheads = this.employees.find(e => e._id === employee._id)?.payheads || [];
+                    const updatedPayheads = [...existingPayheads];
+
+                    for (const payhead of payheads) {
+                        if (!updatedPayheads.some(ph => ph._id === payhead._id)) {
+                            updatedPayheads.push({
+                                _id: payhead._id,
+                                id: payhead.id,
+                                name: payhead.name,
+                                amount: Number(payhead.amount || 0),
+                                type: payhead.type,
+                                isRecurring: payhead.isRecurring || false,
+                                appliedThisCycle: false,
+                                uniqueId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            });
+                        }
+                    }
+
+                    const payheadsForBackend = updatedPayheads.map(ph => ph._id).filter(id => id);
+                    const updatedEmployee = {
+                        payheads: payheadsForBackend,
+                        salary: Number(employee.salary || 0) +
+                            this.calculateEarnings(updatedPayheads) -
+                            this.calculateDeductions(updatedPayheads) -
+                            this.calculateRecurringDeductions(updatedPayheads),
+                    };
+
+                    await axios.put(
+                        `${BASE_API_URL}/api/employees/update/${employee._id}`,
+                        updatedEmployee,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${authStore.accessToken}`,
+                                'user-role': 'admin',
+                                'user-id': authStore.admin?.id || authStore.employee?.id,
+                            }
+                        }
+                    );
+
+                    const employeeIndex = this.employees.findIndex(e => e._id === employee._id);
+                    if (employeeIndex !== -1) {
+                        this.employees[employeeIndex] = {
+                            ...this.employees[employeeIndex],
+                            payheads: updatedPayheads,
+                            salary: updatedEmployee.salary,
+                        };
+                    }
+                }
+                this.showAddPayheadsToEmployeesModal = false;
+                this.showSuccessMessage('Payheads assigned successfully!');
+                await this.fetchEmployees();
+            } catch (error) {
+                console.error('Error assigning payheads:', error.response?.data || error.message);
+                this.showErrorMessage('Failed to assign payheads: ' + (error.response?.data?.message || error.message));
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        async saveRecurringDeductions({ deductions, employees, periods }) {
+            try {
+                this.isLoading = true;
+                const authStore = useAuthStore();
+                for (const employee of employees) {
                     const existingPayheads = this.employees.find(e => e._id === employee._id)?.payheads || [];
                     const updatedPayheads = [...existingPayheads];
 

@@ -46,7 +46,7 @@
                     <span class="material-icons text-base">close</span>Cancel
                 </button>
                 <button @click="$emit('save', localPayHead)"
-                    class="py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 flex items-center gap-1"
+                    class="py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 hover:text-gray-50 transition duration-200 flex items-center gap-1"
                     :disabled="!localPayHead.name || localPayHead.amount == null">
                     <span class="material-icons text-base">save</span>{{ isUpdate ? 'Update' : 'Save' }}
                 </button>
