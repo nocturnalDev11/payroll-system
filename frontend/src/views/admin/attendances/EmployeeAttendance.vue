@@ -406,6 +406,14 @@ export default {
             setTimeout(() => (this.statusMessage = ''), 2000);
         },
     },
+    watch: {
+        '$route.query.status': {
+            handler() {
+                this.fetchEmployeesAndAttendance();
+            },
+            immediate: true,
+        },
+    },
 };
 </script>
 
