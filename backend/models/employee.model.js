@@ -73,6 +73,7 @@ const employeeSchema = new mongoose.Schema({
         days: { type: Number, default: 0 },
         amount: { type: Number, default: 0 },
     },
+    lateDeductions: { type: Number, default: 0 },
     status: { 
         type: String, 
         enum: ['pending', 'approved', 'rejected', 'archived'], 

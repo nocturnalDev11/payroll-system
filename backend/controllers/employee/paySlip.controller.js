@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Employee = require('../../models/employee.model.js');
 const Payslip = require('../../models/paySlip.model.js');
+const Attendance = require('../../models/attendance.model.js');
 
 const getPayslips = async (req, res) => {
     try {
@@ -90,6 +91,19 @@ const generatePayslip = async (req, res) => {
             });
         }
 
+        // Fetch attendance records for the salary month
+        const startOfMonth = new Date(`${salaryMonth}-01T00:00:00.000Z`);
+        const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+        const attendanceRecords = await Attendance.find({
+            employeeId,
+            date: { $gte: startOfMonth, $lte: endOfMonth }
+        });
+
+        const totalLateDeduction = attendanceRecords.reduce((sum, record) => sum + (record.lateDeduction || 0), 0);
+
+        // Update payslip data with late deductions
+        payslipData.lateDeductions = totalLateDeduction;
+
         const existingPayslip = await Payslip.findOne({ employeeId, salaryMonth, paydayType });
 
         if (existingPayslip) {
@@ -107,6 +121,10 @@ const generatePayslip = async (req, res) => {
 
         const payslip = new Payslip({ employeeId, empNo, payslipData, salaryMonth, paydayType, position, salary, payDate });
         await payslip.save();
+
+        // Update employee with total late deductions
+        employee.lateDeductions = (employee.lateDeductions || 0) + totalLateDeduction;
+        await employee.save();
 
         res.status(201).json({
             success: true,

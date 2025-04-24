@@ -88,8 +88,9 @@ export const calculateTotalDeductions = (employee, config) => {
     const pagibigContribution = calculatePagIBIGContribution(employee.salary);
     const withholdingTax = calculateWithholdingTax(employee, config);
     const payheadDeductions = calculatePayheadDeductions(employee.payheads);
+    const lateDeductions = toNumber(employee.lateDeductions); 
 
-    return sssContribution + philhealthContribution + pagibigContribution + withholdingTax + payheadDeductions;
+    return sssContribution + philhealthContribution + pagibigContribution + withholdingTax + payheadDeductions + lateDeductions;
 };
 
 export const calculateNetSalary = (employee, config) => {
@@ -128,7 +129,6 @@ export const calculateOvertimePay = (employee) => {
 export const calculateSSSContribution = (salary) => {
     const monthlySalaryCredit = Math.min(Math.max(toNumber(salary), 5000), 35000);
     const employeeShareRate = 0.045;
-    // const employeeShareRate = 0.05;
     return Math.round(monthlySalaryCredit * employeeShareRate);
 };
 

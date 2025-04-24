@@ -33,7 +33,7 @@ export default {
                 { key: 'status', label: 'Status', icon: 'check_circle' },
                 { key: 'actions', label: 'Actions', icon: 'settings' },
             ],
-            lastResetDate: null, // Track the last reset
+            lastResetDate: null,
         };
     },
     computed: {
@@ -41,7 +41,6 @@ export default {
             if (!this.employees || !Array.isArray(this.employees)) return [];
             let filtered = this.employees;
 
-            // Filter by status query parameter
             const statusFilter = this.$route.query.status;
             if (statusFilter) {
                 if (statusFilter === 'present') {
@@ -59,14 +58,12 @@ export default {
                 }
             }
 
-            // Apply search query filter
             filtered = filtered.filter(employee =>
                 !this.searchQuery ||
                 `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
                 employee.empNo.toString().toLowerCase().includes(this.searchQuery.toLowerCase())
             );
 
-            // Apply sorting
             return filtered.sort((a, b) => {
                 const valueA = a[this.sortKey] || '';
                 const valueB = b[this.sortKey] || '';
@@ -103,7 +100,6 @@ export default {
             }
             this.lastResetDate = today;
 
-            // Check every minute for a new day (optional, could use a cron job on backend instead)
             setInterval(() => {
                 const currentDate = new Date().toISOString().split('T')[0];
                 if (currentDate !== this.lastResetDate) {
@@ -112,7 +108,7 @@ export default {
                     this.lastResetDate = currentDate;
                     this.fetchEmployeesAndAttendance();
                 }
-            }, 60000); // Check every minute
+            }, 60000);
         },
         resetAttendanceData() {
             this.date = new Date().toISOString().split('T')[0];
@@ -123,7 +119,9 @@ export default {
                 afternoonTimeIn: null,
                 afternoonTimeOut: null,
                 status: 'Absent',
-                _id: undefined, // Clear attendance record ID to force new creation
+                lateHours: 0,
+                lateDeduction: 0,
+                _id: undefined,
             }));
             this.showSuccessMessage('Attendance reset for new day');
         },
@@ -154,6 +152,8 @@ export default {
                         afternoonTimeIn: null,
                         afternoonTimeOut: null,
                         status: 'Absent',
+                        lateHours: 0,
+                        lateDeduction: 0,
                     }));
 
                 const attResponse = await axios.get(`${BASE_API_URL}/api/attendance`, {
@@ -172,6 +172,8 @@ export default {
                         afternoonTimeIn: record.afternoonTimeIn || null,
                         afternoonTimeOut: record.afternoonTimeOut || null,
                         status: record.status || 'Absent',
+                        lateHours: record.lateHours || 0,
+                        lateDeduction: record.lateDeduction || 0,
                     };
                     return map;
                 }, {});
@@ -190,6 +192,8 @@ export default {
                         afternoonTimeIn: attendance.afternoonTimeIn || null,
                         afternoonTimeOut: attendance.afternoonTimeOut || null,
                         status: attendance.status || employee.status,
+                        lateHours: attendance.lateHours || 0,
+                        lateDeduction: attendance.lateDeduction || 0,
                     };
                 });
 
@@ -232,28 +236,70 @@ export default {
         },
         showDetails(employee) {
             this.selectedEmployee = { ...employee };
-            // Ensure employeeId is a string
             if (typeof this.selectedEmployee.employeeId !== 'string') {
                 this.selectedEmployee.employeeId = this.selectedEmployee.employeeId._id;
             }
             this.showDetailsModal = true;
         },
-        calculateStatus({ morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut }) {
-            const MORNING_START = "08:00";
-            const AFTERNOON_START = "13:00";
-            const MORNING_EARLY_CUTOFF = "11:30";
-            const AFTERNOON_END = "17:00";
+        calculateStatusAndDeductions({ morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut }) {
+            const OFFICE_START = "08:00";
+            const LUNCH_START = "11:30";
+            const LUNCH_END = "12:59";
+            const OFFICE_END = "17:00";
 
-            if (!morningTimeIn && !afternoonTimeIn) return "Absent";
-            if (morningTimeIn && afternoonTimeIn && morningTimeOut && afternoonTimeOut) return "Present";
-            if ((morningTimeIn && !afternoonTimeIn) || (!morningTimeIn && afternoonTimeIn)) return "Half Day";
-            if (morningTimeIn && morningTimeIn > MORNING_START) return "Late";
-            if (afternoonTimeIn && afternoonTimeIn > AFTERNOON_START) return "Late";
-            if ((morningTimeOut && morningTimeOut < MORNING_EARLY_CUTOFF) ||
-                (afternoonTimeOut && afternoonTimeOut < AFTERNOON_END)) return "Early Departure";
-            if (morningTimeIn && morningTimeIn <= MORNING_START) return "On Time";
-            if (afternoonTimeIn && afternoonTimeIn <= AFTERNOON_START) return "On Time";
-            return "Absent";
+            let status = "Absent";
+            let lateHours = 0;
+            let lateDeduction = 0;
+
+            if (!morningTimeIn && !afternoonTimeIn) {
+                status = "Absent";
+                lateHours = 8;
+                lateDeduction = 8 * 37.5;
+            } else if (morningTimeIn && afternoonTimeOut && afternoonTimeOut >= OFFICE_END) {
+                status = "Present";
+                if (morningTimeIn > OFFICE_START) {
+                    status = "Late";
+                    const [hours, minutes] = morningTimeIn.split(':').map(Number);
+                    const [startHours, startMinutes] = OFFICE_START.split(':').map(Number);
+                    const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
+                    lateHours = Math.ceil(lateMinutes / 60);
+                    lateDeduction = lateHours * 37.5;
+                }
+            } else if ((morningTimeIn && !afternoonTimeIn) || (!morningTimeIn && afternoonTimeIn)) {
+                status = "Half Day";
+                lateHours = 4;
+                lateDeduction = 4 * 37.5;
+                if (morningTimeIn && morningTimeIn > OFFICE_START) {
+                    status = "Late";
+                    const [hours, minutes] = morningTimeIn.split(':').map(Number);
+                    const [startHours, startMinutes] = OFFICE_START.split(':').map(Number);
+                    const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
+                    lateHours = Math.max(4, Math.ceil(lateMinutes / 60));
+                    lateDeduction = lateHours * 37.5;
+                } else if (afternoonTimeIn && afternoonTimeIn > LUNCH_END) {
+                    status = "Late";
+                    lateHours = 4;
+                    lateDeduction = 4 * 37.5;
+                }
+            } else if (morningTimeIn && morningTimeIn > OFFICE_START) {
+                status = "Late";
+                const [hours, minutes] = morningTimeIn.split(':').map(Number);
+                const [startHours, startMinutes] = OFFICE_START.split(':').map(Number);
+                const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
+                lateHours = Math.ceil(lateMinutes / 60);
+                lateDeduction = lateHours * 37.5;
+            } else if (afternoonTimeIn && afternoonTimeIn > LUNCH_END) {
+                status = "Late";
+                lateHours = 4;
+                lateDeduction = 4 * 37.5;
+            } else if ((morningTimeOut && morningTimeOut < LUNCH_START) ||
+                (afternoonTimeOut && afternoonTimeOut < OFFICE_END)) {
+                status = "Early Departure";
+            } else if (morningTimeIn && morningTimeIn <= OFFICE_START) {
+                status = "On Time";
+            }
+
+            return { status, lateHours, lateDeduction };
         },
         async markTime(period) {
             try {
@@ -266,13 +312,15 @@ export default {
                 const timeValue = moment().format('HH:mm');
                 if (this.selectedEmployee && timeValue) {
                     this.selectedEmployee[timeField] = timeValue;
-                    this.selectedEmployee.status = this.calculateStatus({
+                    const { status, lateHours, lateDeduction } = this.calculateStatusAndDeductions({
                         morningTimeIn: this.selectedEmployee.morningTimeIn,
                         morningTimeOut: this.selectedEmployee.morningTimeOut,
                         afternoonTimeIn: this.selectedEmployee.afternoonTimeIn,
                         afternoonTimeOut: this.selectedEmployee.afternoonTimeOut,
                     });
-                    // Ensure employeeId remains a string
+                    this.selectedEmployee.status = status;
+                    this.selectedEmployee.lateHours = lateHours;
+                    this.selectedEmployee.lateDeduction = lateDeduction;
                     if (typeof this.selectedEmployee.employeeId !== 'string') {
                         this.selectedEmployee.employeeId = this.selectedEmployee.employeeId._id;
                     }
@@ -291,26 +339,28 @@ export default {
                 if (!employee || !employee.employeeId) throw new Error('Invalid employee ID');
                 if (!this.date || !/^\d{4}-\d{2}-\d{2}$/.test(this.date)) throw new Error('Invalid date format');
 
-                const newStatus = this.calculateStatus({
-                    morningTimeIn: employee.morningTimeIn,
-                    morningTimeOut: employee.morningTimeOut,
-                    afternoonTimeIn: employee.afternoonTimeIn,
-                    afternoonTimeOut: employee.afternoonTimeOut,
-                });
-
-                employee.status = changedField === 'status' ? employee.status : newStatus;
+                const { status, lateHours, lateDeduction } = changedField === 'status'
+                    ? { status: employee.status, lateHours: employee.lateHours, lateDeduction: employee.lateDeduction }
+                    : this.calculateStatusAndDeductions({
+                        morningTimeIn: employee.morningTimeIn,
+                        morningTimeOut: employee.morningTimeOut,
+                        afternoonTimeIn: employee.afternoonTimeIn,
+                        afternoonTimeOut: employee.afternoonTimeOut,
+                    });
 
                 const payload = {
-                    employeeId: typeof employee.employeeId === 'string' ? employee.employeeId : employee.employeeId._id, // Ensure string ID
+                    employeeId: typeof employee.employeeId === 'string' ? employee.employeeId : employee.employeeId._id,
                     date: this.date,
                     morningTimeIn: employee.morningTimeIn || null,
                     morningTimeOut: employee.morningTimeOut || null,
                     afternoonTimeIn: employee.afternoonTimeIn || null,
                     afternoonTimeOut: employee.afternoonTimeOut || null,
-                    status: employee.status,
+                    status,
+                    lateHours,
+                    lateDeduction,
                 };
 
-                console.log('Updating attendance with payload:', payload); // Debug log
+                console.log('Updating attendance with payload:', payload);
 
                 let response;
                 if (employee._id) {
@@ -327,7 +377,7 @@ export default {
                     );
                 }
 
-                console.log('Response:', response.data); // Debug log
+                console.log('Response:', response.data);
 
                 if (response.status === 200 || response.status === 201) {
                     const updatedEmployee = {
@@ -345,7 +395,7 @@ export default {
                 }
             } catch (error) {
                 console.error('Error updating attendance:', error);
-                console.error('Server response:', error.response?.data); // Log server error details
+                console.error('Server response:', error.response?.data);
                 this.showErrorMessage(`Update failed: ${error.response?.data?.message || error.message}`);
                 if (error.message.includes('No access token')) {
                     this.authStore.logout();
@@ -368,7 +418,9 @@ export default {
                     'Morning Time Out',
                     'Afternoon Time In',
                     'Afternoon Time Out',
-                    'Status'
+                    'Status',
+                    'Late Hours',
+                    'Late Deduction'
                 ].join(',');
 
                 const csvRows = this.filteredEmployees.map(employee => [
@@ -380,7 +432,9 @@ export default {
                     employee.morningTimeOut ? `"${this.formatTime(employee.morningTimeOut)}"` : '""',
                     employee.afternoonTimeIn ? `"${this.formatTime(employee.afternoonTimeIn)}"` : '""',
                     employee.afternoonTimeOut ? `"${this.formatTime(employee.afternoonTimeOut)}"` : '""',
-                    employee.status
+                    employee.status,
+                    employee.lateHours,
+                    employee.lateDeduction
                 ].join(',')).join('\n');
 
                 const csvContent = `${csvHeader}\n${csvRows}`;

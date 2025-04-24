@@ -34,7 +34,7 @@ exports.getProfile = asyncHandler(async (req, res) => {
 // Upload profile picture
 exports.uploadProfilePicture = asyncHandler(async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    const employee = await Employee.findById(req.employeeId);
+    const employee = await Employee.findById(req.employee_defined);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
     const fileName = `${req.employeeId}-${Date.now()}${path.extname(req.file.originalname)}`;
@@ -48,12 +48,11 @@ exports.uploadProfilePicture = asyncHandler(async (req, res) => {
     res.status(200).json({ message: 'Profile picture uploaded successfully', profilePicture: blob.url });
 });
 
-// Update employee details (combined PUT from routes)
+// Update employee details
 exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { position, password, payheads, ...otherDetails } = req.body;
 
-    // Validate ID format
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ error: 'Invalid employee ID format' });
     }
@@ -134,13 +133,11 @@ exports.permanentDeleteEmployee = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: 'Invalid employee ID' });
     }
 
-    // Find and delete the employee
     const employee = await Employee.findByIdAndDelete(id);
     if (!employee) {
         return res.status(404).json({ message: 'Employee not found' });
     }
 
-    // Delete associated records (no transaction needed)
     await Promise.all([
         Attendance.deleteMany({ employeeId: id }),
         LeaveRequest.deleteMany({ employeeId: id }),
@@ -198,7 +195,7 @@ exports.getAllEmployees = asyncHandler(async (req, res) => {
     }
 });
 
-// Get single employee by ID (with /archive workaround)
+// Get single employee by ID
 exports.getEmployeeById = asyncHandler(async (req, res) => {
     const employeeId = req.params.id;
 
@@ -227,14 +224,14 @@ exports.getEmployeeById = asyncHandler(async (req, res) => {
     const transformedEmployee = {
         ...employee.toObject(),
         positionHistory: employee.positionHistory.map(history => ({
-            position: history.position ? history.position.name : 'Unknown', // Fallback if position is null
+            position: history.position ? history.position.name : 'Unknown',
             salary: history.salary,
             startDate: history.startDate,
             endDate: history.endDate
         }))
     };
 
-    res.status(200).json(transformedEmployee); // Return transformed data
+    res.status(200).json(transformedEmployee);
 });
 
 // Get salary data
@@ -289,7 +286,6 @@ exports.createEmployee = asyncHandler(async (req, res) => {
     const lastEmployee = await Employee.findOne().sort({ id: -1 });
     const newId = lastEmployee ? lastEmployee.id + 1 : 1;
 
-    // Hash the password before saving
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(employeeData.password, salt);
 
@@ -344,7 +340,7 @@ exports.updatePendingRequestStatus = asyncHandler(async (req, res) => {
     res.status(200).json(employee);
 });
 
-// delete pending request by ID
+// Delete pending request by ID
 exports.deletePendingRequest = asyncHandler(async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {

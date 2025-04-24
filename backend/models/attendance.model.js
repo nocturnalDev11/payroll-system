@@ -17,7 +17,11 @@ const attendanceSchema = new mongoose.Schema({
         type: String, 
         enum: ['On Time', 'Late', 'Absent', 'Early Departure', 'Present', 'Half Day'], 
         default: 'Absent' 
-    }
+    },
+    // Store hours late
+    lateHours: { type: Number, default: 0 },
+    // Store deduction amount (300 pesos per hour)
+    lateDeduction: { type: Number, default: 0 }
 }, {
     indexes: [{ key: { employeeId: 1, date: 1 }, unique: true }]
 });
