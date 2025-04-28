@@ -10,7 +10,21 @@ import InputLabel from '@/components/InputLabel.vue';
 const props = defineProps(['employee']);
 const emit = defineEmits(['employee-updated']);
 const authStore = useAuthStore();
-const form = ref({ firstName: '', middleName: '', lastName: '', username: '', email: '', contactInfo: '', civilStatus: '', salary: '', sss: '', philhealth: '', pagibig: '', hireDate: new Date().toISOString().slice(0, 10) });
+const form = ref({
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    username: '',
+    email: '',
+    contactInfo: '',
+    civilStatus: '',
+    salary: '',
+    sss: '',
+    philhealth: '',
+    pagibig: '',
+    hireDate: new Date().toISOString().slice(0, 10),
+    payheads: [] // Add payheads to form if needed, initialized as empty array
+});
 const isUpdating = ref(false);
 const updateMessage = ref('');
 const successMessage = ref('');
@@ -28,9 +42,9 @@ watch(() => props.employee, (employee) => {
             ...form.value,
             ...employee,
             hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().slice(0, 10) : form.value.hireDate,
-            salary: employee.salary != null ? String(employee.salary) : ''
+            salary: employee.salary != null ? String(employee.salary) : '',
+            payheads: employee.payheads || [] // Ensure payheads is set from employee data
         };
-        // Update initial values whenever employee prop changes
         initialFormValues.value = { ...form.value };
     }
 }, { immediate: true });
@@ -49,8 +63,31 @@ const updateEmployee = async () => {
     try {
         const token = authStore.accessToken;
         if (!token) throw new Error('No token');
-        const payload = Object.fromEntries(Object.entries(form.value).filter(([, v]) => v !== '' && v !== null));
-        if (payload.salary) payload.salary = Number(payload.salary);
+
+        // Explicitly include only relevant fields in the payload
+        const payload = {
+            firstName: form.value.firstName,
+            middleName: form.value.middleName,
+            lastName: form.value.lastName,
+            username: form.value.username,
+            email: form.value.email,
+            contactInfo: form.value.contactInfo,
+            civilStatus: form.value.civilStatus,
+            salary: form.value.salary ? Number(form.value.salary) : undefined,
+            sss: form.value.sss,
+            philhealth: form.value.philhealth,
+            pagibig: form.value.pagibig,
+            hireDate: form.value.hireDate
+            // Include payheads only if explicitly managed
+            // payheads: form.value.payheads.length > 0 ? form.value.payheads : undefined
+        };
+
+        // Remove undefined or empty values
+        Object.keys(payload).forEach(key => {
+            if (payload[key] === '' || payload[key] === undefined) {
+                delete payload[key];
+            }
+        });
 
         const response = await fetch(`${BASE_API_URL}/api/employees/update/${props.employee._id}`, {
             method: 'PUT',
@@ -65,17 +102,16 @@ const updateEmployee = async () => {
         const updatedEmployee = await response.json();
         successMessage.value = 'Updated successfully';
 
-        // Update the form with the returned data from server
         form.value = {
             ...form.value,
             ...updatedEmployee.updatedEmployee,
-            salary: updatedEmployee.updatedEmployee.salary != null ? String(updatedEmployee.updatedEmployee.salary) : ''
+            salary: updatedEmployee.updatedEmployee.salary != null ? String(updatedEmployee.updatedEmployee.salary) : '',
+            payheads: updatedEmployee.updatedEmployee.payheads || []
         };
 
         emit('employee-updated', updatedEmployee.updatedEmployee);
     } catch (error) {
         updateMessage.value = `Failed: ${error.message}`;
-        // Reset to initial values on error
         form.value = { ...initialFormValues.value };
     } finally {
         isUpdating.value = false;
@@ -120,8 +156,8 @@ const updateEmployee = async () => {
                     <InputError :message="phoneError" class="mt-2" />
                 </div>
                 <div>
-                    <InputLabel for="civilStatus" value="Civil Status" /><select v-model="form.civilStatus"
-                        id="civilStatus"
+                    <InputLabel for="civilStatus" value="Civil Status" />
+                    <select v-model="form.civilStatus" id="civilStatus"
                         class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
                         <option value="">Select</option>
                         <option v-for="status in civilStatusOptions" :key="status" :value="status">{{ status }}</option>
@@ -150,9 +186,11 @@ const updateEmployee = async () => {
                     <TextInput v-model="form.hireDate" id="hireDate" type="date" class="mt-1 block w-full" />
                 </div>
             </div>
-            <div class="flex items-center gap-4"><button type="submit"
+            <div class="flex items-center gap-4">
+                <button type="submit"
                     class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 disabled:opacity-50"
-                    :disabled="isSubmitDisabled">Update</button></div>
+                    :disabled="isSubmitDisabled">Update</button>
+            </div>
         </form>
         <Toast v-if="successMessage" :message="successMessage" type="success" />
         <Toast v-if="updateMessage" :message="updateMessage" type="error" />

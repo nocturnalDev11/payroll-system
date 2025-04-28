@@ -51,16 +51,46 @@ exports.uploadProfilePicture = asyncHandler(async (req, res) => {
 // Update employee details
 exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { position, password, payheads, ...otherDetails } = req.body;
+    const { position, password, payheads, salary, ...otherDetails } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ error: 'Invalid employee ID format' });
     }
 
-    const updateData = { ...otherDetails, position };
+    const updateData = { ...otherDetails };
+    if (position) updateData.position = position;
     if (req.body.deductions) updateData.deductions = req.body.deductions;
     if (req.body.earnings) updateData.earnings = req.body.earnings;
-    if (req.body.salary) updateData.salary = Number(req.body.salary);
+    if (salary) updateData.salary = Number(salary);
+
+    // Handle positionHistory update if position is provided
+    if (position) {
+        const employee = await Employee.findById(id);
+        if (!employee) return res.status(404).json({ error: 'Employee not found' });
+
+        // Ensure salary is provided or use existing salary
+        const updatedSalary = salary ? Number(salary) : employee.salary;
+        if (!updatedSalary) {
+            return res.status(400).json({ error: 'Salary is required when updating position' });
+        }
+
+        // Close the current positionHistory entry (if any) and add a new one
+        const currentPosition = employee.positionHistory.find(p => !p.endDate);
+        if (currentPosition) {
+            currentPosition.endDate = new Date();
+        }
+
+        employee.positionHistory.push({
+            position: position,
+            salary: updatedSalary,
+            startDate: new Date(),
+            endDate: null
+        });
+
+        updateData.positionHistory = employee.positionHistory;
+        updateData.hourlyRate = updatedSalary / (8 * 22);
+    }
+
     if (payheads) {
         if (!Array.isArray(payheads) || payheads.some(id => !mongoose.Types.ObjectId.isValid(id))) {
             return res.status(400).json({ error: 'Invalid payhead IDs' });
@@ -71,6 +101,7 @@ exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
         }
         updateData.payheads = payheads;
     }
+
     if (password) {
         const salt = await bcrypt.genSalt(10);
         updateData.password = await bcrypt.hash(password, salt);
