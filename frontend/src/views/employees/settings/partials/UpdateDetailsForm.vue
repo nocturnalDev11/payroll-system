@@ -1,4 +1,3 @@
-<!-- UpdateDetailsForm.vue -->
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { BASE_API_URL } from '@/utils/constants.js';
