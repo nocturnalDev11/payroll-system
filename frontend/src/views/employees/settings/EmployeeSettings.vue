@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth.store.js';
 import UpdateDetailsForm from './partials/UpdateDetailsForm.vue';
 import UpdatePasswordForm from './partials/UpdatePasswordForm.vue';
 import UploadProfilePicture from './partials/UploadProfilePicture.vue';
+import Toast from '@/components/Toast.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -13,6 +14,11 @@ const employeeData = ref(authStore.employee);
 const isLoading = ref(true);
 const error = ref(null);
 const employee = computed(() => authStore.employee);
+
+// Toast state
+const toastMessage = ref('');
+const toastType = ref('info');
+const showToast = ref(false);
 
 onMounted(async () => {
     let _id = route.params._id || authStore.employee?._id;
@@ -31,7 +37,18 @@ onMounted(async () => {
     } finally { isLoading.value = false; }
 });
 
-const handleEmployeeUpdated = (updatedEmployee) => { employeeData.value = updatedEmployee; };
+const handleEmployeeUpdated = (payload) => {
+    employeeData.value = payload.employee;
+    // Show toast based on upload status
+    toastMessage.value = payload.message;
+    toastType.value = payload.status === 'success' ? 'success' : 'error';
+    showToast.value = true;
+};
+
+const handleToastClose = () => {
+    showToast.value = false;
+    toastMessage.value = '';
+};
 </script>
 
 <template>
@@ -52,5 +69,6 @@ const handleEmployeeUpdated = (updatedEmployee) => { employeeData.value = update
             </div>
         </div>
         <div v-else class="text-gray-600 text-center">No employee data available.</div>
+        <Toast v-if="showToast" :message="toastMessage" :type="toastType" @close="handleToastClose" />
     </div>
 </template>
