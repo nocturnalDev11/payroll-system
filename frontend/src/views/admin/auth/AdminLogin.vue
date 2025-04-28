@@ -75,6 +75,11 @@ export default {
 <template>
     <div class="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 flex items-center justify-center p-4">
         <div class="w-full max-w-md">
+            <router-link :to="{ name: 'LoginSelection' }" class="text-gray-500 hover:text-gray-700 mb-4 flex items-center">
+                <span class="material-icons text-indigo-600 mr-2">arrow_back</span>
+                Back to Login Selection
+            </router-link>
+            
             <div
                 class="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 space-y-6 transform transition-all duration-500 ease-out animate-fadeIn">
                 <div class="text-center space-y-2">

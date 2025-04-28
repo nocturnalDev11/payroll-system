@@ -106,6 +106,12 @@ async function login() {
                     :duration="3000" @close="removeToast(toast.id)" />
             </div>
 
+            <router-link :to="{ name: 'LoginSelection' }"
+                class="text-gray-500 hover:text-gray-700 mb-4 flex items-center">
+                <span class="material-icons text-indigo-600 mr-2">arrow_back</span>
+                Back to Login Selection
+            </router-link>
+
             <div class="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 space-y-6">
                 <div class="text-center space-y-2">
                     <router-link :to="{ name: 'LoginSelection' }">

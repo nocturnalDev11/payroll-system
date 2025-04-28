@@ -1344,8 +1344,8 @@ export default {
             const pagibigContribution = this.calculatePagIBIGContribution(employee.salary) || 0;
             const withholdingTax = this.calculateWithholdingTax(employee) || 0;
             const payheadDeductions = this.calculatePayheadDeductions(employee.payheads) || 0;
-
-            return sssContribution + philhealthContribution + pagibigContribution + withholdingTax + payheadDeductions || 0;
+            const lateDeduction = employee.lateDeductions || 0;
+            return sssContribution + philhealthContribution + pagibigContribution + withholdingTax + payheadDeductions + lateDeduction || 0;
         },
 
         calculateNetSalary(employee) {
@@ -1451,12 +1451,10 @@ export default {
             const salaryDate = moment(employee.salaryMonth, 'YYYY-MM-DD').format('MM/DD/YYYY');
             const basicSalary = employee.salary || 0;
 
-            // Fetch and sanitize payheads
             const sanitizedPayheads = Array.isArray(employee.payheads)
                 ? employee.payheads.filter((ph) => ph && typeof ph === 'object' && 'type' in ph && 'name' in ph && 'amount' in ph)
                 : [];
 
-            // Calculate payhead deductions (non-recurring, excluding mandatory taxes)
             const payheadDeductions = sanitizedPayheads
                 .filter((ph) => ph.type === 'Deductions')
                 .reduce((sum, ph) => sum + Number(ph.amount || 0), 0) || 0;
@@ -1465,14 +1463,14 @@ export default {
             const philhealth = this.calculatePhilHealthContribution(basicSalary) || 0;
             const pagibig = this.calculatePagIBIGContribution(basicSalary) || 0;
             const withholdingTax = this.calculateWithholdingTax(employee) || 0;
-            const totalDeductions = sss + philhealth + pagibig + withholdingTax + payheadDeductions;
-            const netSalary = (basicSalary - payheadDeductions) - (sss + philhealth + pagibig + withholdingTax); // Deduct payheads from basic salary first
+            const lateDeduction = employee.lateDeductions || 0;
+            const totalDeductions = sss + philhealth + pagibig + withholdingTax + payheadDeductions + lateDeduction;
+            const netSalary = basicSalary - totalDeductions; // Deduct all deductions including payheads and late deductions
             const paidLeavesDays = employee.paidLeaves?.days || 0;
             const absencesDays = employee.absences?.days || 0;
             const paidLeavesAmount = employee.paidLeaves?.amount || 0;
             const absencesAmount = employee.absences ? -(employee.absences.amount || 0) : 0;
 
-            // Categorize payheads
             const earnings = sanitizedPayheads
                 .filter((ph) => ph.type === 'Earnings')
                 .map((ph) => ({
@@ -1486,6 +1484,13 @@ export default {
                     name: ph.name,
                     amount: this.formatNumber(ph.amount),
                 }));
+
+            if (lateDeduction > 0) {
+                deductions.push({
+                    name: 'Late Deductions',
+                    amount: this.formatNumber(lateDeduction),
+                });
+            }
 
             return {
                 salaryDate,
@@ -1510,7 +1515,7 @@ export default {
                 withholdingTax: this.formatNumber(withholdingTax),
                 payheads: sanitizedPayheads,
                 earnings,
-                deductions, // Only non-recurring deductions from payheads
+                deductions,
                 paidLeavesDays,
                 absencesDays,
                 paidLeavesAmount: this.formatNumber(paidLeavesAmount),
