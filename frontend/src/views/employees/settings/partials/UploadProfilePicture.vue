@@ -130,12 +130,8 @@ const handleImageError = () => {
 
                             <!-- Overlay icon (hidden until hover) -->
                             <div
-                                class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="size-6 text-white" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M15.232 5.232l3.536 3.536M9 11l6-6 3 3-6 6-3 3-3-3 3-3z" />
-                                </svg>
+                                class="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <span class="material-icons text-white size-5">edit</span>
                             </div>
                         </div>
 
@@ -156,7 +152,7 @@ const handleImageError = () => {
                         <div class="flex items-center gap-x-2">
                             <button type="submit"
                                 class="py-2 px-3 inline-flex items-center gap-x-2 text-xs font-medium rounded-lg border border-transparent bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:pointer-events-none"
-                                @click="triggerUpload" :disabled="!selectedFile">
+                                :disabled="!selectedFile">
                                 <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round">
