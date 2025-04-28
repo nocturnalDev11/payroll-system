@@ -16,7 +16,7 @@ const previewUrl = computed(() => {
     if (selectedFile.value) {
         return URL.createObjectURL(selectedFile.value);
     }
-    return profilePic || null; // Use raw URL
+    return profilePic || null;
 });
 
 const triggerUpload = () => fileInput.value.click();
@@ -120,10 +120,25 @@ const handleImageError = () => {
                 }'>
                 <div class="flex flex-wrap items-center gap-3 sm:gap-5">
                     <div class="flex-shrink-0">
-                        <div v-if="previewUrl" class="size-20 flex items-center justify-center overflow-hidden">
-                            <img :src="previewUrl" class="w-full h-full object-cover rounded-full" alt="Profile preview"
-                                @error="handleImageError" />
+                        <div v-if="previewUrl"
+                            class="relative size-20 flex items-center justify-center overflow-hidden rounded-full cursor-pointer group"
+                            @click="triggerUpload">
+
+                            <img :src="previewUrl"
+                                class="w-full h-full object-cover rounded-full transition-opacity duration-300 group-hover:opacity-70"
+                                alt="Profile preview" @error="handleImageError" />
+
+                            <!-- Overlay icon (hidden until hover) -->
+                            <div
+                                class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="size-6 text-white" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15.232 5.232l3.536 3.536M9 11l6-6 3 3-6 6-3 3-3-3 3-3z" />
+                                </svg>
+                            </div>
                         </div>
+
                         <span v-else
                             class="flex justify-center items-center size-20 border-2 border-dotted border-gray-300 text-gray-400 cursor-pointer rounded-full hover:bg-gray-50"
                             @click="triggerUpload">
@@ -151,6 +166,7 @@ const handleImageError = () => {
                                 </svg>
                                 Upload photo
                             </button>
+
                             <button type="button"
                                 class="py-2 px-3 inline-flex items-center gap-x-2 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-gray-500 shadow-2xs hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none"
                                 @click="clearUpload" :disabled="!previewUrl">

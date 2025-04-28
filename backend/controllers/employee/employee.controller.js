@@ -34,7 +34,7 @@ exports.getProfile = asyncHandler(async (req, res) => {
 // Upload profile picture
 exports.uploadProfilePicture = asyncHandler(async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    const employee = await Employee.findById(req.employee_defined);
+    const employee = await Employee.findById(req.employeeId);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
     const fileName = `${req.employeeId}-${Date.now()}${path.extname(req.file.originalname)}`;
