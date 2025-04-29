@@ -24,6 +24,7 @@ const attendanceRecords = ref([]);
 const todayAttendance = ref([]);
 const isTimedIn = ref(false);
 const isLoading = ref(false);
+const errorMessage = ref(''); // New ref to store error messages
 
 const currentPayPeriod = computed(() => {
     const today = new Date();
@@ -40,6 +41,8 @@ const OFFICE_START = '08:00:00';
 const OFFICE_END = '17:00:00';
 const EARLY_TIME_IN_THRESHOLD = '06:00:00';
 const EARLY_TIME_OUT_THRESHOLD = '11:30:00';
+const LUNCH_START = '11:30:00';
+const AFTERNOON_TIME_IN_THRESHOLD = '11:30:00';
 
 const config = {
     minimumWage: 610,
@@ -56,7 +59,6 @@ onMounted(async () => {
         await Promise.all([
             fetchAttendanceRecords(),
             checkTimedInStatus(),
-            fetchSalaryDetails(),
             authStore.userRole === 'admin' ? fetchTodayAttendance() : Promise.resolve(),
         ]);
     }
@@ -74,30 +76,16 @@ async function getEmployeeProfile() {
         });
         if (!response.ok) throw new Error(await response.text());
         const employeeData = await response.json();
-        employee.value = employeeData;
+        // Ensure position and salary are included or provide defaults
+        employee.value = {
+            ...employeeData,
+            position: employeeData.position || 'N/A',
+            salary: employeeData.salary || 0,
+        };
         authStore.setEmployee(employeeData);
     } catch (error) {
         console.error('Error fetching profile:', error);
-    }
-}
-
-async function fetchSalaryDetails() {
-    try {
-        const employeeId = authStore.employee?._id;
-        if (!employeeId) return;
-        const response = await fetch(`${BASE_API_URL}/api/employees/${employeeId}/salary?month=2025-03`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-                'user-role': authStore.userRole,
-                'user-id': employeeId,
-            },
-        });
-        if (!response.ok) throw new Error(await response.text());
-        const salaryData = await response.json();
-        employee.value = { ...employee.value, ...salaryData, salary: 30000 };
-    } catch (error) {
-        console.error('Error fetching salary:', error);
+        errorMessage.value = 'Failed to load employee profile. Please try again later.';
     }
 }
 
@@ -122,6 +110,7 @@ async function fetchAttendanceRecords() {
         }
     } catch (error) {
         console.error('Error fetching attendance:', error);
+        errorMessage.value = 'Failed to load attendance records.';
     }
 }
 
@@ -144,6 +133,7 @@ async function fetchTodayAttendance() {
         }
     } catch (error) {
         console.error('Error fetching today\'s attendance:', error);
+        errorMessage.value = 'Failed to load today\'s attendance.';
     }
 }
 
@@ -153,21 +143,32 @@ async function checkTimedInStatus() {
         (record) => new Date(record.date).toISOString().split('T')[0] === today
     );
     const latestRecord = todayRecords[todayRecords.length - 1];
-    isTimedIn.value = latestRecord &&
-        (latestRecord.morningTimeIn || latestRecord.afternoonTimeIn) &&
-        !(latestRecord.morningTimeOut && latestRecord.afternoonTimeOut);
+    isTimedIn.value =
+        latestRecord &&
+        (
+            (latestRecord.morningTimeIn && !latestRecord.morningTimeOut) ||
+            (latestRecord.afternoonTimeIn && !latestRecord.afternoonTimeOut)
+        );
 }
 
 async function timeIn() {
+    const now = new Date();
+    const currentTime = now.toLocaleTimeString('en-US', { hour12: false });
     if (!canTimeIn()) {
-        alert('Time In is only allowed after 6:00 AM.');
+        const errorMessage =
+            currentTime < EARLY_TIME_IN_THRESHOLD
+                ? 'Morning Time In is only allowed after 6:00 AM.'
+                : currentTime < AFTERNOON_TIME_IN_THRESHOLD
+                    ? 'Afternoon Time In is only allowed after 11:30 AM.'
+                    : 'You are already Timed In or have completed today\'s sessions.';
+        alert(errorMessage);
         return;
     }
     isLoading.value = true;
     try {
         const employeeId = authStore.employee?._id;
         if (!employeeId) throw new Error('No employee ID');
-        const today = new Date().toISOString().split('T')[0]; // '2025-04-29'
+        const today = new Date().toISOString().split('T')[0];
         const response = await fetch(`${BASE_API_URL}/api/attendance/time-in`, {
             method: 'POST',
             headers: {
@@ -180,7 +181,14 @@ async function timeIn() {
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message);
-        attendanceRecords.value.push(data); // Add the new record with the correct date
+        const existingRecordIndex = attendanceRecords.value.findIndex(
+            (record) => new Date(record.date).toISOString().split('T')[0] === today
+        );
+        if (existingRecordIndex !== -1) {
+            attendanceRecords.value[existingRecordIndex] = data;
+        } else {
+            attendanceRecords.value.push(data);
+        }
         await checkTimedInStatus();
         if (authStore.userRole === 'admin') await fetchTodayAttendance();
     } catch (error) {
@@ -192,7 +200,7 @@ async function timeIn() {
 
 async function timeOut() {
     if (!canTimeOut()) {
-        alert('Time Out is only allowed after 11:30 AM.');
+        écrits: alert('Time Out is only allowed after 11:30 AM.');
         return;
     }
     isLoading.value = true;
@@ -225,13 +233,51 @@ async function timeOut() {
 function canTimeIn() {
     const now = new Date();
     const currentTime = now.toLocaleTimeString('en-US', { hour12: false });
-    return currentTime >= EARLY_TIME_IN_THRESHOLD;
+    const today = now.toISOString().split('T')[0];
+    const todayRecords = attendanceRecords.value.filter(
+        (record) => new Date(record.date).toISOString().split('T')[0] === today
+    );
+    const latestRecord = todayRecords[todayRecords.length - 1];
+
+    // Allow morning time-in after 6:00 AM if no morning time-in exists
+    if (!latestRecord || (!latestRecord.morningTimeIn && !latestRecord.morningTimeOut)) {
+        return currentTime >= EARLY_TIME_IN_THRESHOLD;
+    }
+    // Allow afternoon time-in after LUNCH_START if morning session is complete
+    if (
+        (latestRecord?.morningTimeIn && latestRecord?.morningTimeOut) ||
+        (!latestRecord?.morningTimeIn && currentTime >= LUNCH_START)
+    ) {
+        return currentTime >= LUNCH_START && !latestRecord?.afternoonTimeIn;
+    }
+    return false;
 }
 
 function canTimeOut() {
     const now = new Date();
     const currentTime = now.toLocaleTimeString('en-US', { hour12: false });
     return currentTime >= EARLY_TIME_OUT_THRESHOLD;
+}
+
+function getAttendanceStatus(record) {
+    if (!record.morningTimeIn && !record.afternoonTimeIn) return 'Absent';
+
+    const morningIn = record.morningTimeIn || '00:00:00';
+    const afternoonOut = record.afternoonTimeOut || record.morningTimeOut || '00:00:00';
+
+    // Check if employee was late for morning session
+    if (morningIn > OFFICE_START) {
+        return 'Late';
+    }
+    // Check if employee left early
+    if (afternoonOut < OFFICE_END && afternoonOut !== '00:00:00') {
+        return 'Early Departure';
+    }
+    // Check if only half-day was completed
+    if (!record.afternoonTimeIn && record.morningTimeOut) {
+        return 'Half Day';
+    }
+    return 'On Time';
 }
 
 const formatNumber = (value) => {
@@ -259,9 +305,9 @@ const payrollData = computed(() => {
     const overtimePay = calculateOvertimePay(employee.value);
     const supplementary = calculateSupplementaryIncome(employee.value);
 
-    // Use the current pay period (April 2025)
+    // Use the current pay period
     const today = new Date();
-    const currentYearMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`; // '2025-04'
+    const currentYearMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     const payPeriodType = today.getDate() <= 15 ? 'mid-month' : 'end-month';
     const lateDeduction = calculateLateDeductions(
         attendanceRecords.value,
@@ -337,7 +383,6 @@ function getStatusClass(status) {
         'Late': 'text-yellow-600',
         'Absent': 'text-red-600',
         'Early Departure': 'text-orange-600',
-        'Present': 'text-green-600',
         'Half Day': 'text-blue-600',
     }[status] || 'text-gray-600';
 }
@@ -346,6 +391,11 @@ function getStatusClass(status) {
 <template>
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div class="p-4">
+            <!-- Display error message if any -->
+            <div v-if="errorMessage" class="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded">
+                {{ errorMessage }}
+            </div>
+
             <div v-if="employee" class="mb-6 bg-white rounded-xl border-l-4 border-l-green-600 shadow-sm p-6">
                 <div class="flex items-center space-x-4">
                     <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
@@ -354,7 +404,7 @@ function getStatusClass(status) {
                     <div>
                         <h1 class="text-xl font-bold text-gray-800">{{ `${employee.firstName} ${employee.lastName}` }}
                         </h1>
-                        <p class="text-sm text-gray-500">ID: {{ employee.empNo }} | {{ employee.position }}</p>
+                        <p class="text-sm text-gray-500">ID: {{ employee.empNo }} | {{ employee.position || 'N/A' }}</p>
                     </div>
                 </div>
             </div>
@@ -377,6 +427,7 @@ function getStatusClass(status) {
                         </div>
                     </div>
 
+                    <!-- Admin Today's Attendance Table (unchanged) -->
                     <div v-if="authStore.userRole === 'admin'" class="bg-white rounded-xl shadow-sm overflow-hidden">
                         <div class="p-6 border-b border-gray-100">
                             <h2 class="text-lg font-semibold text-gray-800">Today's Attendance</h2>
@@ -417,7 +468,8 @@ function getStatusClass(status) {
                                             {{ formatTime(record.afternoonTimeOut) }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                            <span :class="getStatusClass(record.status)">{{ record.status }}</span>
+                                            <span :class="getStatusClass(getAttendanceStatus(record))">{{
+                                                getAttendanceStatus(record) }}</span>
                                         </td>
                                     </tr>
                                     <tr v-if="!todayAttendance.length">
@@ -429,6 +481,7 @@ function getStatusClass(status) {
                         </div>
                     </div>
 
+                    <!-- My Attendance Records Table -->
                     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                         <div class="p-6 border-b border-gray-100">
                             <h2 class="text-lg font-semibold text-gray-800">My Attendance Records</h2>
@@ -469,7 +522,8 @@ function getStatusClass(status) {
                                             {{ formatTime(record.afternoonTimeOut) }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                            <span :class="getStatusClass(record.status)">{{ record.status }}</span>
+                                            <span :class="getStatusClass(getAttendanceStatus(record))">{{
+                                                getAttendanceStatus(record) }}</span>
                                         </td>
                                     </tr>
                                     <tr v-if="!attendanceRecords.length">
@@ -483,7 +537,7 @@ function getStatusClass(status) {
                 </div>
 
                 <div class="lg:col-span-1">
-                    <div v-if="employee && payrollData"
+                    <div v-if="employee && payrollData && employee.salary"
                         class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                         <div class="text-center border-b-2 border-dashed border-gray-300 pb-4 mb-4">
                             <h2 class="text-xl font-semibold text-gray-800">Payroll</h2>
@@ -537,7 +591,7 @@ function getStatusClass(status) {
                         </div>
                     </div>
                     <div v-else class="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">
-                        Loading payroll data...
+                        {{ errorMessage || 'Payroll data unavailable. Please contact HR.' }}
                     </div>
                 </div>
             </div>

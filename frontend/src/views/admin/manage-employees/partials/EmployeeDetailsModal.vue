@@ -73,7 +73,7 @@ function getTotalDeductions(employee) {
                         <p class="text-base text-indigo-600 font-medium">{{ employee.position }}</p>
                         <p class="text-sm text-gray-500 mt-0.5">Joined {{ new
                             Date(employee.hireDate).toLocaleDateString('en-US', {
-                                year: 'numeric', month: 'long', day: 'numeric'
+                            year: 'numeric', month: 'long', day: 'numeric'
                             }) }}</p>
                     </div>
                 </div>
@@ -91,6 +91,10 @@ function getTotalDeductions(employee) {
                             <div class="flex justify-between py-1 border-b border-gray-100">
                                 <dt class="text-sm text-gray-500">Email</dt>
                                 <dd class="text-sm text-gray-900 font-medium">{{ employee.email }}</dd>
+                            </div>
+                            <div class="flex justify-between py-1 border-b border-gray-100">
+                                <dt class="text-sm text-gray-500">Username</dt>
+                                <dd class="text-sm text-gray-900 font-medium">{{ employee.username }}</dd>
                             </div>
                             <div class="flex justify-between py-1 border-b border-gray-100">
                                 <dt class="text-sm text-gray-500">Contact</dt>
@@ -115,7 +119,7 @@ function getTotalDeductions(employee) {
                                 <dt class="text-xs text-green-600 mb-0.5">Net Salary</dt>
                                 <dd class="text-xl font-bold text-green-700">
                                     ₱{{ getNetSalary(employee).toLocaleString('en-US', {
-                                        minimumFractionDigits: 2, maximumFractionDigits: 2
+                                    minimumFractionDigits: 2, maximumFractionDigits: 2
                                     }) }}</dd>
                             </div>
                             <div class="grid grid-cols-2 gap-3">
@@ -123,16 +127,16 @@ function getTotalDeductions(employee) {
                                     <dt class="text-xs text-gray-500 mb-0.5">Monthly Salary</dt>
                                     <dd class="text-base font-semibold text-gray-900">₱{{
                                         employee.salary?.toLocaleString('en-US', {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
                                         }) }}</dd>
                                 </div>
                                 <div class="p-2 bg-gray-50 rounded-md">
                                     <dt class="text-xs text-gray-500 mb-0.5">Hourly Rate</dt>
                                     <dd class="text-base font-semibold text-gray-900">₱{{
                                         employee.hourlyRate?.toLocaleString('en-US', {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
                                         }) }}</dd>
                                 </div>
                             </div>
@@ -182,7 +186,7 @@ function getTotalDeductions(employee) {
                                         <p class="font-medium text-sm text-gray-900">{{ history.position }}</p>
                                         <p class="text-xs text-gray-500">₱{{ history.salary.toLocaleString('en-US', {
                                             minimumFractionDigits: 2, maximumFractionDigits: 2
-                                        }) }}/month</p>
+                                            }) }}/month</p>
                                     </div>
                                     <div class="text-right">
                                         <p class="text-xs text-gray-500">{{ new
@@ -190,7 +194,7 @@ function getTotalDeductions(employee) {
                                         <p class="text-xs"
                                             :class="history.endDate ? 'text-gray-500' : 'text-purple-600 font-medium'">
                                             {{ history.endDate ? new Date(history.endDate).toLocaleDateString() :
-                                                'Current' }}
+                                            'Current' }}
                                         </p>
                                     </div>
                                 </div>

@@ -11,58 +11,84 @@ exports.timeIn = asyncHandler(async (req, res) => {
     const currentDate = new Date();
     const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
 
-    const EARLY_THRESHOLD = "07:00";
+    const MORNING_EARLY_THRESHOLD = "06:00";
+    const AFTERNOON_THRESHOLD = "11:30";
     const OFFICE_START = "08:00";
     const LUNCH_START = "11:30";
     const LUNCH_END = "12:59";
 
-    if (currentTime < EARLY_THRESHOLD) {
-        return res.status(400).json({ message: 'Time In is not allowed before 7:00 AM' });
+    // Validate time-in based on morning or afternoon
+    if (currentTime < MORNING_EARLY_THRESHOLD) {
+        return res.status(400).json({ message: 'Morning Time In is not allowed before 6:00 AM' });
+    }
+    if (currentTime >= AFTERNOON_THRESHOLD && currentTime <= LUNCH_END) {
+        return res.status(400).json({ message: 'Afternoon Time In is not allowed during lunch break (11:30 AM - 12:59 PM)' });
     }
 
     const todayStart = new Date(currentDate.setHours(0, 0, 0, 0));
     const todayEnd = new Date(currentDate.setHours(23, 59, 59, 999));
-    const openSession = await Attendance.findOne({
+    const existingRecord = await Attendance.findOne({
         employeeId,
         date: { $gte: todayStart, $lte: todayEnd },
-        $or: [
-            { morningTimeOut: null },
-            { afternoonTimeOut: null },
-        ],
     });
 
-    if (openSession) {
-        return res.status(400).json({ message: 'You are already Timed In. Please Time Out first.' });
+    // Check if already timed in for the session
+    if (existingRecord) {
+        if (currentTime <= LUNCH_END && existingRecord.morningTimeIn && !existingRecord.morningTimeOut) {
+            return res.status(400).json({ message: 'You are already Timed In for the morning session. Please Time Out first.' });
+        }
+        if (currentTime > LUNCH_END && existingRecord.afternoonTimeIn && !existingRecord.afternoonTimeOut) {
+            return res.status(400).json({ message: 'You are already Timed In for the afternoon session. Please Time Out first.' });
+        }
     }
 
     let status = "On Time";
     let lateHours = 0;
     let lateDeduction = 0;
 
-    if (currentTime > OFFICE_START && currentTime <= LUNCH_START) {
-        status = "Late";
-        const [hours, minutes] = currentTime.split(':').map(Number);
-        const [startHours, startMinutes] = OFFICE_START.split(':').map(Number);
-        const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
-        lateHours = Math.ceil(lateMinutes / 60);
-        lateDeduction = lateHours * 37.5;
+    // Calculate status and deductions
+    if (currentTime <= LUNCH_START) {
+        // Morning time-in
+        if (currentTime > OFFICE_START) {
+            status = "Late";
+            const [hours, minutes] = currentTime.split(':').map(Number);
+            const [startHours, startMinutes] = OFFICE_START.split(':').map(Number);
+            const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
+            lateHours = Math.ceil(lateMinutes / 60);
+            lateDeduction = lateHours * 37.5;
+        }
     } else if (currentTime > LUNCH_END) {
-        status = "Late";
+        // Afternoon time-in
+        status = "Half Day";
         lateHours = 4;
         lateDeduction = lateHours * 37.5;
+        if (existingRecord?.morningTimeIn) {
+            status = "Late";
+        }
     }
 
-    const attendance = new Attendance({
-        employeeId,
-        date: currentDate,
-        morningTimeIn: currentTime <= LUNCH_START ? currentTime : null,
-        afternoonTimeIn: currentTime > LUNCH_END ? currentTime : null,
-        status,
-        lateHours,
-        lateDeduction,
-    });
+    let attendance;
+    if (existingRecord) {
+        // Update existing record for afternoon time-in
+        existingRecord.afternoonTimeIn = currentTime > LUNCH_END ? currentTime : existingRecord.afternoonTimeIn;
+        existingRecord.status = status;
+        existingRecord.lateHours = lateHours;
+        existingRecord.lateDeduction = lateDeduction;
+        attendance = await existingRecord.save();
+    } else {
+        // Create new record
+        attendance = new Attendance({
+            employeeId,
+            date: currentDate,
+            morningTimeIn: currentTime <= LUNCH_START ? currentTime : null,
+            afternoonTimeIn: currentTime > LUNCH_END ? currentTime : null,
+            status,
+            lateHours,
+            lateDeduction,
+        });
+        await attendance.save();
+    }
 
-    await attendance.save();
     res.status(200).json(attendance);
 });
 
