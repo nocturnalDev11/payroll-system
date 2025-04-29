@@ -16,7 +16,7 @@ const previewUrl = computed(() => {
     if (selectedFile.value) {
         return URL.createObjectURL(selectedFile.value);
     }
-    return profilePic || null; // Use raw URL
+    return profilePic || null;
 });
 
 const triggerUpload = () => fileInput.value.click();
@@ -49,7 +49,7 @@ const uploadFile = async () => {
         const headers = {
             'Authorization': `Bearer ${authStore.accessToken}`,
             'user-role': authStore.userRole || 'employee',
-            'user-id': authStore.employee?._id?.toString() || '', // Use _id
+            'user-id': authStore.employee?._id?.toString() || '',
         };
         const response = await fetch(`${BASE_API_URL}/api/employees/profile-picture`, {
             method: 'POST',
@@ -65,17 +65,26 @@ const uploadFile = async () => {
         authStore.saveEmployee(authStore.employee);
         selectedFile.value = null;
         error.value = null;
-        emit('employeeUpdated', authStore.employee);
+        emit('employeeUpdated', {
+            employee: authStore.employee,
+            status: 'success',
+            message: 'Profile picture uploaded successfully'
+        });
     } catch (err) {
         error.value = `Failed to upload profile picture: ${err.message}`;
         selectedFile.value = null;
         console.error('Upload error details:', err);
+        emit('employeeUpdated', {
+            employee: authStore.employee,
+            status: 'error',
+            message: `Failed to upload profile picture: ${err.message}`
+        });
     }
 };
 
 const clearUpload = async () => {
     try {
-        const response = await fetch(`${BASE_API_URL}/api/employees/update/${authStore.employee._id}`, { // Use _id
+        const response = await fetch(`${BASE_API_URL}/api/employees/update/${authStore.employee._id}`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${authStore.accessToken}`,
@@ -92,10 +101,19 @@ const clearUpload = async () => {
         selectedFile.value = null;
         fileInput.value.value = '';
         error.value = null;
-        emit('employeeUpdated', authStore.employee);
+        emit('employeeUpdated', {
+            employee: authStore.employee,
+            status: 'success',
+            message: 'Profile picture removed successfully'
+        });
     } catch (err) {
         error.value = `Failed to remove profile picture: ${err.message}`;
         console.error('Clear error details:', err);
+        emit('employeeUpdated', {
+            employee: authStore.employee,
+            status: 'error',
+            message: `Failed to remove profile picture: ${err.message}`
+        });
     }
 };
 
@@ -120,9 +138,16 @@ const handleImageError = () => {
                 }'>
                 <div class="flex flex-wrap items-center gap-3 sm:gap-5">
                     <div class="flex-shrink-0">
-                        <div v-if="previewUrl" class="size-20 flex items-center justify-center overflow-hidden">
-                            <img :src="previewUrl" class="w-full h-full object-cover rounded-full" alt="Profile preview"
-                                @error="handleImageError" />
+                        <div v-if="previewUrl"
+                            class="relative size-20 flex items-center justify-center overflow-hidden rounded-full cursor-pointer group"
+                            @click="triggerUpload">
+                            <img :src="previewUrl"
+                                class="w-full h-full object-cover rounded-full transition-opacity duration-300 group-hover:opacity-70"
+                                alt="Profile preview" @error="handleImageError" />
+                            <div
+                                class="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <span class="material-icons text-white size-5">edit</span>
+                            </div>
                         </div>
                         <span v-else
                             class="flex justify-center items-center size-20 border-2 border-dotted border-gray-300 text-gray-400 cursor-pointer rounded-full hover:bg-gray-50"
@@ -136,12 +161,11 @@ const handleImageError = () => {
                             </svg>
                         </span>
                     </div>
-
                     <div class="grow">
                         <div class="flex items-center gap-x-2">
                             <button type="submit"
                                 class="py-2 px-3 inline-flex items-center gap-x-2 text-xs font-medium rounded-lg border border-transparent bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:pointer-events-none"
-                                @click="triggerUpload" :disabled="!selectedFile">
+                                :disabled="!selectedFile">
                                 <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round">
