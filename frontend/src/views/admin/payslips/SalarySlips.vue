@@ -842,6 +842,7 @@ export default {
             const token = this.authStore.accessToken || localStorage.getItem('token');
             if (!token) throw new Error('No authentication token available');
 
+            // Fetch attendance records for the specific pay period
             let attendanceRecords = [];
             try {
                 const response = await axios.get(`${BASE_API_URL}/api/attendance/${employee.id}`, {
@@ -860,13 +861,12 @@ export default {
                 ...employee,
                 position: activePosition.position,
                 salary: activePosition.salary,
-                lateDeductions: calculateLateDeductions(attendanceRecords, payslip.salaryMonth, payslip.paydayType)
             };
             const key = `${payslip.salaryMonth}-${payslip.paydayType}`;
             this.payslipGenerationStatus[key] = { generating: true };
 
             try {
-                const payslipData = this.createPayslipData(updatedEmployee);
+                const payslipData = this.createPayslipData(updatedEmployee, attendanceRecords, payslip.salaryMonth, payslip.paydayType);
                 const pdfBlob = await this.generatePdf(payslipData);
                 const base64Data = await this.blobToBase64(pdfBlob);
                 const url = URL.createObjectURL(pdfBlob);
@@ -993,6 +993,25 @@ export default {
                     console.error('Invalid activePosition:', activePosition);
                     return;
                 }
+
+                const token = this.authStore.accessToken || localStorage.getItem('token');
+                if (!token) throw new Error('No authentication token available. Please log in.');
+
+                // Fetch attendance records for the specific pay period
+                let attendanceRecords = [];
+                try {
+                    const response = await axios.get(`${BASE_API_URL}/api/attendance/${employee.id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'user-role': 'admin',
+                        },
+                    });
+                    attendanceRecords = response.data || [];
+                } catch (error) {
+                    console.error('Error fetching attendance:', error);
+                    this.showErrorMessage('Failed to load attendance data.');
+                }
+
                 const updatedEmployee = { ...employee, position: activePosition.position, salary: activePosition.salary };
                 const expectedPaydays = this.getExpectedPayday(employee.hireDate, salaryMonth);
 
@@ -1008,7 +1027,8 @@ export default {
                     expectedPaydays,
                 };
 
-                const pdfPayslipData = this.createPayslipData(payslipData.employee);
+                // Pass all required parameters to createPayslipData
+                const pdfPayslipData = this.createPayslipData(payslipData.employee, attendanceRecords, payslipData.salaryMonth, payslipData.paydayType);
                 const pdfBlob = await this.generatePdf(pdfPayslipData);
                 const url = URL.createObjectURL(pdfBlob);
                 const base64Data = await this.blobToBase64(pdfBlob);
@@ -1032,11 +1052,6 @@ export default {
                     throw new Error('Payload is missing required fields or contains invalid data');
                 }
 
-                const token = this.authStore.accessToken || localStorage.getItem('token');
-                if (!token) {
-                    throw new Error('No authentication token available. Please log in.');
-                }
-
                 const response = await axios.post(`${BASE_API_URL}/api/payslips/generate`, payload, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -1046,7 +1061,7 @@ export default {
 
                 if (response.status === 201 || response.status === 200) {
                     payslipData.payslipDataUrl = url;
-                    payslipData.totalSalary = calculateNetSalary(payslipData.employee, this.config, [], salaryMonth, paydayType);
+                    payslipData.totalSalary = calculateNetSalary(payslipData.employee, this.config, attendanceRecords, salaryMonth, paydayType);
                     let employeeHistory = this.allPayslipHistories[employee.id] || [];
                     const existingPayslipIndex = employeeHistory.findIndex(p =>
                         p.salaryMonth === payslipData.salaryMonth && p.paydayType === payslipData.paydayType
@@ -1222,6 +1237,9 @@ export default {
                     format: [216, 279]
                 });
 
+                const token = this.authStore.accessToken || localStorage.getItem('token');
+                if (!token) throw new Error('No authentication token available');
+
                 for (let i = 0; i < this.selectedEmployeesForPrint.length; i++) {
                     const empId = this.selectedEmployeesForPrint[i];
                     const empData = this.employeesWithPayslips.find(e => e.id === empId);
@@ -1230,6 +1248,22 @@ export default {
 
                     const payDate = moment(payslip.payDate, 'YYYY-MM-DD');
                     const activePosition = this.getActivePositionForDate(employee.positionHistory, payDate);
+
+                    // Fetch attendance records for the specific pay period
+                    let attendanceRecords = [];
+                    try {
+                        const response = await axios.get(`${BASE_API_URL}/api/attendance/${employee.id}`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'user-role': 'admin',
+                            },
+                        });
+                        attendanceRecords = response.data || [];
+                    } catch (error) {
+                        console.error('Error fetching attendance for printing:', error);
+                        this.showErrorMessage('Failed to load attendance data.');
+                    }
+
                     const updatedEmployee = {
                         ...employee,
                         position: activePosition.position,
@@ -1238,7 +1272,7 @@ export default {
                     };
 
                     const payslipData = {
-                        ...this.createPayslipData(updatedEmployee),
+                        ...this.createPayslipData(updatedEmployee, attendanceRecords, payslip.salaryMonth, payslip.paydayType),
                         salaryDate: payDate.format('MM/DD/YYYY')
                     };
 
@@ -1319,7 +1353,7 @@ export default {
                 endMonthPayday: endMonth.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
             };
         },
-        createPayslipData(employee) {
+        createPayslipData(employee, attendanceRecords, salaryMonth, paydayType) {
             const salaryDate = moment(employee.salaryMonth, 'YYYY-MM-DD').format('MM/DD/YYYY');
             const basicSalary = employee.salary || 0;
 
@@ -1327,13 +1361,25 @@ export default {
                 ? employee.payheads.filter((ph) => ph && typeof ph === 'object' && 'type' in ph && 'name' in ph && 'amount' in ph)
                 : [];
 
-            const payheadDeductions = calculatePayheadDeductions(sanitizedPayheads);
+            // Filter attendance records based on pay period
+            const [year, month] = salaryMonth.split('-');
+            const lastDay = new Date(year, month, 0).getDate();
+            const startDate = paydayType === 'mid-month' ? `${year}-${month}-01` : `${year}-${month}-16`;
+            const endDate = paydayType === 'mid-month' ? `${year}-${month}-15` : `${year}-${month}-${lastDay}`;
 
+            const filteredAttendanceRecords = attendanceRecords.filter(record => {
+                const recordDate = moment(record.date).format('YYYY-MM-DD');
+                return moment(recordDate).isSameOrAfter(startDate, 'day') && moment(recordDate).isSameOrBefore(endDate, 'day');
+            });
+
+            // Calculate late deductions for the specific pay period
+            const lateDeduction = calculateLateDeductions(filteredAttendanceRecords, salaryMonth, paydayType);
+
+            const payheadDeductions = calculatePayheadDeductions(sanitizedPayheads);
             const sss = calculateSSSContribution(basicSalary);
             const philhealth = calculatePhilHealthContribution(basicSalary);
             const pagibig = calculatePagIBIGContribution(basicSalary);
             const withholdingTax = calculateWithholdingTax(employee, this.config);
-            const lateDeduction = employee.lateDeductions || 0;
             const totalDeductions = sss + philhealth + pagibig + withholdingTax + payheadDeductions + lateDeduction;
             const netSalary = basicSalary - totalDeductions;
 
