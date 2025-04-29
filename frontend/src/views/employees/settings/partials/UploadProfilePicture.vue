@@ -46,7 +46,7 @@ const handleFileChange = (event) => {
 
 const uploadFile = async () => {
     if (!selectedFile.value) {
-        triggerUpload(); // If no file selected, clicking upload triggers file input
+        triggerUpload();
         return;
     }
     const formData = new FormData();
@@ -137,8 +137,9 @@ const handleImageError = () => {
             <h2 class="text-lg font-medium text-gray-900">Profile Picture</h2>
             <p class="mt-1 text-sm text-gray-600">Update your profile picture.</p>
         </header>
+
         <form @submit.prevent="uploadFile">
-            <div class="hs-file-upload">
+            <div>
                 <div class="flex flex-wrap items-center gap-3 sm:gap-5">
                     <div class="flex-shrink-0">
                         <div v-if="previewUrl"
