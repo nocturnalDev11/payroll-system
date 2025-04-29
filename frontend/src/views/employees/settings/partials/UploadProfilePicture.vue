@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth.store.js';
 import { BASE_API_URL } from '@/utils/constants.js';
+import Modal from '@/components/Modal.vue';
 
 defineProps({ employee: { type: Object, default: () => ({}) } });
 const emit = defineEmits(['employeeUpdated']);
@@ -10,6 +11,11 @@ const authStore = useAuthStore();
 const fileInput = ref(null);
 const selectedFile = ref(null);
 const error = ref(null);
+const showDeleteModal = ref(false);
+
+const confirmDelete = () => {
+    showDeleteModal.value = true;
+};
 
 const previewUrl = computed(() => {
     const profilePic = authStore.employee?.profilePicture;
@@ -83,8 +89,7 @@ const uploadFile = async () => {
 };
 
 const clearUpload = async () => {
-    const confirmed = window.confirm('Are you sure you want to delete your profile picture?');
-    if (!confirmed) return;
+    showDeleteModal.value = false;
 
     try {
         const response = await fetch(`${BASE_API_URL}/api/employees/update/${authStore.employee._id}`, {
@@ -162,7 +167,7 @@ const handleImageError = () => {
                     <div class="grow">
                         <div class="flex items-center gap-x-2">
                             <button type="submit"
-                                class="py-2 px-3 inline-flex items-center gap-x-2 text-xs font-medium rounded-lg border border-transparent bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:pointer-events-none">
+                                class="py-2 px-3 inline-flex items-center gap-x-2 text-xs font-medium rounded-lg border border-transparent bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:pointer-events-none cursor-pointer">
                                 <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round">
@@ -172,9 +177,11 @@ const handleImageError = () => {
                                 </svg>
                                 Upload photo
                             </button>
+
+                            <!-- Delete button -->
                             <button type="button"
-                                class="py-2 px-3 inline-flex items-center gap-x-2 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-gray-500 shadow-2xs hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none"
-                                @click="clearUpload" :disabled="!previewUrl">
+                                class="py-2 px-3 inline-flex items-center gap-x-2 text-xs font-semibold rounded-lg border border-gray-200 bg-white text-gray-500 shadow-2xs hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                                @click="confirmDelete" :disabled="!previewUrl">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                     stroke-linejoin="round"
@@ -187,6 +194,7 @@ const handleImageError = () => {
                                     <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
                                 </svg>
                             </button>
+
                             <input ref="fileInput" type="file" class="hidden" accept="image/*"
                                 @change="handleFileChange" />
                         </div>
@@ -194,6 +202,24 @@ const handleImageError = () => {
                     </div>
                 </div>
             </div>
+
+            <Modal :show="showDeleteModal" @close="showDeleteModal = false">
+                <div class="p-6">
+                    <h2 class="text-lg font-semibold text-gray-900">Delete Profile Picture</h2>
+                    <p class="mt-2 text-sm text-gray-600">Are you sure you want to remove your profile picture? This
+                        action cannot be undone.</p>
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button @click="showDeleteModal = false"
+                            class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 cursor-pointer">
+                            Cancel
+                        </button>
+                        <button @click="clearUpload"
+                            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer">
+                            Yes, Delete
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </form>
     </div>
 </template>
