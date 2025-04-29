@@ -69,33 +69,50 @@ export const calculateNonTaxableIncome = (employee, config) => {
 
     return {
         totalNonTaxable:
-        basicSalaryMWE +
-        holidayPayMWE +
-        overtimePayMWE +
-        nightShiftDiffMWE +
-        hazardPayMWE +
-        thirteenthMonthExempt +
-        deMinimis +
-        sssContribution +
-        philhealthContribution +
-        pagibigContribution,
+            basicSalaryMWE +
+            holidayPayMWE +
+            overtimePayMWE +
+            nightShiftDiffMWE +
+            hazardPayMWE +
+            thirteenthMonthExempt +
+            deMinimis +
+            sssContribution +
+            philhealthContribution +
+            pagibigContribution,
     };
 };
 
-export const calculateTotalDeductions = (employee, config) => {
+export const calculateLateDeductions = (attendanceRecords, salaryMonth, paydayType) => {
+    const [year, month] = salaryMonth.split('-').map(Number);
+    const startDate = moment([year, month - 1]).startOf('month');
+    const endDate = paydayType === 'mid-month'
+        ? moment([year, month - 1, 15]).endOf('day')
+        : moment([year, month - 1]).endOf('month');
+
+    const relevantRecords = attendanceRecords.filter(record => {
+        const recordDate = moment(record.date);
+        return recordDate.isSameOrAfter(startDate) && recordDate.isSameOrBefore(endDate);
+    });
+
+    return relevantRecords.reduce((sum, record) => sum + toNumber(record.lateDeduction), 0);
+};
+
+export const calculateTotalDeductions = (employee, config, attendanceRecords, salaryMonth, paydayType) => {
     const sssContribution = calculateSSSContribution(employee.salary);
     const philhealthContribution = calculatePhilHealthContribution(employee.salary);
     const pagibigContribution = calculatePagIBIGContribution(employee.salary);
     const withholdingTax = calculateWithholdingTax(employee, config);
     const payheadDeductions = calculatePayheadDeductions(employee.payheads);
-    const lateDeductions = toNumber(employee.lateDeductions); 
+    const lateDeductions = attendanceRecords
+        ? calculateLateDeductions(attendanceRecords, salaryMonth, paydayType)
+        : toNumber(employee.lateDeductions);
 
     return sssContribution + philhealthContribution + pagibigContribution + withholdingTax + payheadDeductions + lateDeductions;
 };
 
-export const calculateNetSalary = (employee, config) => {
+export const calculateNetSalary = (employee, config, attendanceRecords, salaryMonth, paydayType) => {
     const totalEarnings = calculateTotalEarnings(employee, config);
-    const totalDeductions = calculateTotalDeductions(employee, config);
+    const totalDeductions = calculateTotalDeductions(employee, config, attendanceRecords, salaryMonth, paydayType);
     return totalEarnings - totalDeductions;
 };
 
@@ -139,18 +156,18 @@ export const calculatePhilHealthContribution = (salary) => {
 };
 
 export const calculatePagIBIGContribution = (salary) => {
-    const rate = 0.02;
-    const cappedSalary = Math.min(toNumber(salary), 10000);
-    return Math.round(cappedSalary * rate);
+    const cappedSalary = Math.min(toNumber(salary), 5000); // Cap salary at 5,000 for Pag-IBIG
+    const contribution = cappedSalary * 0.02; // 2% rate
+    return Math.min(contribution, 100); // Cap contribution at 100
 };
 
 export const calculateWithholdingTax = (employee, config) => {
     const nonTaxable = calculateNonTaxableIncome(employee, config).totalNonTaxable;
     const taxableIncome = calculateTotalEarnings(employee, config) - nonTaxable;
     if (taxableIncome <= 20833) return 0;
-    if (taxableIncome <= 33333) return Math.round((taxableIncome - 20833) * 0.15);
-    if (taxableIncome <= 66667) return Math.round(1875 + (taxableIncome - 33333) * 0.20);
-    if (taxableIncome <= 166667) return Math.round(13541.80 + (taxableIncome - 66667) * 0.25);
-    if (taxableIncome <= 666667) return Math.round(90841.80 + (taxableIncome - 166667) * 0.30);
-    return Math.round(408841.80 + (taxableIncome - 666667) * 0.35);
+    if (taxableIncome <= 33333) return (taxableIncome - 20833) * 0.15; // Keep as decimal for precision
+    if (taxableIncome <= 66667) return 1875 + (taxableIncome - 33333) * 0.20;
+    if (taxableIncome <= 166667) return 13541.80 + (taxableIncome - 66667) * 0.25;
+    if (taxableIncome <= 666667) return 90841.80 + (taxableIncome - 166667) * 0.30;
+    return 408841.80 + (taxableIncome - 666667) * 0.35;
 };
