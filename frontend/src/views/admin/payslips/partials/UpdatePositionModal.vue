@@ -47,14 +47,5 @@ export default {
         newPosition: String,
         isLoading: Boolean
     },
-    emits: ['update:selectedEmployeeForUpdate', 'update:newPosition', 'close', 'update-position'],
-    methods: {
-        get کرونا
-
-    getPositionName(positionName) {
-            const position = this.positions.find(p => p.name.trim().toLowerCase() === positionName?.trim().toLowerCase());
-            return position ? position.name : positionName || 'Unknown Position';
-        }
-    }
 };
 </script>
