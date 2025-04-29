@@ -8,15 +8,12 @@ import {
     calculatePayheadEarnings,
     calculatePayheadDeductions,
     calculateSupplementaryIncome,
-    calculateNonTaxableIncome,
-    calculateTotalDeductions,
-    calculateNetSalary,
-    calculateHolidayPay,
     calculateOvertimePay,
     calculateSSSContribution,
     calculatePhilHealthContribution,
     calculatePagIBIGContribution,
     calculateWithholdingTax,
+    calculateLateDeductions,
 } from '@/utils/calculations.js';
 
 const authStore = useAuthStore();
@@ -33,33 +30,20 @@ const currentPayPeriod = computed(() => {
     const month = today.getMonth();
     const year = today.getFullYear();
     const day = today.getDate();
-
-    const monthNames = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-
-    // Determine if it's the first half (1st-15th) or second half (16th-end) of the month
-    if (day <= 15) {
-        return `${monthNames[month]} 01 - ${monthNames[month]} 15, ${year}`;
-    } else {
-        const lastDay = new Date(year, month + 1, 0).getDate();
-        return `${monthNames[month]} 16 - ${monthNames[month]} ${lastDay}, ${year}`;
-    }
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return day <= 15
+        ? `${monthNames[month]} 01 - ${monthNames[month]} 15, ${year}`
+        : `${monthNames[month]} 16 - ${monthNames[month]} ${new Date(year, month + 1, 0).getDate()}, ${year}`;
 });
 
-// Time constants
 const OFFICE_START = '08:00:00';
 const OFFICE_END = '17:00:00';
 const EARLY_TIME_IN_THRESHOLD = '06:00:00';
 const EARLY_TIME_OUT_THRESHOLD = '11:30:00';
 
-// Configuration defaults
 const config = {
     minimumWage: 610,
     deMinimisLimit: 10000,
-    regularHolidays: ['03/31/2025'],
-    specialNonWorkingDays: [],
 };
 
 onMounted(async () => {
@@ -67,7 +51,6 @@ onMounted(async () => {
         router.push('/employee/login');
         return;
     }
-
     await getEmployeeProfile();
     if (authStore.employee?._id) {
         await Promise.all([
@@ -102,21 +85,17 @@ async function fetchSalaryDetails() {
     try {
         const employeeId = authStore.employee?._id;
         if (!employeeId) return;
-
-        const response = await fetch(
-            `${BASE_API_URL}/api/employees/${employeeId}/salary?month=2025-03`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'user-role': authStore.userRole,
-                    'user-id': employeeId,
-                },
-            }
-        );
+        const response = await fetch(`${BASE_API_URL}/api/employees/${employeeId}/salary?month=2025-03`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'user-role': authStore.userRole,
+                'user-id': employeeId,
+            },
+        });
         if (!response.ok) throw new Error(await response.text());
         const salaryData = await response.json();
-        employee.value = { ...employee.value, ...salaryData };
+        employee.value = { ...employee.value, ...salaryData, salary: 30000 };
     } catch (error) {
         console.error('Error fetching salary:', error);
     }
@@ -126,7 +105,6 @@ async function fetchAttendanceRecords() {
     try {
         const employeeId = authStore.employee?._id;
         if (!employeeId) return;
-
         const response = await fetch(`${BASE_API_URL}/api/attendance/${employeeId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -175,8 +153,7 @@ async function checkTimedInStatus() {
         (record) => new Date(record.date).toISOString().split('T')[0] === today
     );
     const latestRecord = todayRecords[todayRecords.length - 1];
-    isTimedIn.value =
-        latestRecord &&
+    isTimedIn.value = latestRecord &&
         (latestRecord.morningTimeIn || latestRecord.afternoonTimeIn) &&
         !(latestRecord.morningTimeOut && latestRecord.afternoonTimeOut);
 }
@@ -190,7 +167,7 @@ async function timeIn() {
     try {
         const employeeId = authStore.employee?._id;
         if (!employeeId) throw new Error('No employee ID');
-
+        const today = new Date().toISOString().split('T')[0]; // '2025-04-29'
         const response = await fetch(`${BASE_API_URL}/api/attendance/time-in`, {
             method: 'POST',
             headers: {
@@ -199,12 +176,11 @@ async function timeIn() {
                 'user-role': authStore.userRole,
                 'user-id': employeeId,
             },
-            body: JSON.stringify({ employeeId }),
+            body: JSON.stringify({ employeeId, date: today }),
         });
-
         const data = await response.json();
         if (!response.ok) throw new Error(data.message);
-        attendanceRecords.value.push(data);
+        attendanceRecords.value.push(data); // Add the new record with the correct date
         await checkTimedInStatus();
         if (authStore.userRole === 'admin') await fetchTodayAttendance();
     } catch (error) {
@@ -223,7 +199,6 @@ async function timeOut() {
     try {
         const employeeId = authStore.employee?._id;
         if (!employeeId) throw new Error('No employee ID');
-
         const response = await fetch(`${BASE_API_URL}/api/attendance/time-out`, {
             method: 'POST',
             headers: {
@@ -234,7 +209,6 @@ async function timeOut() {
             },
             body: JSON.stringify({ employeeId }),
         });
-
         const data = await response.json();
         if (!response.ok) throw new Error(data.message);
         const index = attendanceRecords.value.findIndex((r) => r._id === data._id);
@@ -267,58 +241,74 @@ const formatNumber = (value) => {
     });
 };
 
-// Reusable Payroll Computations
-const earningsBreakdown = computed(() => {
-    if (!employee.value) return [];
-    const monthlySalary = Number(employee.value.salary || 0);
+// Revised Payroll Computations
+const payrollData = computed(() => {
+    if (!employee.value) return null;
+    const basicSalary = Number(employee.value.salary || 0);
+    const sanitizedPayheads = Array.isArray(employee.value.payheads)
+        ? employee.value.payheads.filter((ph) => ph && typeof ph === 'object' && 'type' in ph && 'name' in ph && 'amount' in ph)
+        : [];
+    const payheadEarnings = sanitizedPayheads
+        .filter((ph) => ph.type === 'Earnings')
+        .map((ph) => ({ name: ph.name, amount: formatNumber(ph.amount) }));
+    const payheadDeductions = sanitizedPayheads
+        .filter((ph) => ph.type === 'Deductions')
+        .map((ph) => ({ name: ph.name, amount: formatNumber(ph.amount) }));
     const travelExpenses = Number(employee.value.earnings?.travelExpenses || 0);
     const otherEarnings = Number(employee.value.earnings?.otherEarnings || 0);
-    const holidayPay = calculateHolidayPay(employee.value, config);
     const overtimePay = calculateOvertimePay(employee.value);
-    const payheadEarnings = calculatePayheadEarnings(employee.value.payheads);
     const supplementary = calculateSupplementaryIncome(employee.value);
 
-    return [
-        { name: 'Basic Salary', amount: formatNumber(monthlySalary) },
-        travelExpenses > 0 && { name: 'Travel Expenses', amount: formatNumber(travelExpenses) },
-        otherEarnings > 0 && { name: 'Other Earnings', amount: formatNumber(otherEarnings) },
-        holidayPay > 0 && { name: 'Holiday Pay', amount: formatNumber(holidayPay) },
-        overtimePay > 0 && { name: 'Overtime Pay', amount: formatNumber(overtimePay) },
-        payheadEarnings > 0 && { name: 'Payhead Earnings', amount: formatNumber(payheadEarnings) },
-        supplementary.taxable > 0 && { name: 'Supplementary Income', amount: formatNumber(supplementary.taxable) },
-    ].filter(Boolean);
-});
+    // Use the current pay period (April 2025)
+    const today = new Date();
+    const currentYearMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`; // '2025-04'
+    const payPeriodType = today.getDate() <= 15 ? 'mid-month' : 'end-month';
+    const lateDeduction = calculateLateDeductions(
+        attendanceRecords.value,
+        currentYearMonth,
+        payPeriodType
+    );
 
-const deductionsBreakdown = computed(() => {
-    if (!employee.value) return [];
-    const sssContribution = calculateSSSContribution(employee.value.salary);
-    const philhealthContribution = calculatePhilHealthContribution(employee.value.salary);
-    const pagibigContribution = calculatePagIBIGContribution(employee.value.salary);
+    const sss = calculateSSSContribution(basicSalary);
+    const philhealth = calculatePhilHealthContribution(basicSalary);
+    const pagibig = calculatePagIBIGContribution(basicSalary);
     const withholdingTax = calculateWithholdingTax(employee.value, config);
-    const payheadDeductions = calculatePayheadDeductions(employee.value.payheads);
 
-    return [
-        sssContribution > 0 && { name: 'SSS Contribution', amount: formatNumber(sssContribution) },
-        philhealthContribution > 0 && { name: 'PhilHealth Contribution', amount: formatNumber(philhealthContribution) },
-        pagibigContribution > 0 && { name: 'Pag-IBIG Contribution', amount: formatNumber(pagibigContribution) },
-        withholdingTax > 0 && { name: 'Withholding Tax', amount: formatNumber(withholdingTax) },
-        payheadDeductions > 0 && { name: 'Payhead Deductions', amount: formatNumber(payheadDeductions) },
-    ].filter(Boolean);
-});
+    const earnings = [
+        { name: 'Basic Salary', amount: formatNumber(basicSalary) },
+        ...(travelExpenses > 0 ? [{ name: 'Travel Expenses', amount: formatNumber(travelExpenses) }] : []),
+        ...(otherEarnings > 0 ? [{ name: 'Other Earnings', amount: formatNumber(otherEarnings) }] : []),
+        ...(overtimePay > 0 ? [{ name: 'Overtime Pay', amount: formatNumber(overtimePay) }] : []),
+        ...(payheadEarnings.length > 0 ? payheadEarnings : []),
+        ...(supplementary.taxable > 0 ? [{ name: 'Supplementary Income', amount: formatNumber(supplementary.taxable) }] : []),
+    ];
 
-const totalEarnings = computed(() => {
-    if (!employee.value) return '0.00';
-    return formatNumber(calculateTotalEarnings(employee.value, config));
-});
+    const deductions = [
+        ...(sss > 0 ? [{ name: 'SSS Contribution', amount: formatNumber(sss) }] : []),
+        ...(philhealth > 0 ? [{ name: 'PhilHealth Contribution', amount: formatNumber(philhealth) }] : []),
+        ...(pagibig > 0 ? [{ name: 'Pag-IBIG Contribution', amount: formatNumber(pagibig) }] : []),
+        ...(withholdingTax > 0 ? [{ name: 'Withholding Tax', amount: formatNumber(withholdingTax) }] : []),
+    ];
 
-const totalDeductions = computed(() => {
-    if (!employee.value) return '0.00';
-    return formatNumber(calculateTotalDeductions(employee.value, config));
-});
+    const otherDeductions = [
+        ...(payheadDeductions.length > 0 ? payheadDeductions : []),
+        ...(lateDeduction > 0 ? [{ name: 'Late Deductions', amount: formatNumber(lateDeduction) }] : []),
+    ];
 
-const netSalary = computed(() => {
-    if (!employee.value) return '0.00';
-    return formatNumber(calculateNetSalary(employee.value, config));
+    const totalEarnings = earnings.reduce((sum, earning) => sum + Number(earning.amount.replace(/,/g, '')), 0);
+    const totalDeductions = sss + philhealth + pagibig + withholdingTax +
+        payheadDeductions.reduce((sum, deduction) => sum + Number(deduction.amount.replace(/,/g, '')), 0) +
+        lateDeduction;
+    const netSalary = totalEarnings - totalDeductions;
+
+    return {
+        earnings,
+        deductions,
+        otherDeductions,
+        totalEarnings: formatNumber(totalEarnings),
+        totalDeductions: formatNumber(totalDeductions),
+        netSalary: formatNumber(netSalary),
+    };
 });
 
 const employeeInitials = computed(() =>
@@ -387,7 +377,6 @@ function getStatusClass(status) {
                         </div>
                     </div>
 
-                    <!-- Today's Attendance (Admin Only) -->
                     <div v-if="authStore.userRole === 'admin'" class="bg-white rounded-xl shadow-sm overflow-hidden">
                         <div class="p-6 border-b border-gray-100">
                             <h2 class="text-lg font-semibold text-gray-800">Today's Attendance</h2>
@@ -440,7 +429,6 @@ function getStatusClass(status) {
                         </div>
                     </div>
 
-                    <!-- My Attendance Records -->
                     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                         <div class="p-6 border-b border-gray-100">
                             <h2 class="text-lg font-semibold text-gray-800">My Attendance Records</h2>
@@ -495,7 +483,8 @@ function getStatusClass(status) {
                 </div>
 
                 <div class="lg:col-span-1">
-                    <div v-if="employee" class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                    <div v-if="employee && payrollData"
+                        class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                         <div class="text-center border-b-2 border-dashed border-gray-300 pb-4 mb-4">
                             <h2 class="text-xl font-semibold text-gray-800">Payroll</h2>
                             <p class="text-sm text-gray-500">{{ currentPayPeriod }}</p>
@@ -504,32 +493,45 @@ function getStatusClass(status) {
                         <div class="space-y-4">
                             <div>
                                 <h3 class="text-sm font-medium text-gray-700 mb-2">Earnings</h3>
-                                <div v-for="earning in earningsBreakdown" :key="earning.name"
+                                <div v-for="earning in payrollData.earnings" :key="earning.name"
                                     class="flex justify-between text-sm py-1">
                                     <span class="text-gray-600">{{ earning.name }}</span>
                                     <span class="text-gray-800">₱{{ earning.amount }}</span>
                                 </div>
                                 <div class="border-t border-gray-200 pt-2 flex justify-between font-semibold text-sm">
                                     <span>Total Earnings</span>
-                                    <span>₱{{ totalEarnings }}</span>
+                                    <span>₱{{ payrollData.totalEarnings }}</span>
                                 </div>
                             </div>
                             <div>
                                 <h3 class="text-sm font-medium text-gray-700 mb-2">Deductions</h3>
-                                <div v-for="deduction in deductionsBreakdown" :key="deduction.name"
+                                <div v-for="deduction in payrollData.deductions" :key="deduction.name"
                                     class="flex justify-between text-sm py-1">
                                     <span class="text-gray-600">{{ deduction.name }}</span>
                                     <span class="text-gray-800">₱{{ deduction.amount }}</span>
                                 </div>
-                                <div class="border-t border-gray-200 pt-2 flex justify-between font-semibold text-sm">
-                                    <span>Total Deductions</span>
-                                    <span>₱{{ totalDeductions }}</span>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-700 mb-2">Other Deductions</h3>
+                                <div v-if="payrollData.otherDeductions.length > 0">
+                                    <div v-for="deduction in payrollData.otherDeductions" :key="deduction.name"
+                                        class="flex justify-between text-sm py-1">
+                                        <span class="text-gray-600">{{ deduction.name }}</span>
+                                        <span class="text-gray-800">₱{{ deduction.amount }}</span>
+                                    </div>
                                 </div>
+                                <div v-else class="text-sm text-gray-600 py-1">
+                                    None
+                                </div>
+                            </div>
+                            <div class="border-t border-gray-200 pt-2 flex justify-between font-semibold text-sm">
+                                <span>Total Deductions</span>
+                                <span>₱{{ payrollData.totalDeductions }}</span>
                             </div>
                             <div class="border-t-2 border-dashed border-gray-300 pt-4">
                                 <div class="flex justify-between items-center">
                                     <span class="text-base font-semibold text-gray-800">Net Pay</span>
-                                    <span class="text-lg font-bold text-blue-600">₱{{ netSalary }}</span>
+                                    <span class="text-lg font-bold text-blue-600">₱{{ payrollData.netSalary }}</span>
                                 </div>
                             </div>
                         </div>

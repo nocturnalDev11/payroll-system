@@ -1,18 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { getPayHeads, createPayHead, updatePayHead, deletePayHead } = require('../controllers/employee/payHead.controller.js');
+const { verifyToken, restrictToAdmin } = require('../middlewares/authMiddleware.js');
 
-const isAdmin = (req, res, next) => {
-    const userRole = req.headers['user-role'] || 'employee';
-    if (userRole.toLowerCase() !== 'admin') {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-    next();
-};
+const isAdmin = restrictToAdmin;
 
-router.get('/', isAdmin, getPayHeads);
-router.post('/', isAdmin, createPayHead);
-router.put('/:id', isAdmin, updatePayHead);
-router.delete('/:id', isAdmin, deletePayHead);
+router.get('/', verifyToken, getPayHeads);
+router.post('/', verifyToken, isAdmin, createPayHead);
+router.put('/:id', verifyToken, isAdmin, updatePayHead);
+router.delete('/:id', verifyToken, isAdmin, deletePayHead);
 
 module.exports = router;
