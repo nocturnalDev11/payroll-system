@@ -19,7 +19,7 @@ const previewUrl = computed(() => {
     return profilePic || null;
 });
 
-const triggerUpload = () => fileInput.value.click();
+const triggerUpload = () => fileInput.value?.click();
 
 const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -40,7 +40,7 @@ const handleFileChange = (event) => {
 
 const uploadFile = async () => {
     if (!selectedFile.value) {
-        error.value = 'No file selected';
+        triggerUpload(); // If no file selected, clicking upload triggers file input
         return;
     }
     const formData = new FormData();
@@ -83,6 +83,9 @@ const uploadFile = async () => {
 };
 
 const clearUpload = async () => {
+    const confirmed = window.confirm('Are you sure you want to delete your profile picture?');
+    if (!confirmed) return;
+
     try {
         const response = await fetch(`${BASE_API_URL}/api/employees/update/${authStore.employee._id}`, {
             method: 'PUT',
@@ -130,12 +133,7 @@ const handleImageError = () => {
             <p class="mt-1 text-sm text-gray-600">Update your profile picture.</p>
         </header>
         <form @submit.prevent="uploadFile">
-            <div class="hs-file-upload" data-hs-file-upload='{
-                    "url": "/api/employees/profile-picture",
-                    "acceptedFiles": "image/*",
-                    "maxFiles": 1,
-                    "singleton": true
-                }'>
+            <div class="hs-file-upload">
                 <div class="flex flex-wrap items-center gap-3 sm:gap-5">
                     <div class="flex-shrink-0">
                         <div v-if="previewUrl"
@@ -164,8 +162,7 @@ const handleImageError = () => {
                     <div class="grow">
                         <div class="flex items-center gap-x-2">
                             <button type="submit"
-                                class="py-2 px-3 inline-flex items-center gap-x-2 text-xs font-medium rounded-lg border border-transparent bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:pointer-events-none"
-                                :disabled="!selectedFile">
+                                class="py-2 px-3 inline-flex items-center gap-x-2 text-xs font-medium rounded-lg border border-transparent bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:pointer-events-none">
                                 <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                     stroke-linecap="round" stroke-linejoin="round">
