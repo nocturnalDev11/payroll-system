@@ -6,7 +6,7 @@
                     <span class="material-icons text-sm">print</span>
                     Print Payslips
                 </h2>
-                <button @click="$emit('close')" class="p-1 hover:bg-gray-100 rounded-full">
+                <button @click="$emit('close')" class="flex items-center p-1 hover:bg-gray-100 rounded-full">
                     <span class="material-icons text-sm">close</span>
                 </button>
             </div>
