@@ -199,7 +199,7 @@
 
                                             <button type="button" @click="changePage(currentPage + 1)"
                                                 :disabled="currentPage === totalPages"
-                                                class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none">
+                                                class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border quatborder-gray-200 bg-white text-gray-800 shadow-2xs hover:bg-gray-50 focus:outline-hidden focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none">
                                                 Next
                                                 <svg class="size-3" width="16" height="16" viewBox="0 0 16 16"
                                                     fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -268,6 +268,22 @@ import moment from 'moment';
 import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
 import Modal from '@/components/Modal.vue';
+import {
+    calculateTotalEarnings,
+    calculatePayheadEarnings,
+    calculatePayheadDeductions,
+    calculateSupplementaryIncome,
+    calculateNonTaxableIncome,
+    calculateLateDeductions,
+    calculateTotalDeductions,
+    calculateNetSalary,
+    calculateHolidayPay,
+    calculateOvertimePay,
+    calculateSSSContribution,
+    calculatePhilHealthContribution,
+    calculatePagIBIGContribution,
+    calculateWithholdingTax,
+} from '@/utils/calculations.js';
 
 applyPlugin(jsPDF);
 
@@ -285,13 +301,13 @@ export default {
             statusMessage: '',
             iframeError: false,
             currentDate: new Date().toISOString().split('T')[0],
+            attendanceAffectedDeductions: [],
             config: {
                 minimumWage: 610,
                 deMinimisLimit: 10000,
                 regularHolidays: [],
                 specialNonWorkingDays: [],
             },
-            currentDate: new Date().toISOString().split('T')[0],
             currentPage: 1,
             itemsPerPage: 10,
             sortOrder: 'desc',
@@ -306,7 +322,7 @@ export default {
             return [...this.payslipHistory].sort((a, b) => {
                 const dateA = moment(a.payDate, 'YYYY-MM-DD');
                 const dateB = moment(b.payDate, 'YYYY-MM-DD');
-                return dateB - dateA; // Descending order
+                return this.sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
             });
         },
         paginatedPayslipHistory() {
@@ -327,6 +343,7 @@ export default {
         this.isLoading = true;
         try {
             await this.fetchEmployeeData();
+            await this.fetchAttendanceAffectedDeductions();
             await this.fetchPayslips();
         } catch (error) {
             console.error('Error in created hook:', error);
@@ -354,61 +371,89 @@ export default {
                     'user-id': userId,
                 },
             });
-            console.log('API Response:', response.data); // Debug raw response
             this.employee = {
                 ...response.data,
                 id: response.data._id,
                 name: `${response.data.firstName} ${response.data.lastName}`.trim(),
                 positionHistory: Array.isArray(response.data.positionHistory) && response.data.positionHistory.length > 0
                     ? response.data.positionHistory.map(history => ({
-                        position: history.position || response.data.position || 'N/A', // Ensure position is set
+                        position: history.position || response.data.position || 'N/A',
                         salary: history.salary || response.data.salary || 0,
                         startDate: history.startDate || response.data.hireDate || this.currentDate,
                         endDate: history.endDate || null,
                     }))
                     : [{
-                        position: response.data.position || 'N/A', // Fallback to employee.position
+                        position: response.data.position || 'N/A',
                         salary: response.data.salary || 0,
                         startDate: response.data.hireDate || this.currentDate,
                         endDate: null,
                     }],
             };
-            console.log('Processed Employee:', this.employee); // Debug processed employee
         },
+        async fetchAttendanceAffectedDeductions(retries = 3, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                this.isLoading = true;
+                const token = this.authStore.accessToken;
+                try {
+                    if (!token) throw new Error('No authentication token available');
+                    const response = await axios.get(`${BASE_API_URL}/api/payheads`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'user-role': 'employee',
+                            'user-id': this.authStore.employee?._id,
+                        },
+                        params: { isAttendanceAffected: true },
+                    });
 
-        getActivePositionForDate(positionHistory, date) {
-            console.log('Position History:', positionHistory); // Debug
-            console.log('Target Date:', date); // Debug
+                    this.attendanceAffectedDeductions = response.data
+                        .filter(payhead => payhead.type === 'Deductions' && payhead.isAttendanceAffected === true)
+                        .map(payhead => ({
+                            id: payhead._id || payhead.id,
+                            name: payhead.name,
+                            amount: Number(payhead.amount || 0),
+                            type: payhead.type,
+                            description: payhead.description || '',
+                            isRecurring: payhead.isRecurring || false,
+                            isAttendanceAffected: payhead.isAttendanceAffected || false,
+                        }));
 
-            if (!Array.isArray(positionHistory) || positionHistory.length === 0) {
-                console.warn('No position history, using fallback');
-                return {
-                    position: this.employee.position || 'N/A',
-                    salary: this.employee.salary || 0,
-                    startDate: this.employee.hireDate || this.currentDate,
-                };
+                    if (this.attendanceAffectedDeductions.length === 0) {
+                        console.warn('No attendance-affected deductions found.');
+                    }
+                    return;
+                } catch (error) {
+                    console.error(`Error fetching attendance-affected deductions, attempt ${i + 1}:`, error);
+                    if (i === retries - 1) {
+                        this.showErrorMessage('Failed to load attendance-affected deductions.');
+                        this.attendanceAffectedDeductions = [];
+                    }
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } finally {
+                    this.isLoading = false;
+                }
             }
-
-            const targetDate = moment(date);
-            const sortedHistory = [...positionHistory].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-
-            const activePosition = sortedHistory.find(history => {
-                const startDate = moment(history.startDate);
-                const endDate = history.endDate ? moment(history.endDate) : moment('9999-12-31');
-                const isActive = targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day');
-                console.log(`Checking history: Start ${startDate.format('YYYY-MM-DD')}, End ${endDate.format('YYYY-MM-DD')}, Active: ${isActive}`); // Debug
-                return isActive;
-            });
-
-            const result = activePosition || sortedHistory[sortedHistory.length - 1] || {
-                position: this.employee.position || 'N/A',
-                salary: this.employee.salary || 0,
-                startDate: this.employee.hireDate || this.currentDate,
-            };
-            console.log('Selected Active Position:', result); // Debug
-            return result;
         },
-
+        async fetchAttendanceRecords(employeeId, salaryMonth, paydayType) {
+            try {
+                const token = this.authStore.accessToken;
+                if (!token) throw new Error('No authentication token available');
+                const response = await axios.get(`${BASE_API_URL}/api/attendance/${employeeId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'user-role': 'employee',
+                    },
+                    params: {
+                        salaryMonth,
+                        paydayType,
+                    },
+                });
+                return response.data || [];
+            } catch (error) {
+                console.error('Error fetching attendance records:', error);
+                this.showErrorMessage('Failed to load attendance data.');
+                return [];
+            }
+        },
         async fetchPayslips() {
             const token = this.authStore.accessToken;
             const userId = this.authStore.employee?._id;
@@ -431,12 +476,10 @@ export default {
             }
 
             const payslipHistory = [];
-            // Use selectedMonth if set, otherwise default to current month
             const targetMonth = this.selectedMonth ? moment(this.selectedMonth, 'YYYY-MM') : today.clone().startOf('month');
             const monthStart = targetMonth.clone().startOf('month');
             const monthEnd = targetMonth.clone().endOf('month');
 
-            // Only process payslips for the selected month
             if (monthStart.isSameOrAfter(hireDate, 'month') && monthStart.isSameOrBefore(today, 'month')) {
                 const salaryMonth = targetMonth.format('YYYY-MM');
                 const expectedPaydays = this.getExpectedPayday(hireDate.toDate(), salaryMonth);
@@ -446,18 +489,19 @@ export default {
                 if (midMonthDate.isSameOrAfter(hireDate, 'day') && midMonthDate.isBetween(monthStart, monthEnd, 'day', '[]')) {
                     const midPosition = this.getActivePositionForDate(this.employee.positionHistory, midMonthDate);
                     const midPayslip = backendPayslips.find(p => p.salaryMonth === salaryMonth && p.paydayType === 'mid-month') || {};
+                    const attendanceRecords = await this.fetchAttendanceRecords(this.employee.id, salaryMonth, 'mid-month');
                     payslipHistory.push({
                         salaryMonth,
                         paydayType: 'mid-month',
                         payDate: midMonthDate.format('YYYY-MM-DD'),
                         position: midPosition.position,
                         salary: midPosition.salary,
-                        totalSalary: midPayslip.salary ? this.calculateNetSalary({
+                        totalSalary: midPayslip.salary ? calculateNetSalary({
                             ...this.employee,
                             position: midPosition.position,
                             salary: midPosition.salary,
                             salaryMonth
-                        }) : null,
+                        }, this.config, attendanceRecords, salaryMonth, 'mid-month') : null,
                         payslipDataUrl: midPayslip.payslipData ? `data:application/pdf;base64,${midPayslip.payslipData}` : null,
                         employee: { ...this.employee, position: midPosition.position, salary: midPosition.salary, salaryMonth },
                         expectedPaydays,
@@ -469,18 +513,19 @@ export default {
                 if (endMonthDate.isSameOrAfter(hireDate, 'day') && endMonthDate.isBetween(monthStart, monthEnd, 'day', '[]')) {
                     const endPosition = this.getActivePositionForDate(this.employee.positionHistory, endMonthDate);
                     const endPayslip = backendPayslips.find(p => p.salaryMonth === salaryMonth && p.paydayType === 'end-of-month') || {};
+                    const attendanceRecords = await this.fetchAttendanceRecords(this.employee.id, salaryMonth, 'end-of-month');
                     payslipHistory.push({
                         salaryMonth,
                         paydayType: 'end-of-month',
                         payDate: endMonthDate.format('YYYY-MM-DD'),
                         position: endPosition.position,
                         salary: endPosition.salary,
-                        totalSalary: endPayslip.salary ? this.calculateNetSalary({
+                        totalSalary: endPayslip.salary ? calculateNetSalary({
                             ...this.employee,
                             position: endPosition.position,
                             salary: endPosition.salary,
                             salaryMonth
-                        }) : null,
+                        }, this.config, attendanceRecords, salaryMonth, 'end-of-month') : null,
                         payslipDataUrl: endPayslip.payslipData ? `data:application/pdf;base64,${endPayslip.payslipData}` : null,
                         employee: { ...this.employee, position: endPosition.position, salary: endPosition.salary, salaryMonth },
                         expectedPaydays,
@@ -496,7 +541,6 @@ export default {
                 }
             }
         },
-
         async generatePayslipNow() {
             this.payslipGenerationStatus.generating = true;
             try {
@@ -527,7 +571,8 @@ export default {
                     expectedPaydays,
                 };
 
-                const pdfPayslipData = this.createPayslipData(payslipData.employee);
+                const attendanceRecords = await this.fetchAttendanceRecords(this.employee.id, salaryMonth, paydayType);
+                const pdfPayslipData = this.createPayslipData(payslipData.employee, attendanceRecords, salaryMonth, paydayType);
                 const pdfBlob = await this.generatePdf(pdfPayslipData);
                 const url = URL.createObjectURL(pdfBlob);
                 const base64Data = await this.blobToBase64(pdfBlob);
@@ -556,7 +601,7 @@ export default {
 
                 if (response.status === 201 || response.status === 200) {
                     payslipData.payslipDataUrl = url;
-                    payslipData.totalSalary = this.calculateNetSalary(payslipData.employee);
+                    payslipData.totalSalary = calculateNetSalary(payslipData.employee, this.config, attendanceRecords, salaryMonth, paydayType);
                     const existingPayslipIndex = this.payslipHistory.findIndex(p =>
                         p.salaryMonth === payslipData.salaryMonth && p.paydayType === payslipData.paydayType
                     );
@@ -590,103 +635,8 @@ export default {
             this.payslipGenerationStatus[key] = { generating: true };
 
             try {
-                const payslipData = this.createPayslipData(updatedEmployee);
-                const pdfBlob = await this.generatePdf(payslipData);
-                const base64Data = await this.blobToBase64(pdfBlob);
-                const url = URL.createObjectURL(pdfBlob);
-
-                // Log activePosition to ensure position and salary are valid
-                console.log('Active Position:', activePosition);
-
-                // Construct payload
-                const payload = {
-                    employeeId: employee.id,
-                    empNo: String(employee.empNo), // Ensure empNo is a string
-                    payslipData: base64Data.split(',')[1],
-                    salaryMonth: payslip.salaryMonth,
-                    paydayType: payslip.paydayType,
-                    position: activePosition.position || 'N/A', // Fallback if position is undefined
-                    salary: Number(activePosition.salary) || 0, // Ensure salary is a number, fallback to 0
-                    payDate: payDate.format('YYYY-MM-DD'),
-                };
-
-                // Log payload to debug
-                console.log('Payload for POST:', payload);
-
-                const token = this.authStore.accessToken;
-                if (!token) throw new Error('No authentication token available');
-
-                const response = await axios.post(`${BASE_API_URL}/api/payslips/generate`, payload, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'user-role': 'employee',
-                        'user-id': employee.id,
-                    },
-                });
-
-                if (response.status === 201 || response.status === 200) {
-                    payslip.payslipDataUrl = url;
-                    payslip.position = activePosition.position;
-                    payslip.salary = activePosition.salary;
-                    payslip.totalSalary = this.calculateNetSalary(updatedEmployee);
-                    this.payslipHistory = this.payslipHistory.map(p =>
-                        p.salaryMonth === payslip.salaryMonth && p.paydayType === payslip.paydayType ? payslip : p
-                    );
-                    this.selectedPayslip = payslip;
-                    this.showSuccessMessage(`Payslip generated for ${payslip.paydayType === 'mid-month' ? payslip.expectedPaydays.midMonthPayday : payslip.expectedPaydays.endMonthPayday}!`);
-                }
-            } catch (error) {
-                console.error('Error generating payslip:', error.response?.data || error.message);
-                this.showErrorMessage(`Failed to generate payslip: ${error.response?.data?.message || error.message}`);
-            } finally {
-                this.payslipGenerationStatus[key] = { generating: false };
-            }
-        },
-
-        getActivePositionForDate(positionHistory, date) {
-            console.log('Position History:', positionHistory); // Debug
-            console.log('Target Date:', date); // Debug
-
-            if (!Array.isArray(positionHistory) || positionHistory.length === 0) {
-                console.warn('No position history, using fallback');
-                return {
-                    position: this.employee.position || 'N/A',
-                    salary: this.employee.salary || 0,
-                    startDate: this.employee.hireDate || this.currentDate,
-                };
-            }
-
-            const targetDate = moment(date);
-            const sortedHistory = [...positionHistory].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-
-            const activePosition = sortedHistory.find(history => {
-                const startDate = moment(history.startDate);
-                const endDate = history.endDate ? moment(history.endDate) : moment('9999-12-31');
-                const isActive = targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day');
-                console.log(`Checking history: Start ${startDate.format('YYYY-MM-DD')}, End ${endDate.format('YYYY-MM-DD')}, Active: ${isActive}`); // Debug
-                return isActive;
-            });
-
-            const result = activePosition || sortedHistory[sortedHistory.length - 1] || {
-                position: this.employee.position || 'N/A',
-                salary: this.employee.salary || 0,
-                startDate: this.employee.hireDate || this.currentDate,
-            };
-            console.log('Selected Active Position:', result); // Debug
-            return result;
-        },
-
-        async generatePayslip(payslip) {
-            const employee = payslip.employee;
-            const payDate = moment(payslip.payDate, 'YYYY-MM-DD');
-            const activePosition = this.getActivePositionForDate(employee.positionHistory, payDate);
-            const updatedEmployee = { ...employee, position: activePosition.position, salary: activePosition.salary };
-
-            const key = `${payslip.salaryMonth}-${payslip.paydayType}`;
-            this.payslipGenerationStatus[key] = { generating: true };
-
-            try {
-                const payslipData = this.createPayslipData(updatedEmployee);
+                const attendanceRecords = await this.fetchAttendanceRecords(employee.id, payslip.salaryMonth, payslip.paydayType);
+                const payslipData = this.createPayslipData(updatedEmployee, attendanceRecords, payslip.salaryMonth, payslip.paydayType);
                 const pdfBlob = await this.generatePdf(payslipData);
                 const base64Data = await this.blobToBase64(pdfBlob);
                 const url = URL.createObjectURL(pdfBlob);
@@ -702,8 +652,6 @@ export default {
                     payDate: payDate.format('YYYY-MM-DD'),
                 };
 
-                console.log('Payload for POST:', payload); // Debug
-
                 const token = this.authStore.accessToken;
                 if (!token) throw new Error('No authentication token available');
 
@@ -719,7 +667,7 @@ export default {
                     payslip.payslipDataUrl = url;
                     payslip.position = activePosition.position;
                     payslip.salary = activePosition.salary;
-                    payslip.totalSalary = this.calculateNetSalary(updatedEmployee);
+                    payslip.totalSalary = calculateNetSalary(updatedEmployee, this.config, attendanceRecords, payslip.salaryMonth, payslip.paydayType);
                     this.payslipHistory = this.payslipHistory.map(p =>
                         p.salaryMonth === payslip.salaryMonth && p.paydayType === payslip.paydayType ? payslip : p
                     );
@@ -732,6 +680,30 @@ export default {
             } finally {
                 this.payslipGenerationStatus[key] = { generating: false };
             }
+        },
+        getActivePositionForDate(positionHistory, date) {
+            if (!Array.isArray(positionHistory) || positionHistory.length === 0) {
+                return {
+                    position: this.employee.position || 'N/A',
+                    salary: this.employee.salary || 0,
+                    startDate: this.employee.hireDate || this.currentDate,
+                };
+            }
+
+            const targetDate = moment(date);
+            const sortedHistory = [...positionHistory].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+            const activePosition = sortedHistory.find(history => {
+                const startDate = moment(history.startDate);
+                const endDate = history.endDate ? moment(history.endDate) : moment('9999-12-31');
+                return targetDate.isSameOrAfter(startDate, 'day') && targetDate.isSameOrBefore(endDate, 'day');
+            });
+
+            return activePosition || sortedHistory[sortedHistory.length - 1] || {
+                position: this.employee.position || 'N/A',
+                salary: this.employee.salary || 0,
+                startDate: this.employee.hireDate || this.currentDate,
+            };
         },
         getExpectedPayday(hireDate, salaryMonth) {
             const [year, month] = salaryMonth.split('-').map(part => parseInt(part, 10));
@@ -756,24 +728,22 @@ export default {
                 endMonthPayday: endMonth.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }),
             };
         },
-        createPayslipData(employee) {
-            const salaryDate = moment(employee.salaryMonth, 'YYYY-MM').format('MM/DD/YYYY');
+        createPayslipData(employee, attendanceRecords, salaryMonth, paydayType) {
+            const salaryDate = moment(salaryMonth, 'YYYY-MM').format('MM/DD/YYYY');
             const basicSalary = employee.salary || 0;
 
             const sanitizedPayheads = Array.isArray(employee.payheads)
                 ? employee.payheads.filter((ph) => ph && typeof ph === 'object' && 'type' in ph && 'name' in ph && 'amount' in ph)
                 : [];
 
-            const payheadDeductions = sanitizedPayheads
-                .filter((ph) => ph.type === 'Deductions')
-                .reduce((sum, ph) => sum + Number(ph.amount || 0), 0) || 0;
-
-            const sss = this.calculateSSSContribution(basicSalary);
-            const philhealth = this.calculatePhilHealthContribution(basicSalary);
-            const pagibig = this.calculatePagIBIGContribution(basicSalary);
-            const withholdingTax = this.calculateWithholdingTax(employee);
-            const totalDeductions = sss + philhealth + pagibig + withholdingTax + payheadDeductions;
-            const netSalary = (basicSalary - payheadDeductions) - (sss + philhealth + pagibig + withholdingTax);
+            const payheadDeductions = calculatePayheadDeductions(sanitizedPayheads);
+            const lateDeductions = calculateLateDeductions(attendanceRecords, salaryMonth, paydayType);
+            const sss = calculateSSSContribution(basicSalary);
+            const philhealth = calculatePhilHealthContribution(basicSalary);
+            const pagibig = calculatePagIBIGContribution(basicSalary);
+            const withholdingTax = calculateWithholdingTax(employee, this.config);
+            const totalDeductions = sss + philhealth + pagibig + withholdingTax + payheadDeductions + lateDeductions;
+            const netSalary = calculateNetSalary(employee, this.config, attendanceRecords, salaryMonth, paydayType);
 
             const earnings = sanitizedPayheads
                 .filter((ph) => ph.type === 'Earnings')
@@ -781,7 +751,15 @@ export default {
 
             const deductions = sanitizedPayheads
                 .filter((ph) => ph.type === 'Deductions')
-                .map((ph) => ({ name: ph.name, amount: this.formatNumber(ph.amount) }));
+                .map((ph) => ({
+                    name: ph.name,
+                    amount: this.formatNumber(ph.amount),
+                    isAttendanceAffected: ph.isAttendanceAffected || false
+                }));
+
+            if (lateDeductions > 0) {
+                deductions.push({ name: 'Late Deductions', amount: this.formatNumber(lateDeductions), isAttendanceAffected: true });
+            }
 
             return {
                 salaryDate,
@@ -942,7 +920,7 @@ export default {
             y += lineHeight;
             if (payslipData.deductions.length > 0) {
                 const deductionsTableData = payslipData.deductions.map((deduction) => [
-                    deduction.name,
+                    deduction.name + (deduction.isAttendanceAffected ? ' (Attendance)' : ''),
                     `P${deduction.amount}`,
                 ]);
                 pdfDoc.autoTable({
@@ -1006,143 +984,8 @@ export default {
                 this.showErrorMessage('Failed to download payslip.');
             }
         },
-
         formatNumber(value) {
             return Number(value || 0).toFixed(2);
-        },
-        calculateTotalEarnings(employee) {
-            const baseEarnings = (employee.earnings?.travelExpenses || 0) + (employee.earnings?.otherEarnings || 0);
-            const monthlySalary = employee.salary || 0;
-            const holidayPay = this.calculateHolidayPay(employee) || 0;
-            const overtimePay = this.calculateOvertimePay(employee) || 0;
-            const payheadEarnings = this.calculatePayheadEarnings(employee.payheads) || 0;
-            const taxableSupplementary = this.calculateSupplementaryIncome(employee)?.taxable || 0;
-            return monthlySalary + baseEarnings + holidayPay + overtimePay + payheadEarnings + taxableSupplementary || 0;
-        },
-        calculatePayheadEarnings(payheads) {
-            const sanitizedPayheads = Array.isArray(payheads)
-                ? payheads.filter((p) => p && typeof p === 'object' && 'type' in p && 'amount' in p)
-                : [];
-            return sanitizedPayheads
-                .filter((p) => p.type === 'Earnings')
-                .reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
-        },
-        calculatePayheadDeductions(payheads) {
-            const sanitizedPayheads = Array.isArray(payheads)
-                ? payheads.filter((p) => p && typeof p === 'object' && 'type' in p && 'amount' in p)
-                : [];
-            return sanitizedPayheads
-                .filter((p) => p.type === 'Deductions')
-                .reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
-        },
-        calculateSupplementaryIncome(employee) {
-            const commission = employee.commission || 0;
-            const profitSharing = employee.profitSharing || 0;
-            const fees = employee.fees || 0;
-            const thirteenthMonthPay = employee.thirteenthMonthPay || 0;
-            const hazardPay = employee.hazardPay || 0;
-            const overtimePay = this.calculateOvertimePay(employee) || 0;
-            const otherTaxable = employee.otherTaxable || 0;
-
-            const totalSupplementary = commission + profitSharing + fees + thirteenthMonthPay + hazardPay + overtimePay + otherTaxable;
-            const exemptThirteenthMonth = Math.min(thirteenthMonthPay, 90000) || 0;
-            const taxableThirteenthMonth = Math.max(0, thirteenthMonthPay - 90000) || 0;
-
-            const taxableSupplementaryIncome = commission + profitSharing + fees + taxableThirteenthMonth + hazardPay + overtimePay + otherTaxable;
-
-            return {
-                taxable: taxableSupplementaryIncome || 0,
-                nonTaxable: exemptThirteenthMonth || 0,
-                totalSupplementary: totalSupplementary || 0,
-            };
-        },
-        calculateNonTaxableIncome(employee) {
-            const isMWE = (employee.salary / 30) <= this.config.minimumWage;
-            const basicSalaryMWE = isMWE ? employee.salary : 0;
-            const holidayPayMWE = isMWE ? this.calculateHolidayPay(employee) : 0;
-            const overtimePayMWE = isMWE ? this.calculateOvertimePay(employee) : 0;
-            const nightShiftDiffMWE = isMWE ? (employee.nightShiftDiff || 0) : 0;
-            const hazardPayMWE = isMWE ? (employee.hazardPay || 0) : 0;
-            const thirteenthMonthExempt = Math.min(employee.thirteenthMonthPay || 0, 90000) || 0;
-            const deMinimis = Math.min(employee.deMinimis || 0, this.config.deMinimisLimit) || 0;
-            const sssContribution = this.calculateSSSContribution(employee.salary) || 0;
-            const philhealthContribution = this.calculatePhilHealthContribution(employee.salary) || 0;
-            const pagibigContribution = this.calculatePagIBIGContribution(employee.salary) || 0;
-
-            return {
-                totalNonTaxable:
-                    basicSalaryMWE +
-                    holidayPayMWE +
-                    overtimePayMWE +
-                    nightShiftDiffMWE +
-                    hazardPayMWE +
-                    thirteenthMonthExempt +
-                    deMinimis +
-                    sssContribution +
-                    philhealthContribution +
-                    pagibigContribution || 0,
-            };
-        },
-        calculateTotalDeductions(employee) {
-            const sssContribution = this.calculateSSSContribution(employee.salary) || 0;
-            const philhealthContribution = this.calculatePhilHealthContribution(employee.salary) || 0;
-            const pagibigContribution = this.calculatePagIBIGContribution(employee.salary) || 0;
-            const withholdingTax = this.calculateWithholdingTax(employee) || 0;
-            const payheadDeductions = this.calculatePayheadDeductions(employee.payheads) || 0;
-
-            return sssContribution + philhealthContribution + pagibigContribution + withholdingTax + payheadDeductions || 0;
-        },
-        calculateNetSalary(employee) {
-            const totalEarnings = this.calculateTotalEarnings(employee) || 0;
-            const totalDeductions = this.calculateTotalDeductions(employee) || 0;
-            return totalEarnings - totalDeductions || 0;
-        },
-        calculateHolidayPay(employee) {
-            const dailyRate = (employee.salary / 30) || 0;
-            const salaryMonth = employee.salaryMonth
-                ? employee.salaryMonth.split('-')[0] + '-' + employee.salaryMonth.split('-')[1]
-                : moment(this.currentDate).format('YYYY-MM');
-            const regularHolidays = this.config.regularHolidays || [];
-            const specialNonWorkingDays = this.config.specialNonWorkingDays || [];
-            const isRegularHoliday = regularHolidays.some((holiday) =>
-                moment(holiday, 'MM/DD/YYYY').format('YYYY-MM') === salaryMonth
-            );
-            const isSpecialHoliday = specialNonWorkingDays.some((holiday) =>
-                moment(holiday, 'MM/DD/YYYY').format('YYYY-MM') === salaryMonth
-            );
-            if (isRegularHoliday) return dailyRate * 2 || 0;
-            if (isSpecialHoliday) return dailyRate * 1.3 || 0;
-            return 0;
-        },
-        calculateOvertimePay(employee) {
-            const hourlyRate = employee.salary / (8 * 22) || 0;
-            const regularOTHours = employee.overtimeHours?.regular || 0;
-            const holidayOTHours = employee.overtimeHours?.holiday || 0;
-            const regularOTPay = regularOTHours * hourlyRate * 1.25 || 0;
-            const holidayOTPay = holidayOTHours * hourlyRate * 1.3 || 0;
-            return regularOTPay + holidayOTPay || 0;
-        },
-        calculateSSSContribution(salary) {
-            const monthlySalaryCredit = Math.min(Math.max(salary || 0, 5000), 35000);
-            return Math.round(monthlySalaryCredit * 0.045) || 0;
-        },
-        calculatePhilHealthContribution(salary) {
-            const monthlySalary = Math.min(salary || 0, 100000);
-            return Math.round((monthlySalary * 0.05) / 2) || 0;
-        },
-        calculatePagIBIGContribution(salary) {
-            const cappedSalary = Math.min(salary || 0, 10000);
-            return Math.round(cappedSalary * 0.02) || 0;
-        },
-        calculateWithholdingTax(employee) {
-            const nonTaxable = this.calculateNonTaxableIncome(employee).totalNonTaxable || 0;
-            const taxableIncome = (this.calculateTotalEarnings(employee) || 0) - nonTaxable || 0;
-            if (taxableIncome <= 20833) return 0;
-            if (taxableIncome <= 33333) return Math.round((taxableIncome - 20833) * 0.15) || 0;
-            if (taxableIncome <= 66667) return Math.round(1875 + (taxableIncome - 33333) * 0.20) || 0;
-            if (taxableIncome <= 166667) return Math.round(13541.80 + (taxableIncome - 66667) * 0.25) || 0;
-            if (taxableIncome <= 666667) return Math.round(90841.80 + (taxableIncome - 166667) * 0.30) || 0;
-            return Math.round(408841.80 + (taxableIncome - 666667) * 0.35) || 0;
         },
         onIframeLoad() {
             this.iframeError = false;
