@@ -63,13 +63,6 @@ exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
     if (req.body.earnings) updateData.earnings = req.body.earnings;
     if (salary) updateData.salary = Number(salary);
 
-    // Handle password update
-    if (password) {
-        console.log(`Updating password for employee ID: ${id}`); // Debugging
-        const salt = await bcrypt.genSalt(10);
-        updateData.password = await bcrypt.hash(password, salt);
-    }
-
     // Handle positionHistory update if position is provided
     if (position) {
         const employee = await Employee.findById(id);
@@ -113,7 +106,6 @@ exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
         updateData.payheads = payheads;
     }
 
-    console.log('Update data:', updateData); // Debugging
     const employee = await Employee.findByIdAndUpdate(
         id,
         { ...updateData, updatedAt: new Date() },
@@ -121,10 +113,39 @@ exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
     );
     if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
-    console.log('Updated employee password:', employee.password); // Debugging
     const employeeObj = employee.toObject();
     delete employeeObj.password;
     res.status(200).json({ message: 'Employee details updated successfully', updatedEmployee: employeeObj });
+});
+
+exports.updateEmployeePassword = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { password, currentPassword } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ error: 'Invalid employee ID format' });
+    }
+    if (!password) {
+        return res.status(400).json({ error: 'New password is required' });
+    }
+    if (!currentPassword) {
+        return res.status(400).json({ error: 'Current password is required' });
+    }
+
+    const employee = await Employee.findById(id).select('+password');
+    if (!employee) return res.status(404).json({ error: 'Employee not found' });
+
+    const isMatch = await bcrypt.compare(currentPassword, employee.password);
+    if (!isMatch) return res.status(401).json({ error: 'Current password is incorrect' });
+
+    const salt = await bcrypt.genSalt(10);
+    employee.password = await bcrypt.hash(password, salt);
+    employee.updatedAt = new Date();
+
+    await employee.save();
+    console.log('Updated password for employee:', id, employee.password); // Debugging
+
+    res.status(200).json({ message: 'Password updated successfully' });
 });
 
 // Delete employee (move to archive)

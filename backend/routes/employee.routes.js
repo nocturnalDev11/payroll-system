@@ -26,7 +26,8 @@ const {
     deleteEmployeeById,
     getPendingEmployees,
     deletePendingRequest,
-    updatePendingRequestStatus
+    updatePendingRequestStatus,
+    updateEmployeePassword
 } = require('../controllers/employee/employee.controller');
 
 const upload = multer({
@@ -46,6 +47,7 @@ router.post('/login', loginEmployee);
 router.post('/register', registerEmployee);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
+router.put('/update-password/:id', verifyToken, updateEmployeePassword);
 router.get('/pending-requests', verifyToken, getPendingEmployees);
 
 // Employee routes
