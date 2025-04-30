@@ -1,16 +1,17 @@
 <template>
-    <div v-if="show" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+    <Modal :show="show" :max-width="'2xl'" :max-height="'80vh'" :closeable="true" @close="$emit('close')">
+        <div class="flex flex-col h-full">
             <div class="flex items-center justify-between p-4 border-b border-gray-300">
                 <h2 class="text-base font-medium text-gray-800 flex items-center gap-1">
                     <span class="material-icons text-sm">print</span>
                     Print Payslips
                 </h2>
-                <button @click="$emit('close')" class="flex items-center p-1 hover:bg-gray-100 rounded-full cursor-pointer">
+                <button @click="$emit('close')"
+                    class="flex items-center p-1 hover:bg-gray-100 rounded-full cursor-pointer">
                     <span class="material-icons text-sm">close</span>
                 </button>
             </div>
-            <div class="p-4 overflow-y-auto">
+            <div class="p-4 overflow-y-auto flex-1">
                 <h3 class="text-sm font-medium text-gray-700 mb-2">Select Employees to Print</h3>
                 <div v-if="employeesWithPayslips.length > 0" class="mb-4">
                     <label class="flex items-center">
@@ -34,7 +35,7 @@
                     No employees with generated payslips found in history.
                 </div>
             </div>
-            <div class="p-4 border-t border-gray-300 flex justify-end gap-2">
+            <div class="p-4 border-t border-gray-300 flex justify-end gap-2 shrink-0">
                 <button @click="$emit('close')"
                     class="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded hover:bg-gray-300 cursor-pointer">
                     Cancel
@@ -47,12 +48,17 @@
                 </button>
             </div>
         </div>
-    </div>
+    </Modal>
 </template>
 
 <script>
+import Modal from '@/components/Modal.vue';
+
 export default {
     name: 'PrintAllModal',
+    components: {
+        Modal,
+    },
     props: {
         show: {
             type: Boolean,
@@ -75,7 +81,13 @@ export default {
             required: true,
         },
     },
-    emits: ['close', 'toggle-select-all', 'print-selected-payslips', 'update:selectAll', 'update:selectedEmployeesForPrint'],
+    emits: [
+        'close',
+        'toggle-select-all',
+        'print-selected-payslips',
+        'update:selectAll',
+        'update:selectedEmployeesForPrint',
+    ],
     methods: {
         updateSelectedEmployees(employeeId, isChecked) {
             let updatedSelection = [...this.selectedEmployeesForPrint];
@@ -84,7 +96,7 @@ export default {
                     updatedSelection.push(employeeId);
                 }
             } else {
-                updatedSelection = updatedSelection.filter(id => id !== employeeId);
+                updatedSelection = updatedSelection.filter((id) => id !== employeeId);
             }
             this.$emit('update:selectedEmployeesForPrint', updatedSelection);
         },

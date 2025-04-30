@@ -1,6 +1,7 @@
 <template>
-    <div v-if="showUpdateModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+    <Modal :show="showUpdateModal" :max-width="'md'" :max-height="'80vh'" :closeable="true"
+        @close="$emit('close-update-modal')">
+        <div class="p-6">
             <h2 class="text-base font-medium text-gray-800 mb-4 flex items-center gap-1">
                 <span class="material-icons text-sm">edit</span>
                 Update Employee Position
@@ -36,7 +37,7 @@
                 </button>
             </div>
         </div>
-    </div>
+    </Modal>
 </template>
 
 <script>
@@ -44,9 +45,13 @@ import axios from 'axios';
 import moment from 'moment';
 import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
+import Modal from '@/components/Modal.vue';
 
 export default {
     name: 'UpdatePositionModal',
+    components: {
+        Modal,
+    },
     props: {
         showUpdateModal: Boolean,
         employees: Array,
@@ -66,18 +71,24 @@ export default {
     },
     methods: {
         getPositionName(positionName) {
-            const position = this.positions.find(p => p.name.trim().toLowerCase() === positionName?.trim().toLowerCase());
+            const position = this.positions.find(
+                (p) => p.name.trim().toLowerCase() === positionName?.trim().toLowerCase()
+            );
             return position ? position.name : positionName || 'Unknown Position';
         },
         async updateEmployeePosition() {
             if (!this.selectedEmployeeForUpdate || !this.newPosition) return;
             this.isLoading = true;
             try {
-                const employee = this.employees.find(emp => emp.id === this.selectedEmployeeForUpdate);
-                const newPositionData = this.positions.find(pos => pos.name === this.newPosition);
+                const employee = this.employees.find(
+                    (emp) => emp.id === this.selectedEmployeeForUpdate
+                );
+                const newPositionData = this.positions.find(
+                    (pos) => pos.name === this.newPosition
+                );
                 const today = moment(this.currentDate).format('YYYY-MM-DD');
 
-                const updatedPositionHistory = employee.positionHistory.map(history => {
+                const updatedPositionHistory = employee.positionHistory.map((history) => {
                     if (!history.endDate) {
                         return { ...history, endDate: today };
                     }
@@ -93,16 +104,20 @@ export default {
                 const token = this.authStore.accessToken || localStorage.getItem('token');
                 if (!token) throw new Error('No authentication token available');
 
-                const response = await axios.put(`${BASE_API_URL}/api/employees/update/${employee.id}`, {
-                    position: newPositionData.name,
-                    salary: newPositionData.salary,
-                    positionHistory: updatedPositionHistory,
-                }, {
-                    headers: {
-                        'user-role': this.authStore.userRole || 'admin',
-                        'Authorization': `Bearer ${token}`,
+                const response = await axios.put(
+                    `${BASE_API_URL}/api/employees/update/${employee.id}`,
+                    {
+                        position: newPositionData.name,
+                        salary: newPositionData.salary,
+                        positionHistory: updatedPositionHistory,
                     },
-                });
+                    {
+                        headers: {
+                            'user-role': this.authStore.userRole || 'admin',
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
 
                 if (response.status === 200) {
                     const updatedEmployee = {
@@ -112,17 +127,28 @@ export default {
                         positionHistory: updatedPositionHistory,
                     };
                     this.$emit('update-employee', updatedEmployee);
-                    this.$emit('show-success-message', `Position updated for ${employee.name} to ${newPositionData.name}!`);
+                    this.$emit(
+                        'show-success-message',
+                        `Position updated for ${employee.name} to ${newPositionData.name}!`
+                    );
                     this.$emit('close-update-modal');
                 }
             } catch (error) {
                 console.error('Error updating position:', error);
-                this.$emit('show-error-message', `Failed to update position: ${error.message}`);
+                this.$emit(
+                    'show-error-message',
+                    `Failed to update position: ${error.message}`
+                );
             } finally {
                 this.isLoading = false;
             }
         },
     },
-    emits: ['close-update-modal', 'update-employee', 'show-success-message', 'show-error-message'],
+    emits: [
+        'close-update-modal',
+        'update-employee',
+        'show-success-message',
+        'show-error-message',
+    ],
 };
 </script>
