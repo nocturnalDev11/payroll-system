@@ -59,6 +59,7 @@ import { applyPlugin } from 'jspdf-autotable';
 import moment from 'moment';
 import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
+import { createPayslipData, generatePdf } from '@/utils/pdfGenerator.js'; // Import the utility functions
 import HeaderSection from './partials/HeaderSection.vue';
 import EmployeeTable from './partials/EmployeeTable.vue';
 import PayslipHistoryModal from './partials/PayslipHistoryModal.vue';
@@ -343,7 +344,7 @@ export default {
 
                     for (const deduction of deductions) {
                         if (!deduction?.id || !deduction?.name || isNaN(deduction.amount)) {
-                            console.warn('Skipping invalid deduction:', deduction);
+                            console.warn('Skipping invalid deduction HAND:', deduction);
                             continue;
                         }
 
@@ -450,13 +451,21 @@ export default {
                     isFirstPage = false;
 
                     const attendanceRecords = await this.fetchAttendanceRecords(employee.id);
-                    const payslipData = this.createPayslipData(
-                        latestPayslip.employee,
+                    const payslipData = createPayslipData(
+                        employee,
                         attendanceRecords,
                         latestPayslip.salaryMonth,
-                        latestPayslip.paydayType
+                        latestPayslip.paydayType,
+                        this.config // Pass the config object
                     );
-                    await this.$refs.payslipHistoryModal?.generatePdf(payslipData, pdfDoc);
+
+                    if (!payslipData || Object.keys(payslipData).length === 0) {
+                        console.error('Payslip data is empty for employee:', employee.id);
+                        this.showErrorMessage(`Failed to generate payslip data for ${employee.name}.`);
+                        continue;
+                    }
+
+                    generatePdf(payslipData, pdfDoc);
                 }
 
                 if (!isFirstPage) {
@@ -467,7 +476,7 @@ export default {
                 }
             } catch (error) {
                 console.error('Error printing payslips:', error);
-                this.showErrorMessage('Failed to print payslips.');
+                this.showErrorMessage('Failed to print payslips: ' + error.message);
             } finally {
                 this.isPrinting = false;
                 this.showPrintAllModal = false;
@@ -490,9 +499,6 @@ export default {
                 this.showErrorMessage('Failed to load attendance data.');
                 return [];
             }
-        },
-        createPayslipData(employee, attendanceRecords, salaryMonth, paydayType) {
-            return this.$refs.payslipHistoryModal?.createPayslipData(employee, attendanceRecords, salaryMonth, paydayType) || {};
         },
         showSuccessMessage(message) {
             this.statusMessage = message;
