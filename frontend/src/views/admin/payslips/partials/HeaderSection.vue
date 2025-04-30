@@ -11,9 +11,9 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 w-full">
+            <div class="grid grid-cols-5 sm:grid-cols-4 md:grid-cols-3 lg:grid-cols-5 gap-2 w-full">
                 <button @click="$emit('refresh-data')"
-                    class="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="flex items-center justify-center gap-2 bg-blue-100 hover:bg-blue-700 text-blue-700 hover:text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     :disabled="isLoading">
                     <span class="material-icons text-lg animate-spin" v-if="isLoading">sync</span>
                     <span class="material-icons text-lg" v-else>refresh</span>
@@ -21,7 +21,7 @@
                 </button>
 
                 <button @click="$emit('generate-all-payslips')"
-                    class="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="flex items-center justify-center gap-2 bg-green-200 hover:bg-green-700 text-green-700 hover:text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     :disabled="isLoading || isGeneratingAll">
                     <span class="material-icons text-lg animate-spin" v-if="isGeneratingAll">sync</span>
                     <span class="material-icons text-lg" v-else>description</span>
@@ -29,21 +29,21 @@
                 </button>
 
                 <button @click="$emit('show-print-modal')"
-                    class="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="flex items-center justify-center gap-2 bg-purple-200 hover:bg-purple-700 text-purple-700 hover:text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     :disabled="isLoading">
                     <span class="material-icons text-lg">print</span>
                     <span class="hidden sm:inline">Print All</span>
                 </button>
 
                 <button @click="$emit('show-update-position-modal')"
-                    class="flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="flex items-center justify-center gap-2 bg-orange-200 hover:bg-orange-600 text-orange-600 hover:text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     :disabled="isLoading">
                     <span class="material-icons text-lg">edit</span>
                     <span class="hidden sm:inline">Update Position</span>
                 </button>
 
                 <button @click="$emit('open-deduction-modal')"
-                    class="flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="flex items-center justify-center gap-2 bg-teal-100 hover:bg-teal-700 text-teal-700 hover:text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     :disabled="isLoading">
                     <span class="material-icons text-lg">money_off</span>
                     <span class="hidden sm:inline">Deduction</span>

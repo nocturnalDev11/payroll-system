@@ -6,7 +6,7 @@
                     <span class="material-icons text-sm">print</span>
                     Print Payslips
                 </h2>
-                <button @click="$emit('close')" class="flex items-center p-1 hover:bg-gray-100 rounded-full">
+                <button @click="$emit('close')" class="flex items-center p-1 hover:bg-gray-100 rounded-full cursor-pointer">
                     <span class="material-icons text-sm">close</span>
                 </button>
             </div>
@@ -14,7 +14,8 @@
                 <h3 class="text-sm font-medium text-gray-700 mb-2">Select Employees to Print</h3>
                 <div v-if="employeesWithPayslips.length > 0" class="mb-4">
                     <label class="flex items-center">
-                        <input type="checkbox" v-model="selectAll" @change="$emit('toggle-select-all')"
+                        <input type="checkbox" :value="selectAll"
+                            @change="$emit('update:selectAll', $event.target.checked); $emit('toggle-select-all')"
                             class="large-checkbox mr-2" />
                         <span class="text-sm text-gray-900 font-medium">Select All</span>
                     </label>
@@ -22,7 +23,8 @@
                 <div v-if="employeesWithPayslips.length > 0">
                     <div v-for="emp in employeesWithPayslips" :key="emp.id"
                         class="flex items-center py-2 border-b border-gray-300">
-                        <input type="checkbox" v-model="selectedEmployeesForPrint" :value="emp.id"
+                        <input type="checkbox" :checked="selectedEmployeesForPrint.includes(emp.id)"
+                            @change="updateSelectedEmployees(emp.id, $event.target.checked)"
                             class="large-checkbox mr-2" />
                         <span class="text-sm text-gray-900">{{ emp.name }} - Most Recent: {{ emp.latestPayslipDate
                             }}</span>
@@ -34,11 +36,11 @@
             </div>
             <div class="p-4 border-t border-gray-300 flex justify-end gap-2">
                 <button @click="$emit('close')"
-                    class="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded hover:bg-gray-300">
+                    class="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded hover:bg-gray-300 cursor-pointer">
                     Cancel
                 </button>
                 <button @click="$emit('print-selected-payslips')"
-                    class="flex items-center gap-1 px-4 py-2 text-sm text-white bg-purple-500 rounded hover:bg-purple-600"
+                    class="flex items-center gap-1 px-4 py-2 text-sm text-white bg-purple-500 rounded hover:bg-purple-600 cursor-pointer"
                     :disabled="selectedEmployeesForPrint.length === 0 || isPrinting">
                     <span class="material-icons text-sm">print</span>
                     {{ isPrinting ? 'Printing...' : 'Print Selected' }}
@@ -73,7 +75,20 @@ export default {
             required: true,
         },
     },
-    emits: ['close', 'toggle-select-all', 'print-selected-payslips'],
+    emits: ['close', 'toggle-select-all', 'print-selected-payslips', 'update:selectAll', 'update:selectedEmployeesForPrint'],
+    methods: {
+        updateSelectedEmployees(employeeId, isChecked) {
+            let updatedSelection = [...this.selectedEmployeesForPrint];
+            if (isChecked) {
+                if (!updatedSelection.includes(employeeId)) {
+                    updatedSelection.push(employeeId);
+                }
+            } else {
+                updatedSelection = updatedSelection.filter(id => id !== employeeId);
+            }
+            this.$emit('update:selectedEmployeesForPrint', updatedSelection);
+        },
+    },
 };
 </script>
 

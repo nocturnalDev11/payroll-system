@@ -27,53 +27,11 @@
                 @show-error-message="showErrorMessage" />
 
             <!-- Print All Modal -->
-            <div v-if="showPrintAllModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
-                    <div class="flex items-center justify-between p-4 border-b">
-                        <h2 class="text-base font-medium text-gray-800 flex items-center gap-1">
-                            <span class="material-icons text-sm">print</span>
-                            Print Payslips
-                        </h2>
-                        <button @click="showPrintAllModal = false" class="p-1 hover:bg-gray-100 rounded-full">
-                            <span class="material-icons text-sm">close</span>
-                        </button>
-                    </div>
-                    <div class="p-4 overflow-y-auto">
-                        <h3 class="text-sm font-medium text-gray-700 mb-2">Select Employees to Print</h3>
-                        <div v-if="employeesWithPayslips.length > 0" class="mb-4">
-                            <label class="flex items-center">
-                                <input type="checkbox" v-model="selectAll" @change="toggleSelectAll"
-                                    class="large-checkbox mr-2" />
-                                <span class="text-sm text-gray-900 font-medium">Select All</span>
-                            </label>
-                        </div>
-                        <div v-if="employeesWithPayslips.length > 0">
-                            <div v-for="emp in employeesWithPayslips" :key="emp.id"
-                                class="flex items-center py-2 border-b">
-                                <input type="checkbox" v-model="selectedEmployeesForPrint" :value="emp.id"
-                                    class="large-checkbox mr-2" />
-                                <span class="text-sm text-gray-900">{{ emp.name }} - Most Recent: {{
-                                    emp.latestPayslipDate }}</span>
-                            </div>
-                        </div>
-                        <div v-else class="text-sm text-gray-500 text-center py-4">
-                            No employees with generated payslips found in history.
-                        </div>
-                    </div>
-                    <div class="p-4 border-t flex justify-end gap-2">
-                        <button @click="showPrintAllModal = false"
-                            class="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded hover:bg-gray-300">
-                            Cancel
-                        </button>
-                        <button @click="printSelectedPayslips"
-                            class="flex items-center gap-1 px-4 py-2 text-sm text-white bg-purple-500 rounded hover:bg-purple-600"
-                            :disabled="selectedEmployeesForPrint.length === 0 || isPrinting">
-                            <span class="material-icons text-sm">print</span>
-                            {{ isPrinting ? 'Printing...' : 'Print Selected' }}
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <PrintAllModal :show="showPrintAllModal" :employeesWithPayslips="employeesWithPayslips"
+                :selectedEmployeesForPrint.sync="selectedEmployeesForPrint" :isPrinting="isPrinting"
+                :selectAll.sync="selectAll" @close="showPrintAllModal = false" @toggle-select-all="toggleSelectAll"
+                @print-selected-payslips="printSelectedPayslips" @update:selectAll="selectAll = $event"
+                @update:selectedEmployeesForPrint="selectedEmployeesForPrint = $event" />
 
             <!-- Add Attendance-Affected Deductions Modal -->
             <AddAttendanceDeductionsModal v-if="showDeductionModal" :show="showDeductionModal" :employees="employees"
@@ -83,7 +41,7 @@
             <!-- Toast Messages -->
             <div v-if="statusMessage" :class="[
                 statusMessage.includes('successfully') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700',
-                'fixed bottom-4 right-4 p-3 rounded shadow-lg z-50 flex items-center gap-1 animate-fade-in text-sm'
+                'fixed bottom-4 right-4 p-3 rounded shadow-lg z-50 flex items-center gap-1 animate-fade-in text-sm',
             ]">
                 <span class="material-icons text-sm">
                     {{ statusMessage.includes('successfully') ? 'check_circle' : 'error' }}
@@ -105,6 +63,7 @@ import HeaderSection from './partials/HeaderSection.vue';
 import EmployeeTable from './partials/EmployeeTable.vue';
 import PayslipHistoryModal from './partials/PayslipHistoryModal.vue';
 import UpdatePositionModal from './partials/UpdatePositionModal.vue';
+import PrintAllModal from './partials/PrintAllModal.vue';
 import AddAttendanceDeductionsModal from './partials/AddAttendanceDeductionsModal.vue';
 
 applyPlugin(jsPDF);
@@ -116,6 +75,7 @@ export default {
         EmployeeTable,
         PayslipHistoryModal,
         UpdatePositionModal,
+        PrintAllModal,
         AddAttendanceDeductionsModal,
     },
     data() {
@@ -162,7 +122,7 @@ export default {
         this.isLoading = true;
         try {
             await this.fetchPositionsWithRetry();
-            await this.fetchEmployees(); // Call fetchEmployees directly
+            await this.fetchEmployees();
             await this.fetchAttendanceAffectedDeductions();
         } catch (error) {
             console.error('Error in created hook:', error);
@@ -309,7 +269,7 @@ export default {
             this.isLoading = true;
             try {
                 await this.fetchPositionsWithRetry();
-                await this.fetchEmployees(); // Call fetchEmployees directly
+                await this.fetchEmployees();
                 await this.fetchAttendanceAffectedDeductions();
                 this.showSuccessMessage('Data refreshed successfully!');
             } catch (error) {
@@ -373,7 +333,6 @@ export default {
                         continue;
                     }
 
-                    // Ensure existing payheads are valid
                     const existingPayheads = Array.isArray(this.employees.find(e => e._id === employee._id)?.payheads)
                         ? this.employees.find(e => e._id === employee._id).payheads.filter(ph =>
                             ph?._id && ph?.name && typeof ph.amount === 'number' && ph?.type
@@ -382,7 +341,6 @@ export default {
 
                     const updatedPayheads = [...existingPayheads];
 
-                    // Add new deductions, avoiding duplicates
                     for (const deduction of deductions) {
                         if (!deduction?.id || !deduction?.name || isNaN(deduction.amount)) {
                             console.warn('Skipping invalid deduction:', deduction);
@@ -404,7 +362,7 @@ export default {
                     }
 
                     const payload = {
-                        payheads: updatedPayheads.map(ph => ph._id), // Send only _id values
+                        payheads: updatedPayheads.map(ph => ph._id),
                     };
 
                     const response = await axios.put(
