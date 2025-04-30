@@ -110,6 +110,9 @@ const submitRequest = async () => {
 
     try {
         const payload = { password: newRequest.value.password };
+        console.log('Sending payload:', payload); // Debugging
+        console.log('Employee ID:', employeeId.value); // Debugging
+        console.log('API URL:', `${BASE_API_URL}/api/employees/update/${employeeId.value}`); // Debugging
         const response = await fetch(`${BASE_API_URL}/api/employees/update/${employeeId.value}`, {
             method: 'PUT',
             headers: {
@@ -119,22 +122,19 @@ const submitRequest = async () => {
             body: JSON.stringify(payload),
         });
 
+        console.log('Response status:', response.status); // Debugging
+        const responseData = await response.json();
+        console.log('Response data:', responseData); // Debugging
+
         if (!response.ok) {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Update failed');
-            } else {
-                const text = await response.text();
-                throw new Error(`Update failed with status ${response.status}: ${text}`);
-            }
+            throw new Error(responseData.message || 'Update failed');
         }
 
-        await response.json();
         addToast('Password updated successfully.', 'success');
         resetForm();
     } catch (error) {
         addToast(`Update failed: ${error.message}`, 'error');
+        console.error('Update error:', error); // Debugging
     } finally {
         isSubmitting.value = false;
     }
