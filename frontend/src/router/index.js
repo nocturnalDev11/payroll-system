@@ -69,7 +69,7 @@ const routes = [
             { 
                 path: 'dashboard',
                 name: 'AdminDashboard', 
-                component: () => import('../views/admin/AdminDashboard.vue'),
+                component: () => import('../views/admin/dashboard/AdminDashboard.vue'),
                 meta: {
                     title: 'Admin Dashboard',
                 }
