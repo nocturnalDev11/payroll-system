@@ -1,30 +1,3 @@
-<script>
-export default {
-    props: {
-        paginatedEmployees: Array,
-        isLoading: Boolean,
-        currentPage: Number,
-        totalPages: Number,
-        positions: Array
-    },
-    emits: ['show-payslip-history', 'prev-page', 'next-page'],
-    methods: {
-        getPositionName(positionName) {
-            const position = this.positions.find(p => p.name.trim().toLowerCase() === positionName?.trim().toLowerCase());
-            return position ? position.name : positionName || 'Unknown Position';
-        },
-        getPositionSalary(positionName) {
-            const position = this.positions.find(p => p.name.trim().toLowerCase() === positionName?.trim().toLowerCase());
-            return position ? position.salary : 0;
-        },
-        getHourlyRate(positionName) {
-            const salary = this.getPositionSalary(positionName);
-            return Number((salary / (8 * 22)).toFixed(2));
-        }
-    }
-};
-</script>
-
 <template>
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
@@ -95,14 +68,16 @@ export default {
             </table>
         </div>
         <div class="flex items-center justify-between px-4 py-3 bg-gray-50">
-            <div class="text-xs text-gray-700">Showing page {{ currentPage }} of {{ totalPages }}</div>
+            <div class="text-xs text-gray-700">
+                Showing page {{ currentPage }} of {{ totalPages }}
+            </div>
             <div class="flex gap-2">
-                <button @click="$emit('prev-page')" :disabled="currentPage === 1 || isLoading"
+                <button @click="prevPage" :disabled="currentPage === 1 || isLoading"
                     class="inline-flex items-center px-3 py-1 text-xs bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-50">
                     <span class="material-icons text-sm mr-1">chevron_left</span>
                     Previous
                 </button>
-                <button @click="$emit('next-page')" :disabled="currentPage === totalPages || isLoading"
+                <button @click="nextPage" :disabled="currentPage === totalPages || isLoading"
                     class="inline-flex items-center px-3 py-1 text-xs bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-50">
                     Next
                     <span class="material-icons text-sm ml-1">chevron_right</span>
@@ -111,6 +86,61 @@ export default {
         </div>
     </div>
 </template>
+
+<script>
+export default {
+    name: 'EmployeeTable',
+    props: {
+        employees: Array,
+        positions: Array,
+        searchQuery: String,
+        isLoading: Boolean,
+    },
+    data() {
+        return {
+            currentPage: 1,
+            itemsPerPage: 10,
+        };
+    },
+    computed: {
+        filteredEmployees() {
+            return this.employees.filter((employee) => {
+                const name = employee && employee.name ? employee.name : '';
+                return name.toLowerCase().includes(this.searchQuery.toLowerCase());
+            });
+        },
+        totalPages() {
+            return Math.ceil(this.filteredEmployees.length / this.itemsPerPage) || 1;
+        },
+        paginatedEmployees() {
+            const start = (this.currentPage - 1) * this.itemsPerPage;
+            const end = start + this.itemsPerPage;
+            return this.filteredEmployees.slice(start, end).sort((a, b) => a.position.localeCompare(b.position));
+        },
+    },
+    methods: {
+        getPositionName(positionName) {
+            const position = this.positions.find(p => p.name.trim().toLowerCase() === positionName?.trim().toLowerCase());
+            return position ? position.name : positionName || 'Unknown Position';
+        },
+        getPositionSalary(positionName) {
+            const position = this.positions.find(p => p.name.trim().toLowerCase() === positionName?.trim().toLowerCase());
+            return position ? position.salary : 0;
+        },
+        getHourlyRate(positionName) {
+            const salary = this.getPositionSalary(positionName);
+            return Number((salary / (8 * 22)).toFixed(2));
+        },
+        prevPage() {
+            if (this.currentPage > 1) this.currentPage--;
+        },
+        nextPage() {
+            if (this.currentPage < this.totalPages) this.currentPage++;
+        },
+    },
+    emits: ['show-payslip-history'],
+};
+</script>
 
 <style scoped>
 .transition-colors {

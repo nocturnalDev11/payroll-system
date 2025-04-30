@@ -33,7 +33,7 @@
                         <span class="material-icons text-sm">edit</span>
                         Update Position
                     </button>
-                    <button @click="showDeductionModal"
+                    <button @click="openDeductionModal"
                         class="flex items-center justify-center gap-1 bg-teal-500 hover:bg-teal-600 text-white text-sm py-2 px-4 rounded-md"
                         :disabled="isLoading">
                         <span class="material-icons text-sm">money_off</span>
@@ -634,14 +634,13 @@ export default {
                 }
             }
         },
-
         async fetchAttendanceAffectedDeductions(retries = 3, delay = 1000) {
             for (let i = 0; i < retries; i++) {
                 this.isLoading = true;
                 const token = this.authStore.accessToken || localStorage.getItem('token') || '';
                 try {
                     if (!token) throw new Error('No authentication token found');
-                    console.log(`Fetching deductions, attempt ${i + 1}`);
+                    console.log(`Fetching deductions, attempt ${i + 1}, token: ${token.slice(0, 20)}...`);
                     const response = await axios.get(`${BASE_API_URL}/api/payheads`, {
                         headers: {
                             'Authorization': `Bearer ${token}`,
@@ -650,11 +649,16 @@ export default {
                         },
                         params: { isAttendanceAffected: true },
                     });
-                    console.log('Fetched deductions:', response.data);
-                    this.attendanceAffectedDeductions = response.data
-                        .filter(payhead => payhead.type === 'Deductions' && payhead.isAttendanceAffected)
+                    console.log('Raw API response:', response.data);
+                    const filteredDeductions = response.data
+                        .filter(payhead => {
+                            const isDeduction = payhead.type === 'Deductions';
+                            const isAttendanceAffected = payhead.isAttendanceAffected === true;
+                            console.log(`Payhead: ${payhead.name}, type: ${payhead.type}, isAttendanceAffected: ${payhead.isAttendanceAffected}, included: ${isDeduction && isAttendanceAffected}`);
+                            return isDeduction && isAttendanceAffected;
+                        })
                         .map(payhead => ({
-                            id: payhead._id,
+                            id: payhead._id || payhead.id,
                             name: payhead.name,
                             amount: Number(payhead.amount || 0),
                             type: payhead.type,
@@ -662,16 +666,17 @@ export default {
                             isRecurring: payhead.isRecurring || false,
                             isAttendanceAffected: payhead.isAttendanceAffected || false,
                         }));
+                    console.log('Filtered deductions:', filteredDeductions);
+                    this.attendanceAffectedDeductions = filteredDeductions;
                     if (this.attendanceAffectedDeductions.length === 0) {
                         console.warn('No attendance-affected deductions found.');
-                        // Allow modal to open even with no deductions
                         this.showErrorMessage('No attendance-affected deductions available.');
                     } else {
                         this.showSuccessMessage('Attendance-affected deductions loaded successfully!');
                     }
                     return;
                 } catch (error) {
-                    console.error(`Error fetching deductions, attempt ${i + 1}:`, error);
+                    console.error(`Error fetching deductions, attempt ${i + 1}:`, error.response?.data || error.message);
                     if (i === retries - 1) {
                         this.showErrorMessage(`Failed to load deductions after ${retries} attempts: ${error.message}`);
                         this.attendanceAffectedDeductions = [];
@@ -687,71 +692,91 @@ export default {
             console.log('Saving deductions:', { employees, deductions });
             this.isLoading = true;
             const token = this.authStore.accessToken || localStorage.getItem('token') || '';
+
             try {
                 if (!token) throw new Error('No authentication token found');
+                if (!employees?.length || !deductions?.length) {
+                    throw new Error('No employees or deductions selected');
+                }
 
                 for (const employee of employees) {
-                    const existingPayheads = this.employees.find(e => e.id === employee.id)?.payheads || [];
+                    if (!employee?._id) {
+                        console.warn('Skipping employee with missing _id:', employee);
+                        continue;
+                    }
+
+                    // Ensure existing payheads are valid
+                    const existingPayheads = Array.isArray(this.employees.find(e => e._id === employee._id)?.payheads)
+                        ? this.employees.find(e => e._id === employee._id).payheads.filter(ph =>
+                            ph?._id && ph?.name && typeof ph.amount === 'number' && ph?.type
+                        )
+                        : [];
+
                     const updatedPayheads = [...existingPayheads];
 
+                    // Add new deductions, avoiding duplicates
                     for (const deduction of deductions) {
-                        if (!updatedPayheads.some(ph => ph.id === deduction.id)) {
+                        if (!deduction?._id || !deduction?.name || isNaN(deduction.amount)) {
+                            console.warn('Skipping invalid deduction:', deduction);
+                            continue;
+                        }
+
+                        if (!updatedPayheads.some(ph => ph._id === deduction._id)) {
                             updatedPayheads.push({
-                                id: deduction.id,
+                                _id: deduction._id,
                                 name: deduction.name,
                                 amount: Number(deduction.amount || 0),
-                                type: deduction.type,
+                                type: 'Deductions',
                                 description: deduction.description || '',
                                 isRecurring: deduction.isRecurring || false,
-                                isAttendanceAffected: deduction.isAttendanceAffected || false,
+                                isAttendanceAffected: deduction.isAttendanceAffected || true,
                                 appliedThisCycle: false,
                                 uniqueId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                             });
                         }
                     }
 
+                    // Validate payload
                     const payload = {
-                        payheads: updatedPayheads.map(ph => ({
-                            _id: ph.id,
-                            name: ph.name,
-                            amount: Number(ph.amount || 0),
-                            type: ph.type,
-                            description: ph.description || '',
-                            isRecurring: ph.isRecurring || false,
-                            isAttendanceAffected: ph.isAttendanceAffected || false,
-                            appliedThisCycle: ph.appliedThisCycle || false,
-                            uniqueId: ph.uniqueId,
-                        })),
+                        payheads: updatedPayheads.map(ph => ph._id), // Send only _id values
                     };
 
-                    await axios.put(`${BASE_API_URL}/api/employees/update/${employee.id}`, payload, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'user-role': 'admin',
-                            'user-id': this.authStore.admin?._id || localStorage.getItem('userId') || '',
-                        },
-                    });
+                    // Log payload for debugging
+                    console.log(`Updating employee ${employee._id} with payload:`, payload);
 
-                    const employeeIndex = this.employees.findIndex(e => e.id === employee.id);
-                    if (employeeIndex !== -1) {
-                        this.$set(this.employees, employeeIndex, {
-                            ...this.employees[employeeIndex],
-                            payheads: updatedPayheads,
-                        });
+                    const response = await axios.put(
+                        `${BASE_API_URL}/api/employees/update/${employee._id}`,
+                        payload,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'user-role': 'admin',
+                                'user-id': this.authStore.admin?._id || localStorage.getItem('userId') || '',
+                            },
+                        }
+                    );
+
+                    if (response.status === 200) {
+                        const employeeIndex = this.employees.findIndex(e => e._id === employee._id);
+                        if (employeeIndex !== -1) {
+                            this.employees[employeeIndex] = {
+                                ...this.employees[employeeIndex],
+                                payheads: updatedPayheads,
+                            };
+                        }
                     }
                 }
 
                 this.showSuccessMessage('Deductions assigned successfully!');
-                this.$set(this, 'showDeductionModal', false);
+                this.showDeductionModal = false;
             } catch (error) {
-                console.error('Error saving deductions:', error);
-                this.showErrorMessage(`Failed to assign deductions: ${error.message}`);
+                console.error('Error saving deductions:', error.response?.data || error.message);
+                this.showErrorMessage(`Failed to assign deductions: ${error.response?.data?.message || error.message}`);
             } finally {
                 this.isLoading = false;
             }
         },
-        async showDeductionModal() {
-            // Enhanced debugging
+        async openDeductionModal() {
             console.log('Deduction button clicked, current state:', {
                 showDeductionModal: this.showDeductionModal,
                 employeesCount: this.employees.length,
@@ -769,8 +794,8 @@ export default {
                 }
             }
 
-            // Force modal to open
-            this.$set(this, 'showDeductionModal', true);
+            // Open modal
+            this.showDeductionModal = true;
             console.log('showDeductionModal set to true, checking DOM...');
             this.$nextTick(() => {
                 const modal = document.querySelector('.fixed.inset-0.bg-gray-600');
@@ -1540,7 +1565,15 @@ export default {
             // Calculate late deductions for the specific pay period
             const lateDeduction = calculateLateDeductions(filteredAttendanceRecords, salaryMonth, paydayType);
 
-            const payheadDeductions = calculatePayheadDeductions(sanitizedPayheads);
+            // Apply attendance-affected deductions only if attendance issues exist
+            const attendanceIssues = filteredAttendanceRecords.some(record => record.status === 'late' || record.status === 'absent');
+            const payheadDeductions = calculatePayheadDeductions(
+                sanitizedPayheads.filter(ph =>
+                    ph.type === 'Deductions' &&
+                    (!ph.isAttendanceAffected || (ph.isAttendanceAffected && attendanceIssues))
+                )
+            );
+
             const sss = calculateSSSContribution(basicSalary);
             const philhealth = calculatePhilHealthContribution(basicSalary);
             const pagibig = calculatePagIBIGContribution(basicSalary);
@@ -1561,7 +1594,7 @@ export default {
                 }));
 
             const deductions = sanitizedPayheads
-                .filter((ph) => ph.type === 'Deductions')
+                .filter((ph) => ph.type === 'Deductions' && (!ph.isAttendanceAffected || (ph.isAttendanceAffected && attendanceIssues)))
                 .map((ph) => ({
                     name: ph.name,
                     amount: this.formatNumber(ph.amount),

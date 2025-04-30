@@ -1,20 +1,10 @@
-<script>
-export default {
-    props: {
-        searchQuery: String,
-        isLoading: Boolean,
-        isGeneratingAll: Boolean
-    },
-    emits: ['update:searchQuery', 'refresh-data', 'generate-all-payslips', 'show-print-modal', 'show-update-position-modal']
-};
-</script>
-
 <template>
     <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div class="relative">
                 <span class="material-icons absolute left-2 top-2 text-gray-400 text-sm">search</span>
-                <input v-model="searchQuery" type="text" placeholder="Search employee by name..."
+                <input :value="searchQuery" @input="$emit('update:searchQuery', $event.target.value)" type="text"
+                    placeholder="Search employee by name..."
                     class="w-full pl-8 pr-3 py-2 text-sm rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-transparent" />
             </div>
             <button @click="$emit('refresh-data')"
@@ -41,6 +31,24 @@ export default {
                 <span class="material-icons text-sm">edit</span>
                 Update Position
             </button>
+            <button @click="$emit('open-deduction-modal')"
+                class="flex items-center justify-center gap-1 bg-teal-500 hover:bg-teal-600 text-white text-sm py-2 px-4 rounded-md"
+                :disabled="isLoading">
+                <span class="material-icons text-sm">money_off</span>
+                Deduction
+            </button>
         </div>
     </div>
 </template>
+
+<script>
+export default {
+    name: 'HeaderSection',
+    props: {
+        searchQuery: String,
+        isLoading: Boolean,
+        isGeneratingAll: Boolean,
+    },
+    emits: ['update:searchQuery', 'refresh-data', 'generate-all-payslips', 'show-print-modal', 'show-update-position-modal', 'open-deduction-modal'],
+};
+</script>
