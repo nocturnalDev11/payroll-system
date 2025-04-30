@@ -424,10 +424,16 @@ exports.getAttendanceByEmployeeId = asyncHandler(async (req, res) => {
     const { employeeId } = req.params;
 
     try {
+        const employee = await Employee.findById(employeeId);
+        if (!employee) {
+            return res.status(404).json({ message: 'Employee not found' });
+        }
+
         const attendanceRecords = await Attendance.find({ employeeId });
         if (!attendanceRecords || attendanceRecords.length === 0) {
-            return res.status(404).json({ message: 'No attendance records found' });
+            return res.status(200).json([]);
         }
+
         res.status(200).json(attendanceRecords);
     } catch (error) {
         res.status(500).json({ message: 'Internal Server Error', error: error.message });

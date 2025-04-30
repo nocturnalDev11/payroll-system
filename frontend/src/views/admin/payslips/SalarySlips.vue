@@ -59,7 +59,7 @@ import { applyPlugin } from 'jspdf-autotable';
 import moment from 'moment';
 import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
-import { createPayslipData, generatePdf } from '@/utils/pdfGenerator.js'; // Import the utility functions
+import { createPayslipData, generatePdf } from '@/utils/pdfGenerator.js';
 import HeaderSection from './partials/HeaderSection.vue';
 import EmployeeTable from './partials/EmployeeTable.vue';
 import PayslipHistoryModal from './partials/PayslipHistoryModal.vue';
@@ -321,6 +321,7 @@ export default {
         async saveAttendanceDeductions({ employees, deductions }) {
             this.isLoading = true;
             const token = this.authStore.accessToken || localStorage.getItem('token') || '';
+            const currentDate = moment().format('YYYY-MM-DD');
 
             try {
                 if (!token) throw new Error('No authentication token found');
@@ -344,7 +345,7 @@ export default {
 
                     for (const deduction of deductions) {
                         if (!deduction?.id || !deduction?.name || isNaN(deduction.amount)) {
-                            console.warn('Skipping invalid deduction HAND:', deduction);
+                            console.warn('Skipping invalid deduction:', deduction);
                             continue;
                         }
 
@@ -357,13 +358,14 @@ export default {
                                 description: deduction.description || '',
                                 isRecurring: deduction.isRecurring || false,
                                 isAttendanceAffected: deduction.isAttendanceAffected || true,
+                                startDate: currentDate, // Add start date for deduction
                                 appliedThisCycle: false,
                             });
                         }
                     }
 
                     const payload = {
-                        payheads: updatedPayheads.map(ph => ph._id),
+                        payheads: updatedPayheads, // Send full payhead objects
                     };
 
                     const response = await axios.put(
@@ -456,7 +458,7 @@ export default {
                         attendanceRecords,
                         latestPayslip.salaryMonth,
                         latestPayslip.paydayType,
-                        this.config // Pass the config object
+                        this.config
                     );
 
                     if (!payslipData || Object.keys(payslipData).length === 0) {
@@ -493,10 +495,15 @@ export default {
                         'user-role': 'admin',
                     },
                 });
+
                 return response.data || [];
             } catch (error) {
                 console.error('Error fetching attendance records:', error);
-                this.showErrorMessage('Failed to load attendance data.');
+                if (error.response?.status === 404) {
+                    console.warn(`No attendance records found for employee ID: ${employeeId}`);
+                } else {
+                    this.showErrorMessage('Failed to load attendance data.');
+                }
                 return [];
             }
         },

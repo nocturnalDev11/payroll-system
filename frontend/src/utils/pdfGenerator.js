@@ -32,13 +32,26 @@ export function createPayslipData(employee, attendanceRecords, salaryMonth, payd
     // Calculate late deductions for the specific pay period
     const lateDeduction = calculateLateDeductions(filteredAttendanceRecords, salaryMonth, paydayType);
 
-    // Apply attendance-affected deductions only if attendance issues exist
-    const attendanceIssues = filteredAttendanceRecords.some(record => record.status === 'late' || record.status === 'absent');
+    // Determine applicable deductions
+    const payPeriodStart = moment(startDate);
+    const payPeriodEnd = moment(endDate);
+
+    // Include attendance-affected deductions if they were added before or during the pay period
+    const applicablePayheads = sanitizedPayheads.filter(ph => {
+        if (ph.type !== 'Deductions') return true; // Include earnings
+        if (!ph.isAttendanceAffected) return true; // Include non-attendance-affected deductions
+
+        // Include attendance-affected deductions if:
+        // 1. There are attendance issues (late or absent), or
+        // 2. The deduction's startDate is within or before the pay period
+        const hasAttendanceIssues = filteredAttendanceRecords.some(record => record.status === 'Late' || record.status === 'Absent');
+        const deductionStartDate = ph.startDate ? moment(ph.startDate) : moment(employee.hireDate || '1970-01-01');
+
+        return hasAttendanceIssues || deductionStartDate.isSameOrBefore(payPeriodEnd, 'day');
+    });
+
     const payheadDeductions = calculatePayheadDeductions(
-        sanitizedPayheads.filter(ph =>
-            ph.type === 'Deductions' &&
-            (!ph.isAttendanceAffected || (ph.isAttendanceAffected && attendanceIssues))
-        )
+        applicablePayheads.filter(ph => ph.type === 'Deductions')
     );
 
     const sss = calculateSSSContribution(basicSalary);
@@ -48,22 +61,22 @@ export function createPayslipData(employee, attendanceRecords, salaryMonth, payd
     const totalDeductions = sss + philhealth + pagibig + withholdingTax + payheadDeductions + lateDeduction;
     const netSalary = basicSalary - totalDeductions;
 
-    const earnings = sanitizedPayheads
+    const earnings = applicablePayheads
         .filter((ph) => ph.type === 'Earnings')
         .map((ph) => ({
             name: ph.name,
             amount: formatNumber(ph.amount),
         }));
 
-    const deductions = sanitizedPayheads
-        .filter((ph) => ph.type === 'Deductions' && (!ph.isAttendanceAffected || (ph.isAttendanceAffected && attendanceIssues)))
+    const deductions = applicablePayheads
+        .filter((ph) => ph.type === 'Deductions')
         .map((ph) => ({
             name: ph.name,
             amount: formatNumber(ph.amount),
         }));
 
     if (lateDeduction > 0) {
-            deductions.push({
+        deductions.push({
             name: 'Late Deductions',
             amount: formatNumber(lateDeduction),
         });
@@ -87,7 +100,7 @@ export function createPayslipData(employee, attendanceRecords, salaryMonth, payd
         basicSalary: formatNumber(basicSalary),
         totalDeductions: formatNumber(totalDeductions),
         netSalary: formatNumber(netSalary),
-        netPay: formatNumber(netSalary), // Alias for compatibility
+        netPay: formatNumber(netSalary),
         sssDeduction: formatNumber(sss),
         philhealthDeduction: formatNumber(philhealth),
         pagibigDeduction: formatNumber(pagibig),
@@ -215,8 +228,8 @@ export function generatePdf(payslipData, doc) {
     y += lineHeight;
     if (payslipData.earnings && payslipData.earnings.length > 0) {
         const earningsTableData = payslipData.earnings.map((earning) => [
-        earning.name,
-        `P${earning.amount}`,
+            earning.name,
+            `P${earning.amount}`,
         ]);
         pdfDoc.autoTable({
             startY: y,

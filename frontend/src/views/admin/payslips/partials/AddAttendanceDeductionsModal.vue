@@ -104,6 +104,7 @@ export default {
             default: () => [],
         },
     },
+    emits: ['save', 'close'],
     data() {
         return {
             selectedEmployees: [],
