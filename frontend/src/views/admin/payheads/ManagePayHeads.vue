@@ -174,7 +174,7 @@
                     <div class="text-xs text-gray-700">
                         Showing <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span> to
                         <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, filteredEmployees.length)
-                        }}</span> of
+                            }}</span> of
                         <span class="font-medium">{{ filteredEmployees.length }}</span> entries
                     </div>
 
@@ -302,6 +302,7 @@ export default {
                 type: 'Earnings',
                 description: '',
                 isRecurring: false,
+                isAttendanceAffected: false,
                 appliedThisCycle: false,
             },
             selectedPayHead: {
@@ -311,6 +312,7 @@ export default {
                 type: 'Earnings',
                 description: '',
                 isRecurring: false,
+                isAttendanceAffected: false,
                 appliedThisCycle: false,
             },
             showAddModal: false,
@@ -434,6 +436,7 @@ export default {
                     amount: Number(item.amount || 0),
                     type: item.type,
                     isRecurring: item.isRecurring || false,
+                    isAttendanceAffected: item.isAttendanceAffected || false,
                     appliedThisCycle: item.appliedThisCycle || false,
                 }));
                 this.availablePayheads = [...this.payHeads];
@@ -473,6 +476,7 @@ export default {
                             amount: Number(ph.amount || 0),
                             type: ph.type || 'Earnings',
                             isRecurring: ph.isRecurring || false,
+                            isAttendanceAffected: ph.isAttendanceAffected || false,
                             appliedThisCycle: ph.appliedThisCycle || false,
                             uniqueId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                         }));
@@ -509,14 +513,20 @@ export default {
         async addPayHead(payHead) {
             try {
                 this.isLoading = true;
+                const authStore = useAuthStore();
                 const payload = {
                     name: payHead.name,
                     amount: Number(payHead.amount || 0),
                     type: payHead.type,
-                    isRecurring: payHead.isRecurring || false
+                    isRecurring: payHead.isRecurring || false,
+                    isAttendanceAffected: payHead.isAttendanceAffected || false
                 };
                 const response = await axios.post(`${BASE_API_URL}/api/payheads`, payload, {
-                    headers: { 'user-role': 'admin' },
+                    headers: {
+                        'Authorization': `Bearer ${authStore.accessToken}`,
+                        'user-role': 'admin',
+                        'user-id': authStore.admin?.id || authStore.employee?.id
+                    },
                 });
                 this.payHeads.push({
                     _id: response.data._id,
@@ -525,6 +535,7 @@ export default {
                     amount: Number(response.data.amount),
                     type: response.data.type,
                     isRecurring: response.data.isRecurring || false,
+                    isAttendanceAffected: response.data.isAttendanceAffected || false,
                     appliedThisCycle: false,
                 });
                 this.availablePayheads = [...this.payHeads];
@@ -540,23 +551,40 @@ export default {
         },
 
         showUpdatePayHeadModal(payHead) {
-            this.selectedPayHead = { ...payHead };
+            this.selectedPayHead = {
+                id: payHead.id || '',
+                name: payHead.name || '',
+                amount: payHead.amount || 0,
+                type: payHead.type || 'Earnings',
+                description: payHead.description || '',
+                isRecurring: payHead.isRecurring || false,
+                isAttendanceAffected: payHead.isAttendanceAffected || false,
+                appliedThisCycle: payHead.appliedThisCycle || false,
+            };
             this.showUpdateModal = true;
         },
 
         async updatePayHead(updatedPayHead) {
             try {
                 this.isLoading = true;
+                const authStore = useAuthStore();
                 const payload = {
                     name: updatedPayHead.name,
                     amount: Number(updatedPayHead.amount || 0),
                     type: updatedPayHead.type,
-                    isRecurring: updatedPayHead.isRecurring || false
+                    isRecurring: updatedPayHead.isRecurring || false,
+                    isAttendanceAffected: updatedPayHead.isAttendanceAffected || false
                 };
                 const response = await axios.put(
                     `${BASE_API_URL}/api/payheads/${updatedPayHead.id}`,
                     payload,
-                    { headers: { 'user-role': 'admin' } }
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${authStore.accessToken}`,
+                            'user-role': 'admin',
+                            'user-id': authStore.admin?.id || authStore.employee?.id
+                        }
+                    }
                 );
                 const index = this.payHeads.findIndex(ph => ph.id === updatedPayHead.id);
                 if (index !== -1) {
@@ -567,6 +595,7 @@ export default {
                         amount: Number(response.data.amount),
                         type: response.data.type,
                         isRecurring: response.data.isRecurring || false,
+                        isAttendanceAffected: response.data.isAttendanceAffected || false,
                         appliedThisCycle: false,
                     };
                     this.availablePayheads = [...this.payHeads];
@@ -620,6 +649,7 @@ export default {
                 amount: Number(payhead.amount || 0),
                 type: payhead.type,
                 isRecurring: payhead.isRecurring || false,
+                isAttendanceAffected: payhead.isAttendanceAffected || false,
                 appliedThisCycle: false,
                 uniqueId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             };
@@ -707,6 +737,7 @@ export default {
                                 amount: Number(payhead.amount || 0),
                                 type: payhead.type,
                                 isRecurring: payhead.isRecurring || false,
+                                isAttendanceAffected: payhead.isAttendanceAffected || false,
                                 appliedThisCycle: false,
                                 uniqueId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                             });
@@ -771,6 +802,7 @@ export default {
                                 amount: Number(deduction.amount || 0),
                                 type: deduction.type,
                                 isRecurring: true,
+                                isAttendanceAffected: deduction.isAttendanceAffected || false,
                                 appliedThisCycle: false,
                                 uniqueId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                             });

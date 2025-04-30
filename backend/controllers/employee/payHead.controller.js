@@ -2,8 +2,15 @@ const PayHead = require('../../models/payHead.model.js');
 
 const getPayHeads = async (req, res) => {
     try {
-        const payheads = await PayHead.find().sort({ id: 1 });
-        res.status(200).json(payheads.length ? payheads : []);
+        const query = {};
+        if (req.query.isAttendanceAffected === 'true') {
+            query.isAttendanceAffected = true;
+        }
+        if (req.query.type) {
+            query.type = req.query.type;
+        }
+        const payheads = await PayHead.find(query).select('id name amount type description isRecurring isAttendanceAffected');
+        res.status(200).json(payheads);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch pay heads', message: error.message });
     }
@@ -11,15 +18,24 @@ const getPayHeads = async (req, res) => {
 
 const createPayHead = async (req, res) => {
     try {
-        const { name, amount, type, isRecurring } = req.body;
+        const { name, amount, type, isRecurring, isAttendanceAffected } = req.body;
         if (!name || !amount || !type) {
-            return res.status(400).json({ error: `Missing required fields: ${[!name && 'name', !amount && 'amount', !type && 'type'].filter(Boolean).join(', ')}` });
+            return res.status(400).json({ 
+                error: `Missing required fields: ${[!name && 'name', !amount && 'amount', !type && 'type'].filter(Boolean).join(', ')}` 
+            });
         }
 
         const maxIdPayhead = await PayHead.findOne().sort({ id: -1 }).select('id');
         const newId = maxIdPayhead ? maxIdPayhead.id + 1 : 1;
 
-        const payhead = new PayHead({ ...req.body, id: newId, isRecurring: isRecurring || false });
+        const payhead = new PayHead({ 
+            id: newId,
+            name,
+            amount,
+            type,
+            isRecurring: isRecurring || false,
+            isAttendanceAffected: isAttendanceAffected || false
+        });
         await payhead.save();
         res.status(201).json(payhead);
     } catch (error) {
@@ -37,7 +53,11 @@ const updatePayHead = async (req, res) => {
     try {
         const payhead = await PayHead.findOneAndUpdate(
             { id: parseInt(req.params.id) },
-            { ...req.body, isRecurring: req.body.isRecurring || false },
+            { 
+                ...req.body, 
+                isRecurring: req.body.isRecurring || false,
+                isAttendanceAffected: req.body.isAttendanceAffected || false
+            },
             { new: true, runValidators: true }
         );
         if (!payhead) return res.status(404).json({ error: 'Pay head not found' });

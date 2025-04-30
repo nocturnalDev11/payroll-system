@@ -33,7 +33,7 @@
                         <span class="material-icons text-sm">edit</span>
                         Update Position
                     </button>
-                    <button @click="openDeductionModal"
+                    <button @click="showDeductionModal"
                         class="flex items-center justify-center gap-1 bg-teal-500 hover:bg-teal-600 text-white text-sm py-2 px-4 rounded-md"
                         :disabled="isLoading">
                         <span class="material-icons text-sm">money_off</span>
@@ -186,8 +186,8 @@
                                         @click="selectPayslip(payslip)">
                                         <td class="px-4 py-2 text-sm text-gray-900">
                                             {{ payslip.paydayType === 'mid-month' ?
-                                            payslip.expectedPaydays.midMonthPayday :
-                                            payslip.expectedPaydays.endMonthPayday }}
+                                                payslip.expectedPaydays.midMonthPayday :
+                                                payslip.expectedPaydays.endMonthPayday }}
                                         </td>
                                         <td class="px-4 py-2 text-sm text-gray-500">
                                             {{ getPositionName(payslip.position) }}
@@ -205,9 +205,9 @@
                                                 :disabled="!canGeneratePayslip(payslip) || payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating">
                                                 <span class="material-icons text-sm">description</span>
                                                 {{
-                                                payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
-                                                ?
-                                                'Generating...' : 'Generate' }}
+                                                    payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
+                                                        ?
+                                                        'Generating...' : 'Generate' }}
                                             </button>
                                         </td>
                                     </tr>
@@ -229,13 +229,13 @@
                                                 @click="sortNewPayslips('payDate')">
                                                 Pay Date <span class="material-icons text-xs">{{ sortNewField ===
                                                     'payDate' ? (sortNewAsc ?
-                                                    'arrow_upward' : 'arrow_downward') : '' }}</span>
+                                                        'arrow_upward' : 'arrow_downward') : '' }}</span>
                                             </th>
                                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 cursor-pointer"
                                                 @click="sortNewPayslips('position')">
                                                 Position <span class="material-icons text-xs">{{ sortNewField ===
                                                     'position' ? (sortNewAsc ?
-                                                    'arrow_upward' : 'arrow_downward') : '' }}</span>
+                                                        'arrow_upward' : 'arrow_downward') : '' }}</span>
                                             </th>
                                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Salary
                                             </th>
@@ -253,8 +253,8 @@
                                             @click="selectPayslip(payslip)">
                                             <td class="px-4 py-2 text-sm text-gray-900">
                                                 {{ payslip.paydayType === 'mid-month' ?
-                                                payslip.expectedPaydays.midMonthPayday :
-                                                payslip.expectedPaydays.endMonthPayday }}
+                                                    payslip.expectedPaydays.midMonthPayday :
+                                                    payslip.expectedPaydays.endMonthPayday }}
                                             </td>
                                             <td class="px-4 py-2 text-sm text-gray-500">
                                                 {{ getPositionName(payslip.position) }}
@@ -272,9 +272,9 @@
                                                     :disabled="!canGeneratePayslip(payslip) || payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating">
                                                     <span class="material-icons text-sm">description</span>
                                                     {{
-                                                    payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
-                                                    ?
-                                                    'Generating...' : 'Generate' }}
+                                                        payslipGenerationStatus[`${payslip.salaryMonth}-${payslip.paydayType}`]?.generating
+                                                            ?
+                                                            'Generating...' : 'Generate' }}
                                                 </button>
                                             </td>
                                         </tr>
@@ -634,13 +634,14 @@ export default {
                 }
             }
         },
+
         async fetchAttendanceAffectedDeductions(retries = 3, delay = 1000) {
             for (let i = 0; i < retries; i++) {
                 this.isLoading = true;
                 const token = this.authStore.accessToken || localStorage.getItem('token') || '';
                 try {
                     if (!token) throw new Error('No authentication token found');
-                    console.log(`Fetching deductions, attempt ${i + 1}, token: ${token.slice(0, 20)}...`);
+                    console.log(`Fetching deductions, attempt ${i + 1}`);
                     const response = await axios.get(`${BASE_API_URL}/api/payheads`, {
                         headers: {
                             'Authorization': `Bearer ${token}`,
@@ -649,16 +650,11 @@ export default {
                         },
                         params: { isAttendanceAffected: true },
                     });
-                    console.log('Raw API response:', response.data);
-                    const filteredDeductions = response.data
-                        .filter(payhead => {
-                            const isDeduction = payhead.type === 'Deductions';
-                            const isAttendanceAffected = payhead.isAttendanceAffected === true;
-                            console.log(`Payhead: ${payhead.name}, type: ${payhead.type}, isAttendanceAffected: ${payhead.isAttendanceAffected}, included: ${isDeduction && isAttendanceAffected}`);
-                            return isDeduction && isAttendanceAffected;
-                        })
+                    console.log('Fetched deductions:', response.data);
+                    this.attendanceAffectedDeductions = response.data
+                        .filter(payhead => payhead.type === 'Deductions' && payhead.isAttendanceAffected)
                         .map(payhead => ({
-                            id: payhead._id || payhead.id,
+                            id: payhead._id,
                             name: payhead.name,
                             amount: Number(payhead.amount || 0),
                             type: payhead.type,
@@ -666,17 +662,16 @@ export default {
                             isRecurring: payhead.isRecurring || false,
                             isAttendanceAffected: payhead.isAttendanceAffected || false,
                         }));
-                    console.log('Filtered deductions:', filteredDeductions);
-                    this.attendanceAffectedDeductions = filteredDeductions;
                     if (this.attendanceAffectedDeductions.length === 0) {
                         console.warn('No attendance-affected deductions found.');
+                        // Allow modal to open even with no deductions
                         this.showErrorMessage('No attendance-affected deductions available.');
                     } else {
                         this.showSuccessMessage('Attendance-affected deductions loaded successfully!');
                     }
                     return;
                 } catch (error) {
-                    console.error(`Error fetching deductions, attempt ${i + 1}:`, error.response?.data || error.message);
+                    console.error(`Error fetching deductions, attempt ${i + 1}:`, error);
                     if (i === retries - 1) {
                         this.showErrorMessage(`Failed to load deductions after ${retries} attempts: ${error.message}`);
                         this.attendanceAffectedDeductions = [];
@@ -747,7 +742,7 @@ export default {
                 }
 
                 this.showSuccessMessage('Deductions assigned successfully!');
-                this.showDeductionModal = false;
+                this.$set(this, 'showDeductionModal', false);
             } catch (error) {
                 console.error('Error saving deductions:', error);
                 this.showErrorMessage(`Failed to assign deductions: ${error.message}`);
@@ -755,7 +750,8 @@ export default {
                 this.isLoading = false;
             }
         },
-        async openDeductionModal() {
+        async showDeductionModal() {
+            // Enhanced debugging
             console.log('Deduction button clicked, current state:', {
                 showDeductionModal: this.showDeductionModal,
                 employeesCount: this.employees.length,
@@ -773,8 +769,8 @@ export default {
                 }
             }
 
-            // Open modal
-            this.showDeductionModal = true;
+            // Force modal to open
+            this.$set(this, 'showDeductionModal', true);
             console.log('showDeductionModal set to true, checking DOM...');
             this.$nextTick(() => {
                 const modal = document.querySelector('.fixed.inset-0.bg-gray-600');
@@ -1544,15 +1540,7 @@ export default {
             // Calculate late deductions for the specific pay period
             const lateDeduction = calculateLateDeductions(filteredAttendanceRecords, salaryMonth, paydayType);
 
-            // Apply attendance-affected deductions only if attendance issues exist
-            const attendanceIssues = filteredAttendanceRecords.some(record => record.status === 'late' || record.status === 'absent');
-            const payheadDeductions = calculatePayheadDeductions(
-                sanitizedPayheads.filter(ph =>
-                    ph.type === 'Deductions' &&
-                    (!ph.isAttendanceAffected || (ph.isAttendanceAffected && attendanceIssues))
-                )
-            );
-
+            const payheadDeductions = calculatePayheadDeductions(sanitizedPayheads);
             const sss = calculateSSSContribution(basicSalary);
             const philhealth = calculatePhilHealthContribution(basicSalary);
             const pagibig = calculatePagIBIGContribution(basicSalary);
@@ -1573,7 +1561,7 @@ export default {
                 }));
 
             const deductions = sanitizedPayheads
-                .filter((ph) => ph.type === 'Deductions' && (!ph.isAttendanceAffected || (ph.isAttendanceAffected && attendanceIssues)))
+                .filter((ph) => ph.type === 'Deductions')
                 .map((ph) => ({
                     name: ph.name,
                     amount: this.formatNumber(ph.amount),

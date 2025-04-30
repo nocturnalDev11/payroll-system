@@ -32,10 +32,17 @@
                     <textarea v-model="localPayHead.description" placeholder="Enter description"
                         class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Recurring</label>
-                    <input v-model="localPayHead.isRecurring" type="checkbox"
-                        class="h-4 w-4 text-blue-600 border focus:ring-blue-500 border-gray-300 rounded" />
+                <div class="flex items-center space-x-8">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Recurring</label>
+                        <input v-model="localPayHead.isRecurring" type="checkbox"
+                            class="h-4 w-4 text-blue-600 border focus:ring-blue-500 border-gray-300 rounded" />
+                    </div>
+                    <div v-if="localPayHead.type === 'Deductions'">
+                        <label class="block text-sm font-medium text-gray-700">Affected by Attendance</label>
+                        <input v-model="localPayHead.isAttendanceAffected" type="checkbox"
+                            class="h-4 w-4 text-blue-600 border focus:ring-blue-500 border-gray-300 rounded" />
+                    </div>
                 </div>
             </div>
 
@@ -46,7 +53,7 @@
                     <span class="material-icons text-base">close</span>Cancel
                 </button>
                 <button @click="$emit('save', localPayHead)"
-                    class="py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 hover:text-gray-50 transition duration-200 flex items-center gap-1"
+                    class="py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 flex items-center gap-1"
                     :disabled="!localPayHead.name || localPayHead.amount == null">
                     <span class="material-icons text-base">save</span>{{ isUpdate ? 'Update' : 'Save' }}
                 </button>
@@ -74,12 +81,31 @@ export default {
     },
     data() {
         return {
-            localPayHead: { ...this.payHead },
+            localPayHead: {
+                id: this.payHead.id || '',
+                name: this.payHead.name || '',
+                amount: this.payHead.amount || 0,
+                type: this.payHead.type || 'Earnings',
+                description: this.payHead.description || '',
+                isRecurring: this.payHead.isRecurring || false,
+                isAttendanceAffected: this.payHead.isAttendanceAffected || false,
+            },
         };
     },
     watch: {
-        payHead(newVal) {
-            this.localPayHead = { ...newVal };
+        payHead: {
+            handler(newVal) {
+                this.localPayHead = {
+                    id: newVal.id || '',
+                    name: newVal.name || '',
+                    amount: newVal.amount || 0,
+                    type: newVal.type || 'Earnings',
+                    description: newVal.description || '',
+                    isRecurring: newVal.isRecurring || false,
+                    isAttendanceAffected: newVal.isAttendanceAffected || false,
+                };
+            },
+            deep: true,
         },
     },
 };
