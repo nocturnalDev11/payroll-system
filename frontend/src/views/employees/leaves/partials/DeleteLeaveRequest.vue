@@ -70,7 +70,7 @@ const submitDelete = async () => {
         </button>
 
         <Modal :show="showModal" max-width="sm" @close="showModal = false">
-            <div class="p-6">
+            <div class="p-2">
                 <div class="flex items-center justify-between">
                     <h2 class="text-xl font-bold text-gray-900">Delete Leave Request</h2>
                     <button @click="showModal = false" class="p-2 cursor-pointer">
