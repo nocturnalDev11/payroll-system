@@ -1,12 +1,12 @@
 <template>
-    <div v-if="show" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-[1000]">
+    <div v-if="show" class="fixed inset-0 bg-gray-600/50 bg-opacity-50 flex items-center justify-center z-[1000]">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
             <div class="flex items-center justify-between p-4 border-b border-gray-300">
                 <h2 class="text-base font-medium text-gray-800 flex items-center gap-1">
                     <span class="material-icons text-sm">money_off</span>
                     Add Attendance-Affected Deductions
                 </h2>
-                <button @click="cancel" class="p-1 hover:bg-gray-100 rounded-full">
+                <button @click="cancel" class="flex items-center p-1 hover:bg-gray-100 rounded-full cursor-pointer">
                     <span class="material-icons text-sm">close</span>
                 </button>
             </div>

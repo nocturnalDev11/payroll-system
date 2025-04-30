@@ -692,65 +692,86 @@ export default {
             console.log('Saving deductions:', { employees, deductions });
             this.isLoading = true;
             const token = this.authStore.accessToken || localStorage.getItem('token') || '';
+
             try {
                 if (!token) throw new Error('No authentication token found');
+                if (!employees?.length || !deductions?.length) {
+                    throw new Error('No employees or deductions selected');
+                }
 
                 for (const employee of employees) {
-                    const existingPayheads = this.employees.find(e => e.id === employee.id)?.payheads || [];
+                    if (!employee?._id) {
+                        console.warn('Skipping employee with missing _id:', employee);
+                        continue;
+                    }
+
+                    // Ensure existing payheads are valid
+                    const existingPayheads = Array.isArray(this.employees.find(e => e._id === employee._id)?.payheads)
+                        ? this.employees.find(e => e._id === employee._id).payheads.filter(ph =>
+                            ph?._id && ph?.name && typeof ph.amount === 'number' && ph?.type
+                        )
+                        : [];
+
                     const updatedPayheads = [...existingPayheads];
 
+                    // Add new deductions, avoiding duplicates
                     for (const deduction of deductions) {
-                        if (!updatedPayheads.some(ph => ph.id === deduction.id)) {
+                        if (!deduction?._id || !deduction?.name || isNaN(deduction.amount)) {
+                            console.warn('Skipping invalid deduction:', deduction);
+                            continue;
+                        }
+
+                        if (!updatedPayheads.some(ph => ph._id === deduction._id)) {
                             updatedPayheads.push({
-                                id: deduction.id,
+                                _id: deduction._id,
                                 name: deduction.name,
                                 amount: Number(deduction.amount || 0),
-                                type: deduction.type,
+                                type: 'Deductions',
                                 description: deduction.description || '',
                                 isRecurring: deduction.isRecurring || false,
-                                isAttendanceAffected: deduction.isAttendanceAffected || false,
+                                isAttendanceAffected: deduction.isAttendanceAffected || true,
                                 appliedThisCycle: false,
                                 uniqueId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                             });
                         }
                     }
 
+                    // Validate payload
                     const payload = {
-                        payheads: updatedPayheads.map(ph => ({
-                            _id: ph.id,
-                            name: ph.name,
-                            amount: Number(ph.amount || 0),
-                            type: ph.type,
-                            description: ph.description || '',
-                            isRecurring: ph.isRecurring || false,
-                            isAttendanceAffected: ph.isAttendanceAffected || false,
-                            appliedThisCycle: ph.appliedThisCycle || false,
-                            uniqueId: ph.uniqueId,
-                        })),
+                        payheads: updatedPayheads.map(ph => ph._id), // Send only _id values
                     };
 
-                    await axios.put(`${BASE_API_URL}/api/employees/update/${employee.id}`, payload, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'user-role': 'admin',
-                            'user-id': this.authStore.admin?._id || localStorage.getItem('userId') || '',
-                        },
-                    });
+                    // Log payload for debugging
+                    console.log(`Updating employee ${employee._id} with payload:`, payload);
 
-                    const employeeIndex = this.employees.findIndex(e => e.id === employee.id);
-                    if (employeeIndex !== -1) {
-                        this.$set(this.employees, employeeIndex, {
-                            ...this.employees[employeeIndex],
-                            payheads: updatedPayheads,
-                        });
+                    const response = await axios.put(
+                        `${BASE_API_URL}/api/employees/update/${employee._id}`,
+                        payload,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'user-role': 'admin',
+                                'user-id': this.authStore.admin?._id || localStorage.getItem('userId') || '',
+                            },
+                        }
+                    );
+
+                    if (response.status === 200) {
+                        const employeeIndex = this.employees.findIndex(e => e._id === employee._id);
+                        if (employeeIndex !== -1) {
+                            this.employees[employeeIndex] = {
+                                ...this.employees[employeeIndex],
+                                payheads: updatedPayheads,
+                            };
+                        }
                     }
                 }
 
                 this.showSuccessMessage('Deductions assigned successfully!');
                 this.showDeductionModal = false;
             } catch (error) {
-                console.error('Error saving deductions:', error);
-                this.showErrorMessage(`Failed to assign deductions: ${error.message}`);
+                console.error('Error saving deductions:', error.response?.data || error.message);
+                this.showErrorMessage(`Failed to assign deductions: ${error.response?.data?.message || error.message}`);
             } finally {
                 this.isLoading = false;
             }

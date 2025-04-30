@@ -68,13 +68,11 @@ exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
         const employee = await Employee.findById(id);
         if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
-        // Ensure salary is provided or use existing salary
         const updatedSalary = salary ? Number(salary) : employee.salary;
         if (!updatedSalary) {
             return res.status(400).json({ error: 'Salary is required when updating position' });
         }
 
-        // Close the current positionHistory entry (if any) and add a new one
         const currentPosition = employee.positionHistory.find(p => !p.endDate);
         if (currentPosition) {
             currentPosition.endDate = new Date();
@@ -92,19 +90,20 @@ exports.updateEmployeeDetails = asyncHandler(async (req, res) => {
     }
 
     if (payheads) {
-        if (!Array.isArray(payheads) || payheads.some(id => !mongoose.Types.ObjectId.isValid(id))) {
-            return res.status(400).json({ error: 'Invalid payhead IDs' });
+        if (!Array.isArray(payheads)) {
+            return res.status(400).json({ error: 'Payheads must be an array' });
+        }
+        const invalidIds = payheads.filter(id => !mongoose.Types.ObjectId.isValid(id));
+        if (invalidIds.length > 0) {
+            return res.status(400).json({ error: `Invalid payhead IDs: ${invalidIds.join(', ')}` });
         }
         const payheadsExist = await PayHead.find({ _id: { $in: payheads } });
         if (payheadsExist.length !== payheads.length) {
-            return res.status(400).json({ error: 'One or more payhead IDs do not exist' });
+            const existingIds = payheadsExist.map(ph => ph._id.toString());
+            const missingIds = payheads.filter(id => !existingIds.includes(id));
+            return res.status(400).json({ error: `Payhead IDs do not exist: ${missingIds.join(', ')}` });
         }
         updateData.payheads = payheads;
-    }
-
-    if (password) {
-        const salt = await bcrypt.genSalt(10);
-        updateData.password = await bcrypt.hash(password, salt);
     }
 
     const employee = await Employee.findByIdAndUpdate(
