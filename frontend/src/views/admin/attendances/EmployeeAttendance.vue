@@ -3,6 +3,7 @@ import axios from 'axios';
 import moment from 'moment';
 import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
+import { debounce } from 'lodash';
 
 export default {
     name: 'EmployeeAttendance',
@@ -15,14 +16,29 @@ export default {
             employees: [],
             selectedEmployee: null,
             showDetailsModal: false,
+            showAddModal: false,
+            showFilterPanel: false,
             isLoading: false,
             searchQuery: '',
+            statusFilter: [],
+            dateRange: {
+                start: new Date().toISOString().split('T')[0],
+                end: new Date().toISOString().split('T')[0],
+            },
             currentPage: 1,
             itemsPerPage: 10,
             statusMessage: '',
             date: new Date().toISOString().split('T')[0],
             sortKey: 'empNo',
             sortDirection: 'asc',
+            newAttendance: {
+                employeeId: '',
+                morningTimeIn: '',
+                morningTimeOut: '',
+                afternoonTimeIn: '',
+                afternoonTimeOut: '',
+                status: 'Present'
+            },
             headers: [
                 { key: 'empNo', label: 'Employee No', icon: 'badge' },
                 { key: 'firstName', label: 'Name', icon: 'person' },
@@ -33,6 +49,9 @@ export default {
                 { key: 'status', label: 'Status', icon: 'check_circle' },
                 { key: 'actions', label: 'Actions', icon: 'settings' },
             ],
+            statusOptions: [
+                'Present', 'Absent', 'Late', 'Half Day', 'On Time', 'Early Departure', 'Leave'
+            ],
             lastResetDate: null,
         };
     },
@@ -41,21 +60,8 @@ export default {
             if (!this.employees || !Array.isArray(this.employees)) return [];
             let filtered = this.employees;
 
-            const statusFilter = this.$route.query.status;
-            if (statusFilter) {
-                if (statusFilter === 'present') {
-                    filtered = filtered.filter(employee =>
-                        ['On Time', 'Late', 'Early Departure', 'Present', 'Half Day'].includes(employee.status)
-                    );
-                } else if (statusFilter === 'late') {
-                    filtered = filtered.filter(employee => employee.status === 'Late');
-                } else if (statusFilter === 'absent') {
-                    filtered = filtered.filter(employee => employee.status === 'Absent');
-                } else if (statusFilter === 'halfday') {
-                    filtered = filtered.filter(employee => employee.status === 'Half Day');
-                } else if (statusFilter === 'ontime') {
-                    filtered = filtered.filter(employee => employee.status === 'On Time');
-                }
+            if (this.statusFilter.length) {
+                filtered = filtered.filter(employee => this.statusFilter.includes(employee.status));
             }
 
             filtered = filtered.filter(employee =>
@@ -63,6 +69,13 @@ export default {
                 `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
                 employee.empNo.toString().toLowerCase().includes(this.searchQuery.toLowerCase())
             );
+
+            if (this.dateRange.start && this.dateRange.end) {
+                filtered = filtered.filter(employee => {
+                    const attDate = moment(employee.date).format('YYYY-MM-DD');
+                    return attDate >= this.dateRange.start && attDate <= this.dateRange.end;
+                });
+            }
 
             return filtered.sort((a, b) => {
                 const valueA = a[this.sortKey] || '';
@@ -88,6 +101,7 @@ export default {
     mounted() {
         this.checkAndResetDaily();
         this.fetchEmployeesAndAttendance();
+        this.debouncedSearch = debounce(this.handleSearch, 300);
     },
     methods: {
         checkAndResetDaily() {
@@ -226,6 +240,7 @@ export default {
                 'Early Departure': 'text-orange-600 bg-orange-100',
                 'Present': 'text-green-600 bg-green-100',
                 'Half Day': 'text-blue-600 bg-blue-100',
+                'Leave': 'text-purple-600 bg-purple-100',
             }[status] || 'text-gray-600';
         },
         prevPage() {
@@ -240,6 +255,58 @@ export default {
                 this.selectedEmployee.employeeId = this.selectedEmployee.employeeId._id;
             }
             this.showDetailsModal = true;
+        },
+        showAddAttendanceModal() {
+            this.newAttendance = {
+                employeeId: '',
+                morningTimeIn: '',
+                morningTimeOut: '',
+                afternoonTimeIn: '',
+                afternoonTimeOut: '',
+                status: 'Present'
+            };
+            this.showAddModal = true;
+        },
+        async addAttendance() {
+            try {
+                const token = this.authStore.accessToken;
+                if (!token) throw new Error('No access token available. Please log in.');
+                if (!this.newAttendance.employeeId) throw new Error('Please select an employee');
+
+                const { status, lateHours, lateDeduction } = this.calculateStatusAndDeductions({
+                    morningTimeIn: this.newAttendance.morningTimeIn,
+                    morningTimeOut: this.newAttendance.morningTimeOut,
+                    afternoonTimeIn: this.newAttendance.afternoonTimeIn,
+                    afternoonTimeOut: this.newAttendance.afternoonTimeOut,
+                });
+
+                const payload = {
+                    employeeId: this.newAttendance.employeeId,
+                    date: this.date,
+                    morningTimeIn: this.newAttendance.morningTimeIn || null,
+                    morningTimeOut: this.newAttendance.morningTimeOut || null,
+                    afternoonTimeIn: this.newAttendance.afternoonTimeIn || null,
+                    afternoonTimeOut: this.newAttendance.afternoonTimeOut || null,
+                    status: this.newAttendance.status,
+                    lateHours,
+                    lateDeduction,
+                };
+
+                const response = await axios.post(
+                    `${BASE_API_URL}/api/attendance`,
+                    payload,
+                    { headers: { 'Authorization': `Bearer ${token}`, 'user-role': 'admin' } }
+                );
+
+                if (response.status === 201) {
+                    this.showAddModal = false;
+                    this.showSuccessMessage('Attendance record added successfully');
+                    await this.fetchEmployeesAndAttendance();
+                }
+            } catch (error) {
+                console.error('Error adding attendance:', error);
+                this.showErrorMessage(`Failed to add attendance: ${error.message}`);
+            }
         },
         calculateStatusAndDeductions({ morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut }) {
             const OFFICE_START = "08:00";
@@ -360,8 +427,6 @@ export default {
                     lateDeduction,
                 };
 
-                console.log('Updating attendance with payload:', payload);
-
                 let response;
                 if (employee._id) {
                     response = await axios.put(
@@ -376,8 +441,6 @@ export default {
                         { headers: { 'Authorization': `Bearer ${token}`, 'user-role': 'admin' } }
                     );
                 }
-
-                console.log('Response:', response.data);
 
                 if (response.status === 200 || response.status === 201) {
                     const updatedEmployee = {
@@ -395,7 +458,6 @@ export default {
                 }
             } catch (error) {
                 console.error('Error updating attendance:', error);
-                console.error('Server response:', error.response?.data);
                 this.showErrorMessage(`Update failed: ${error.response?.data?.message || error.message}`);
                 if (error.message.includes('No access token')) {
                     this.authStore.logout();
@@ -459,55 +521,122 @@ export default {
             this.statusMessage = message;
             setTimeout(() => (this.statusMessage = ''), 2000);
         },
+        handleSearch() {
+            this.currentPage = 1;
+            this.fetchEmployeesAndAttendance();
+        },
+        resetFilters() {
+            this.statusFilter = [];
+            this.dateRange = {
+                start: new Date().toISOString().split('T')[0],
+                end: new Date().toISOString().split('T')[0],
+            };
+            this.searchQuery = '';
+            this.fetchEmployeesAndAttendance();
+        },
     },
     watch: {
-        '$route.query.status': {
-            handler() {
-                this.fetchEmployeesAndAttendance();
-            },
-            immediate: true,
+        searchQuery(newVal) {
+            this.debouncedSearch(newVal);
         },
     },
 };
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50 p-2">
-        <div class="mx-auto">
+    <div class="min-h-screen bg-gray-50 p-4">
+        <div class="mx-auto max-w-7xl">
             <!-- Header -->
-            <header
-                class="bg-white rounded-lg shadow p-4 flex flex-col xl:flex-row lg:flex-row md:flex-row sm:flex-col xs:flex-col items-center justify-between gap-4">
-                <h1 class="text-xl font-semibold text-gray-800 flex items-center gap-1">
-                    <span class="material-icons text-indigo-500 text-xl">schedule</span>
-                    Attendance
-                </h1>
-                <div class="flex flex-col sm:flex-row xs:flex-col items-center gap-2 w-full sm:w-auto xs:w-full">
-                    <div class="relative w-full sm:w-auto xs:w-full">
-                        <span
-                            class="material-icons absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">event</span>
-                        <input type="date" v-model="date" @change="fetchEmployeesAndAttendance"
-                            class="pl-8 pr-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 w-full sm:w-32 xs:w-full bg-white" />
-                    </div>
-                    <div class="relative w-full sm:w-auto xs:w-full">
-                        <span
-                            class="material-icons absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
-                        <input v-model="searchQuery" type="text" placeholder="Search..."
-                            class="w-full sm:w-36 xs:w-full pl-8 pr-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
-                        <button v-if="searchQuery" @click="searchQuery = ''"
-                            class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                            <span class="material-icons text-xs">close</span>
+            <header class="bg-white rounded-xl shadow-lg p-6 flex flex-col gap-4">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <span class="material-icons text-indigo-600 text-2xl">schedule</span>
+                        Attendance Dashboard
+                    </h1>
+                    <div class="flex items-center gap-3">
+                        <button @click="showAddAttendanceModal"
+                            class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-all flex items-center gap-2 cursor-pointer">
+                            <span class="material-icons text-base">add</span>
+                            Add Attendance
+                        </button>
+                        <button @click="generateReport"
+                            class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-all flex items-center gap-2 cursor-pointer">
+                            <span class="material-icons text-base">download</span>
+                            Export CSV
+                        </button>
+                        <button @click="showFilterPanel = !showFilterPanel"
+                            class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all sm:hidden cursor-pointer">
+                            <span class="material-icons text-base">filter_list</span>
                         </button>
                     </div>
-                    <button @click="generateReport"
-                        class="px-3 py-1 bg-indigo-500 text-white text-xs rounded hover:bg-indigo-600 flex items-center gap-1 w-full sm:w-auto xs:w-full justify-center">
-                        <span class="material-icons text-xs">download</span>
-                        Export CSV
+                </div>
+
+                <!-- Search and Filter Controls -->
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="relative flex-1 flex">
+                        <span
+                            class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">search</span>
+                        <input v-model="searchQuery" type="text" placeholder="Search by name or employee number..."
+                            class="w-full pl-10 pr-10 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                            aria-label="Search employees" @keyup.enter="handleSearch" />
+                        <button v-if="searchQuery" @click="searchQuery = ''"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-all cursor-pointer"
+                            aria-label="Clear search">
+                            <span class="material-icons text-base">close</span>
+                        </button>
+                    </div>
+                    <button @click="showFilterPanel = !showFilterPanel"
+                        class="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-all hidden sm:flex items-center gap-2 cursor-pointer">
+                        <span class="material-icons text-base">filter_list</span>
+                        Filters
                     </button>
                 </div>
+
+                <!-- Filter Panel -->
+                <transition name="filter-slide">
+                    <div v-if="showFilterPanel" class="bg-gray-50 p-4 rounded-lg shadow-inner mt-2">
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <div class="flex-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <div class="relative">
+                                    <select v-model="statusFilter" multiple
+                                        class="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                        aria-label="Filter by attendance status">
+                                        <option v-for="status in statusOptions" :key="status" :value="status">
+                                            {{ status }}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                                <div class="flex gap-2">
+                                    <input type="date" v-model="dateRange.start" @change="fetchEmployeesAndAttendance"
+                                        class="flex-1 p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                        aria-label="Start date" />
+                                    <span class="self-center text-gray-500">to</span>
+                                    <input type="date" v-model="dateRange.end" @change="fetchEmployeesAndAttendance"
+                                        class="flex-1 p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                        aria-label="End date" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2 mt-4">
+                            <button @click="resetFilters"
+                                class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-all cursor-pointer">
+                                Reset Filters
+                            </button>
+                            <button @click="showFilterPanel = false"
+                                class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-all cursor-pointer">
+                                Apply Filters
+                            </button>
+                        </div>
+                    </div>
+                </transition>
             </header>
 
-            <!-- Table -->
-            <div class="bg-white rounded-lg shadow mt-3 overflow-hidden">
+            <!-- Table (unchanged) -->
+            <div class="bg-white rounded-xl shadow-lg mt-6 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full divide-y divide-gray-100">
                         <thead class="bg-gray-50">
@@ -545,22 +674,22 @@ export default {
                                 <td class="px-3 py-2 text-gray-700">
                                     <input type="time" v-model="employee.morningTimeIn"
                                         @change="updateAttendance(employee, 'morningTimeIn')"
-                                        class="w-20 py-1 px-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                                        class="w-20 py-1 px-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white outline-none" />
                                 </td>
                                 <td class="px-3 py-2 text-gray-700">
                                     <input type="time" v-model="employee.morningTimeOut"
                                         @change="updateAttendance(employee, 'morningTimeOut')"
-                                        class="w-20 py-1 px-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                                        class="w-20 py-1 px-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white outline-none" />
                                 </td>
                                 <td class="px-3 py-2 text-gray-700">
                                     <input type="time" v-model="employee.afternoonTimeIn"
                                         @change="updateAttendance(employee, 'afternoonTimeIn')"
-                                        class="w-20 py-1 px-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                                        class="w-20 py-1 px-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white outline-none" />
                                 </td>
                                 <td class="px-3 py-2 text-gray-700">
                                     <input type="time" v-model="employee.afternoonTimeOut"
                                         @change="updateAttendance(employee, 'afternoonTimeOut')"
-                                        class="w-20 py-1 px-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                                        class="w-20 py-1 px-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white outline-none" />
                                 </td>
                                 <td class="px-3 py-2">
                                     <span :class="getStatusClass(employee.status)"
@@ -577,6 +706,7 @@ export default {
                                         <option value="Early Departure">Early Departure</option>
                                         <option value="Present">Present</option>
                                         <option value="Half Day">Half Day</option>
+                                        <option value="Leave">Leave</option>
                                     </select>
                                     <button @click="showDetails(employee)"
                                         class="p-1 bg-indigo-500 text-white rounded hover:bg-indigo-600"
@@ -612,7 +742,7 @@ export default {
                 </div>
             </div>
 
-            <!-- Modal -->
+            <!-- Edit Modal -->
             <transition name="modal">
                 <div v-if="showDetailsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div class="bg-white rounded-lg shadow w-full max-w-sm p-4">
@@ -670,6 +800,9 @@ export default {
                                         <option value="Half Day">Half Day</option>
                                         <option value="Absent">Absent</option>
                                         <option value="Late">Late</option>
+                                        <option value="On Time">On Time</option>
+                                        <option value="Early Departure">Early Departure</option>
+                                        <option value="Leave">Leave</option>
                                     </select>
                                 </div>
                             </div>
@@ -696,6 +829,84 @@ export default {
                 </div>
             </transition>
 
+            <!-- Add Attendance Modal -->
+            <transition name="modal">
+                <div v-if="showAddModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-lg shadow w-full max-w-sm p-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="text-lg font-medium text-gray-800">Add Attendance Record</h2>
+                            <button @click="showAddModal = false" class="text-gray-500 hover:text-gray-700">
+                                <span class="material-icons text-lg">close</span>
+                            </button>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <label for="employeeSelect"
+                                    class="block text-xs font-medium text-gray-700">Employee</label>
+                                <select id="employeeSelect" v-model="newAttendance.employeeId"
+                                    class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white">
+                                    <option value="" disabled>Select an employee</option>
+                                    <option v-for="employee in employees" :key="employee.id"
+                                        :value="employee.employeeId">
+                                        {{ employee.firstName }} {{ employee.lastName }} ({{ employee.empNo }})
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label for="newMorningTimeIn"
+                                        class="block text-xs font-medium text-gray-700">Morning In</label>
+                                    <input id="newMorningTimeIn" v-model="newAttendance.morningTimeIn" type="time"
+                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                                </div>
+                                <div>
+                                    <label for="newMorningTimeOut"
+                                        class="block text-xs font-medium text-gray-700">Morning Out</label>
+                                    <input id="newMorningTimeOut" v-model="newAttendance.morningTimeOut" type="time"
+                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                                </div>
+                                <div>
+                                    <label for="newAfternoonTimeIn"
+                                        class="block text-xs font-medium text-gray-700">Afternoon In</label>
+                                    <input id="newAfternoonTimeIn" v-model="newAttendance.afternoonTimeIn" type="time"
+                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                                </div>
+                                <div>
+                                    <label for="newAfternoonTimeOut"
+                                        class="block text-xs font-medium text-gray-700">Afternoon Out</label>
+                                    <input id="newAfternoonTimeOut" v-model="newAttendance.afternoonTimeOut" type="time"
+                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                                </div>
+                                <div class="col-span-2">
+                                    <label for="newStatus"
+                                        class="block text-xs font-medium text-gray-700">Status</label>
+                                    <select id="newStatus" v-model="newAttendance.status"
+                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white">
+                                        <option value="Present">Present</option>
+                                        <option value="Half Day">Half Day</option>
+                                        <option value="Absent">Absent</option>
+                                        <option value="Late">Late</option>
+                                        <option value="On Time">On Time</option>
+                                        <option value="Early Departure">Early Departure</option>
+                                        <option value="Leave">Leave</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <button @click="addAttendance"
+                                    class="flex-1 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
+                                    Add Record
+                                </button>
+                                <button @click="showAddModal = false"
+                                    class="flex-1 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+
             <!-- Status Message -->
             <div v-if="statusMessage" :class="statusMessage.includes('successfully') ? 'bg-green-500' : 'bg-red-500'"
                 class="fixed bottom-4 right-4 px-3 py-2 text-white text-xs rounded-md shadow-lg animate-fade-in flex items-center gap-1">
@@ -712,7 +923,7 @@ export default {
 /* Transitions */
 .modal-enter-active,
 .modal-leave-active {
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
 }
 
 .modal-enter-from,
@@ -721,20 +932,31 @@ export default {
     transform: scale(0.95);
 }
 
+.filter-slide-enter-active,
+.filter-slide-leave-active {
+    transition: all 0.3s ease;
+}
+
+.filter-slide-enter-from,
+.filter-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
 button:hover:not(:disabled) {
     transform: translateY(-1px);
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
 }
 
 /* Animations */
 .animate-fade-in {
-    animation: fadeIn 0.2s ease-in-out;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(5px);
+        transform: translateY(10px);
     }
 
     to {
@@ -743,27 +965,57 @@ button:hover:not(:disabled) {
     }
 }
 
-/* Responsive fixes */
+/* Responsive Styles */
 @media (max-width: 640px) {
+    header {
+        padding: 1rem;
+    }
+
     .flex-col.sm\:flex-row {
         flex-direction: column;
         gap: 0.5rem;
-    }
-
-    .relative.w-full.sm\:w-64 {
-        width: 100%;
     }
 
     input[type="date"],
     input[type="time"],
     input[type="text"],
     select {
-        font-size: 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .text-2xl {
+        font-size: 1.5rem;
     }
 
     img.h-6.w-6 {
         height: 1.25rem;
         width: 1.25rem;
     }
+}
+
+@media (max-width: 768px) {
+    .sm\:hidden {
+        display: block;
+    }
+
+    .hidden.sm\:flex {
+        display: none;
+    }
+}
+
+/* Custom Styles */
+select[multiple] {
+    height: auto;
+    min-height: 100px;
+}
+
+input,
+select {
+    transition: all 0.2s ease;
+}
+
+input:focus,
+select:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 </style>

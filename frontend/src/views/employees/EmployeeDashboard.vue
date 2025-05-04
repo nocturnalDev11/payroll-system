@@ -200,7 +200,7 @@ async function timeIn() {
 
 async function timeOut() {
     if (!canTimeOut()) {
-        écrits: alert('Time Out is only allowed after 11:30 AM.');
+        alert('Time Out is only allowed after 11:30 AM.');
         return;
     }
     isLoading.value = true;

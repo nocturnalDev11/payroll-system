@@ -44,7 +44,7 @@ app.use((req, res, next) => {
 
 // Middleware (used in both local and production)
 app.use(express.json());
- // CORS config from config/cors.js, adjustable per environment
+// CORS config from config/cors.js, adjustable per environment
 app.use(cors(corsOptions));
 app.use(express.urlencoded({ extended: true }));
 
