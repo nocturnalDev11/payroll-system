@@ -22,6 +22,7 @@ import DeleteEmployeeModal from './partials/DeleteEmployeeModal.vue';
 import Modal from '@/components/Modal.vue';
 import Dropdown from '@/components/Dropdown.vue';
 import DropdownLink from '@/components/DropdownLink.vue';
+import Toast from '@/components/Toast.vue';
 
 export default {
     data() {
@@ -46,7 +47,10 @@ export default {
             positionFilter: '',
             currentPage: 1,
             itemsPerPage: 10,
-            statusMessage: '',
+            toastMessage: '',
+            toastDescription: '',
+            toastType: 'info',
+            toastVisible: false,
             newEmployee: {
                 empNo: '',
                 firstName: '',
@@ -91,6 +95,7 @@ export default {
         Modal,
         Dropdown,
         DropdownLink,
+        Toast,
     },
     setup() {
         const authStore = useAuthStore();
@@ -169,7 +174,7 @@ export default {
                     }));
             } catch (error) {
                 console.error('Error fetching employees:', error);
-                this.showErrorMessage('Failed to load employees');
+                this.showToast('Failed to load employees', '', 'error');
             } finally {
                 this.isLoading = false;
             }
@@ -187,7 +192,7 @@ export default {
                 this.pendingRequests = (response.data || []).map(req => ({ ...req, _id: req._id }));
             } catch (error) {
                 console.error('Error fetching pending requests:', error);
-                this.showErrorMessage('Failed to load pending requests');
+                this.showToast('Failed to load pending requests', '', 'error');
             } finally {
                 this.isLoading = false;
             }
@@ -208,18 +213,18 @@ export default {
                 })) || [];
             } catch (error) {
                 console.error('Error fetching positions:', error);
-                this.showErrorMessage('Failed to load positions');
+                this.showToast('Failed to load positions', '', 'error');
             }
         },
 
         async refreshAll() {
             await Promise.all([this.fetchEmployees(), this.fetchPendingRequests(), this.fetchPositions()]);
-            this.showSuccessMessage('Data refreshed successfully');
+            this.showToast('Data refreshed successfully', '', 'success');
         },
 
         async refreshPendingRequests() {
             await this.fetchPendingRequests();
-            this.showSuccessMessage('Pending requests refreshed successfully');
+            this.showToast('Pending requests refreshed successfully', '', 'success');
         },
 
         viewEmployeeDetails(employee) {
@@ -254,7 +259,7 @@ export default {
                 this.employees[index] = { ...updatedEmployee };
             }
             this.showEditModal = false;
-            this.showSuccessMessage('Employee updated successfully');
+            this.showToast('Employee updated successfully', '', 'success');
         },
 
         confirmMoveToArchive(employee) {
@@ -265,7 +270,7 @@ export default {
         handleEmployeeDeleted(employeeId) {
             this.employees = this.employees.filter(emp => emp._id !== employeeId);
             this.showDeleteModal = false;
-            this.showSuccessMessage('Employee moved to archive successfully');
+            this.showToast('Employee moved to archive successfully', '', 'success');
         },
 
         viewRequestInfo(request) {
@@ -286,20 +291,20 @@ export default {
             if (index !== -1) {
                 this.pendingRequests[index] = { ...updatedRequest };
             }
-            this.showSuccessMessage('Request updated successfully');
+            this.showToast('Request updated successfully', '', 'success');
         },
 
         handleRequestApproved(approvedEmployee) {
             this.pendingRequests = this.pendingRequests.filter(req => req._id !== approvedEmployee._id);
             this.employees.push(approvedEmployee);
             this.showRequestModal = false;
-            this.showSuccessMessage('Employee approved successfully');
+            this.showToast('Employee approved successfully', '', 'success');
         },
 
         handleRequestRejected(requestId) {
             this.pendingRequests = this.pendingRequests.filter(req => req._id !== requestId);
             this.showRequestModal = false;
-            this.showSuccessMessage('Application rejected successfully');
+            this.showToast('Application rejected successfully', '', 'success');
         },
 
         editPosition(position) {
@@ -311,7 +316,7 @@ export default {
             const index = this.adminPositions.findIndex(pos => pos._id === updatedPosition._id);
             if (index !== -1) this.adminPositions[index] = { ...updatedPosition };
             this.showEditPositionModal = false;
-            this.showSuccessMessage('Position updated successfully');
+            this.showToast('Position updated successfully', '', 'success');
         },
 
         confirmDeletePosition(position) {
@@ -322,7 +327,7 @@ export default {
         async handlePositionDeleted(deletedPosition) {
             this.adminPositions = this.adminPositions.filter(pos => pos._id !== deletedPosition._id);
             this.showDeletePositionModal = false;
-            this.showSuccessMessage('Position deleted successfully');
+            this.showToast('Position deleted successfully', '', 'success');
             await this.fetchPositions();
         },
 
@@ -333,13 +338,13 @@ export default {
             });
             this.showAddModal = false;
             this.resetNewEmployee();
-            this.showSuccessMessage('Employee added successfully');
+            this.showToast('Employee added successfully', '', 'success');
         },
 
         handlePositionCreated(newPosition) {
             this.adminPositions.push(newPosition);
             this.resetNewPosition();
-            this.showSuccessMessage('Position created successfully');
+            this.showToast('Position created successfully', '', 'success');
         },
 
         updateSalaryFromPosition() {
@@ -389,14 +394,19 @@ export default {
             this.newPosition = { name: '', salary: 0 };
         },
 
-        showSuccessMessage(message) {
-            this.statusMessage = message;
-            setTimeout(() => (this.statusMessage = ''), 3000);
+        showToast(message, description = '', type = 'info') {
+            this.toastMessage = message;
+            this.toastDescription = description;
+            this.toastType = type;
+            this.toastVisible = true;
         },
 
-        showErrorMessage(message) {
-            this.statusMessage = message;
-            setTimeout(() => (this.statusMessage = ''), 3000);
+        handleToastClose() {
+            this.toastVisible = false;
+        },
+
+        handleShowToast(message, description, type) {
+            this.showToast(message, description, type);
         },
     },
 };
@@ -476,7 +486,7 @@ export default {
                                         ₱{{ (employee.hourlyRate && !isNaN(employee.hourlyRate) ? employee.hourlyRate :
                                             0).toLocaleString('en-US', {
                                                 minimumFractionDigits: 2, maximumFractionDigits: 2
-                                        }) }}
+                                            }) }}
                                     </td>
                                     <td class="px-4 py-2">
                                         ₱{{ (getNetSalary(employee) || 0).toLocaleString('en-US', {
@@ -584,17 +594,15 @@ export default {
             @close="showPositionModal = false" @create="handlePositionCreated" @edit="editPosition"
             @delete="confirmDeletePosition" />
         <EditPositionModal :show="showEditPositionModal" :position="editPositionData"
-            @close="showEditPositionModal = false" @update-success="handlePositionUpdated" />
+            @close="showEditPositionModal = false" @update-success="handlePositionUpdated"
+            @show-toast="handleShowToast" />
         <DeletePositionModal :show="showDeletePositionModal" :position="selectedPosition"
             @close="showDeletePositionModal = false" @delete-success="handlePositionDeleted" />
         <DeleteEmployeeModal :show="showDeleteModal" :employee="selectedEmployee" @close="showDeleteModal = false"
             @delete="handleEmployeeDeleted" />
 
-        <!-- Status Toast -->
-        <div v-if="statusMessage" :class="statusMessage.includes('successfully') ? 'bg-green-500' : 'bg-red-500'"
-            class="fixed bottom-4 right-4 p-3 text-white text-sm rounded-md shadow-lg animate-fade-in z-[3000]">
-            {{ statusMessage }}
-        </div>
+        <Toast v-if="toastVisible" :message="toastMessage" :description="toastDescription" :type="toastType"
+            :duration="3000" @close="handleToastClose" />
     </div>
 </template>
 

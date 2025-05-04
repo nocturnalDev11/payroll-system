@@ -6,20 +6,25 @@ import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
 
 const props = defineProps(['show', 'position']);
-const emit = defineEmits(['close', 'update-success']);
+const emit = defineEmits(['close', 'update-success', 'show-toast']);
+
+// Expose showToast to child components via an event
+const showToast = (message, description = '', type = 'info') => {
+    emit('show-toast', message, description, type);
+};
 
 const authStore = useAuthStore();
-const positionData = ref({ id: null, name: '', salary: 0 });
+const positionData = ref({ _id: null, name: '', salary: 0 });
 
 // Sync positionData with props.position when it changes
 watch(() => props.position, (newPosition) => {
-    if (newPosition && newPosition.id) {
-        positionData.value = { id: newPosition.id, name: newPosition.name, salary: newPosition.salary };
+    if (newPosition && newPosition._id) {
+        positionData.value = { _id: newPosition._id, name: newPosition.name, salary: newPosition.salary };
     }
 }, { immediate: true });
 
 const updatePosition = async () => {
-    if (!positionData.value.id) {
+    if (!positionData.value._id) {
         alert('Position ID is missing');
         return;
     }
@@ -29,7 +34,7 @@ const updatePosition = async () => {
     }
     try {
         const response = await axios.put(
-            `${BASE_API_URL}/api/positions/${positionData.value.id}`,
+            `${BASE_API_URL}/api/positions/${positionData.value._id}`,
             { name: positionData.value.name, salary: positionData.value.salary },
             {
                 headers: {
@@ -41,6 +46,7 @@ const updatePosition = async () => {
         if (response.status === 200) {
             emit('update-success', { ...positionData.value });
             emit('close');
+            showToast('Position updated successfully', '', 'success');
         }
     } catch (error) {
         console.error('Error updating position:', error);

@@ -20,10 +20,10 @@ const isUpdating = ref(false);
 
 // Define config for calculations
 const config = {
-    minimumWage: 610, // Adjust as needed
+    minimumWage: 610,
     deMinimisLimit: 10000,
-    regularHolidays: [], // Populate if needed
-    specialNonWorkingDays: [], // Populate if needed
+    regularHolidays: [],
+    specialNonWorkingDays: [],
 };
 
 // Create a local reactive copy of the employee to avoid mutating props
