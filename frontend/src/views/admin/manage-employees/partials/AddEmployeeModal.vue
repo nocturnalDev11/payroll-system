@@ -188,7 +188,7 @@ function getWithholdingTax(employee) {
             </div>
 
             <!-- Content -->
-            <div class="flex-1 overflow-y-auto max-h-[65vh] p-4 space-y-6">
+            <div class="flex-1 overflow-y-auto max-h-[65vh] p-4 space-y-6 pb-6">
                 <div class="space-y-4">
                     <div>
                         <h3 class="text-base font-semibold text-gray-800 mb-2">Personal Information</h3>
@@ -362,7 +362,8 @@ function getWithholdingTax(employee) {
                             <span class="font-semibold text-gray-900">₱{{
                                 getNetSalary(localEmployee).toLocaleString('en-US', {
                                     minimumFractionDigits: 2,
-                                maximumFractionDigits: 2 }) }}</span>
+                                    maximumFractionDigits: 2
+                                }) }}</span>
                         </div>
                     </div>
                 </div>
