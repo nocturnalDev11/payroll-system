@@ -72,7 +72,7 @@ const handleClose = () => {
         role="alert" aria-live="polite" aria-atomic="true">
         <div class="flex items-center justify-between p-3">
             <div class="flex items-center space-x-3">
-                <div class="p-2 rounded-lg bg-gray-50">
+                <div class="flex items-center p-2 rounded-lg bg-gray-50">
                     <span class="material-icons" :style="{ color: getIconColor }">
                         {{ getIcon }}
                     </span>
@@ -83,7 +83,7 @@ const handleClose = () => {
                 </div>
             </div>
             <button @click="handleClose"
-                class="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 rounded-full p-1 transition-colors duration-200"
+                class="flex items-center text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 rounded-full p-1 transition-colors duration-200"
                 aria-label="Close notification">
                 <span class="material-icons text-lg">
                     close
