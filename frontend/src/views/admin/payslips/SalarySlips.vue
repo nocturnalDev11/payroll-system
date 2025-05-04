@@ -39,15 +39,8 @@
                 @save="saveAttendanceDeductions" />
 
             <!-- Toast Messages -->
-            <div v-if="statusMessage" :class="[
-                statusMessage.includes('successfully') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700',
-                'fixed bottom-4 right-4 p-3 rounded shadow-lg z-50 flex items-center gap-1 animate-fade-in text-sm',
-            ]">
-                <span class="material-icons text-sm">
-                    {{ statusMessage.includes('successfully') ? 'check_circle' : 'error' }}
-                </span>
-                {{ statusMessage }}
-            </div>
+            <Toast v-if="toast.isVisible" :message="toast.message" :type="toast.type" :duration="3000"
+                @close="handleToastClose" />
         </div>
     </div>
 </template>
@@ -66,6 +59,7 @@ import PayslipHistoryModal from './partials/PayslipHistoryModal.vue';
 import UpdatePositionModal from './partials/UpdatePositionModal.vue';
 import PrintAllModal from './partials/PrintAllModal.vue';
 import AddAttendanceDeductionsModal from './partials/AddAttendanceDeductionsModal.vue';
+import Toast from '@/components/Toast.vue';
 
 applyPlugin(jsPDF);
 
@@ -78,6 +72,7 @@ export default {
         UpdatePositionModal,
         PrintAllModal,
         AddAttendanceDeductionsModal,
+        Toast,
     },
     data() {
         return {
@@ -88,7 +83,6 @@ export default {
             payslipGenerationStatus: {},
             isLoading: false,
             isGeneratingAll: false,
-            statusMessage: '',
             showHistoryModal: false,
             showDeductionModal: false,
             selectedEmployee: null,
@@ -105,6 +99,11 @@ export default {
                 deMinimisLimit: 10000,
                 regularHolidays: [],
                 specialNonWorkingDays: [],
+            },
+            toast: {
+                message: '',
+                type: 'info',
+                isVisible: false,
             },
         };
     },
@@ -358,14 +357,14 @@ export default {
                                 description: deduction.description || '',
                                 isRecurring: deduction.isRecurring || false,
                                 isAttendanceAffected: deduction.isAttendanceAffected || true,
-                                startDate: currentDate, // Add start date for deduction
+                                startDate: currentDate,
                                 appliedThisCycle: false,
                             });
                         }
                     }
 
                     const payload = {
-                        payheads: updatedPayheads, // Send full payhead objects
+                        payheads: updatedPayheads,
                     };
 
                     const response = await axios.put(
@@ -508,12 +507,21 @@ export default {
             }
         },
         showSuccessMessage(message) {
-            this.statusMessage = message;
-            setTimeout(() => (this.statusMessage = ''), 3000);
+            this.toast = {
+                message,
+                type: 'success',
+                isVisible: true,
+            };
         },
         showErrorMessage(message) {
-            this.statusMessage = message;
-            setTimeout(() => (this.statusMessage = ''), 3000);
+            this.toast = {
+                message,
+                type: 'error',
+                isVisible: true,
+            };
+        },
+        handleToastClose() {
+            this.toast.isVisible = false;
         },
     },
     watch: {

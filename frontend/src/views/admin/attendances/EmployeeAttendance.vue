@@ -4,9 +4,13 @@ import moment from 'moment';
 import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
 import { debounce } from 'lodash';
+import Toast from '@/components/Toast.vue';
 
 export default {
     name: 'EmployeeAttendance',
+    components: {
+        Toast,
+    },
     setup() {
         const authStore = useAuthStore();
         return { authStore };
@@ -27,7 +31,6 @@ export default {
             },
             currentPage: 1,
             itemsPerPage: 10,
-            statusMessage: '',
             date: new Date().toISOString().split('T')[0],
             sortKey: 'empNo',
             sortDirection: 'asc',
@@ -53,6 +56,12 @@ export default {
                 'Present', 'Absent', 'Late', 'Half Day', 'On Time', 'Early Departure', 'Leave'
             ],
             lastResetDate: null,
+            toast: {
+                message: '',
+                description: '',
+                type: 'info',
+                isVisible: false,
+            },
         };
     },
     computed: {
@@ -100,10 +109,27 @@ export default {
     },
     mounted() {
         this.checkAndResetDaily();
+        this.applyStatusFilterFromQuery();
         this.fetchEmployeesAndAttendance();
         this.debouncedSearch = debounce(this.handleSearch, 300);
     },
     methods: {
+        applyStatusFilterFromQuery() {
+            const status = this.$route.query.status;
+            if (status) {
+                const statusMap = {
+                    'present': ['Present', 'On Time', 'Late', 'Early Departure', 'Half Day'],
+                    'late': ['Late'],
+                    'absent': ['Absent'],
+                    'halfday': ['Half Day'],
+                    'ontime': ['On Time'],
+                };
+                this.statusFilter = statusMap[status.toLowerCase()] || [];
+                if (this.statusFilter.length) {
+                    this.showFilterPanel = true; // Open filter panel to show applied filters
+                }
+            }
+        },
         checkAndResetDaily() {
             const today = new Date().toISOString().split('T')[0];
             const storedDate = localStorage.getItem('lastResetDate') || today;
@@ -141,7 +167,7 @@ export default {
         },
         async fetchEmployeesAndAttendance() {
             this.isLoading = true;
-            this.statusMessage = 'Loading data...';
+            this.showInfoMessage('Loading data...');
             try {
                 const token = this.authStore.accessToken;
                 if (!token) throw new Error('No access token available. Please log in.');
@@ -208,6 +234,7 @@ export default {
                         status: attendance.status || employee.status,
                         lateHours: attendance.lateHours || 0,
                         lateDeduction: attendance.lateDeduction || 0,
+                        date: this.date, // Ensure date is set for filtering
                     };
                 });
 
@@ -514,12 +541,28 @@ export default {
             }
         },
         showSuccessMessage(message) {
-            this.statusMessage = message;
-            setTimeout(() => (this.statusMessage = ''), 2000);
+            this.toast = {
+                message,
+                type: 'success',
+                isVisible: true,
+            };
         },
         showErrorMessage(message) {
-            this.statusMessage = message;
-            setTimeout(() => (this.statusMessage = ''), 2000);
+            this.toast = {
+                message,
+                type: 'error',
+                isVisible: true,
+            };
+        },
+        showInfoMessage(message) {
+            this.toast = {
+                message,
+                type: 'info',
+                isVisible: true,
+            };
+        },
+        handleToastClose() {
+            this.toast.isVisible = false;
         },
         handleSearch() {
             this.currentPage = 1;
@@ -532,12 +575,20 @@ export default {
                 end: new Date().toISOString().split('T')[0],
             };
             this.searchQuery = '';
+            this.$router.replace({ query: {} }); // Clear query params
             this.fetchEmployeesAndAttendance();
         },
     },
     watch: {
         searchQuery(newVal) {
             this.debouncedSearch(newVal);
+        },
+        '$route.query.status': {
+            handler(newStatus) {
+                this.applyStatusFilterFromQuery();
+                this.fetchEmployeesAndAttendance();
+            },
+            immediate: true,
         },
     },
 };
@@ -908,13 +959,8 @@ export default {
             </transition>
 
             <!-- Status Message -->
-            <div v-if="statusMessage" :class="statusMessage.includes('successfully') ? 'bg-green-500' : 'bg-red-500'"
-                class="fixed bottom-4 right-4 px-3 py-2 text-white text-xs rounded-md shadow-lg animate-fade-in flex items-center gap-1">
-                <span class="material-icons text-xs">
-                    {{ statusMessage.includes('successfully') ? 'check_circle' : 'error' }}
-                </span>
-                {{ statusMessage }}
-            </div>
+            <Toast v-if="toast.isVisible" :message="toast.message" :type="toast.type" :duration="2000"
+                @close="handleToastClose" />
         </div>
     </div>
 </template>

@@ -53,11 +53,6 @@
 
                 <!-- Actions -->
                 <div class="mt-6 flex justify-end gap-4">
-                    <button @click="$emit('close')"
-                        class="p-1.5 text-white bg-gray-500 rounded-lg hover:bg-gray-600 transition duration-200 transform hover:scale-105 flex items-center gap-1"
-                        title="Cancel">
-                        <span class="material-icons text-base">close</span>Cancel
-                    </button>
                     <button @click="assignPayheads"
                         class="py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 flex items-center gap-1"
                         :disabled="selectedPayheads.length === 0 || selectedEmployees.length === 0">

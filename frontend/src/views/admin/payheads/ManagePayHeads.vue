@@ -174,7 +174,7 @@
                     <div class="text-xs text-gray-700">
                         Showing <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span> to
                         <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, filteredEmployees.length)
-                            }}</span> of
+                        }}</span> of
                         <span class="font-medium">{{ filteredEmployees.length }}</span> entries
                     </div>
 
@@ -236,37 +236,9 @@
                 :employees="employees" @close="showAddPayheadsToEmployeesModal = false" @save="saveBulkPayheads" />
         </transition>
 
-        <!-- Toast Notifications -->
-        <div class="fixed bottom-2 right-2 z-50 space-y-2">
-            <TransitionGroup enter-active-class="transform ease-out duration-300 transition"
-                enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-                enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
-                leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100"
-                leave-to-class="opacity-0" move-class="transition duration-500">
-                <div v-if="statusMessage" :key="statusMessage" class="max-w-xs w-full bg-white rounded-md shadow-lg pointer-events-auto
-                ring-1 ring-black ring-opacity-5 overflow-hidden">
-                    <div class="p-2">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <span class="material-icons text-base"
-                                    :class="statusMessage.includes('success') ? 'text-green-500' : 'text-red-500'">
-                                    {{ statusMessage.includes('success') ? 'check_circle' : 'error' }}
-                                </span>
-                            </div>
-                            <div class="ml-2 flex-1">
-                                <p class="text-xs font-medium text-gray-900">
-                                    {{ statusMessage }}
-                                </p>
-                            </div>
-                            <button @click="statusMessage = ''" class="ml-2 flex-shrink-0 rounded-sm text-gray-400 hover:text-gray-500 
-                      focus:outline-none focus:ring-1 focus:ring-blue-500" title="Close Notification">
-                                <span class="material-icons text-base">close</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </TransitionGroup>
-        </div>
+        <!-- Toast Component -->
+        <Toast v-if="toast.isVisible" :message="toast.message" :type="toast.type" :duration="3000"
+            @close="handleToastClose" />
     </div>
 </template>
 
@@ -280,6 +252,7 @@ import EmployeePayrollTable from './partials/EmployeePayrollTable.vue';
 import AddPayheadModal from './partials/AddPayheadModal.vue';
 import RecurringDeductionModal from './partials/RecurringDeductionModal.vue';
 import AddPayheadsToEmployeesModal from './partials/AddPayheadsToEmployeesModal.vue';
+import Toast from '@/components/Toast.vue';
 
 export default {
     name: 'ManagePayHeads',
@@ -290,6 +263,7 @@ export default {
         AddPayheadModal,
         RecurringDeductionModal,
         AddPayheadsToEmployeesModal,
+        Toast,
     },
 
     data() {
@@ -323,7 +297,11 @@ export default {
             selectedEmployee: null,
             selectedEmployeePayheads: [],
             availablePayheads: [],
-            statusMessage: '',
+            toast: {
+                message: '',
+                type: 'info',
+                isVisible: false,
+            },
             searchQuery: '',
             filterType: '',
             activeTab: 'payheads',
@@ -884,13 +862,23 @@ export default {
         },
 
         showSuccessMessage(message) {
-            this.statusMessage = message;
-            setTimeout(() => { this.statusMessage = ''; }, 3000);
+            this.toast = {
+                message,
+                type: 'success',
+                isVisible: true,
+            };
         },
 
         showErrorMessage(message) {
-            this.statusMessage = message;
-            setTimeout(() => { this.statusMessage = ''; }, 3000);
+            this.toast = {
+                message,
+                type: 'error',
+                isVisible: true,
+            };
+        },
+
+        handleToastClose() {
+            this.toast.isVisible = false;
         },
 
         resetPayheadsCycle() {
