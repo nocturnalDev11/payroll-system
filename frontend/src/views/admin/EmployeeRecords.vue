@@ -1,3 +1,203 @@
+<template>
+    <div class="min-h-screen p-1">
+        <div class="max-w-8xl mx-auto">
+            <div class="bg-white p-6 rounded-xl shadow-md overflow-y-auto">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-semibold text-gray-900">My Employee Records</h2>
+                </div>
+
+                <!-- Filters and Search -->
+                <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Search Bar -->
+                        <div class="relative">
+                            <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search
+                                Employees</label>
+                            <div class="relative">
+                                <span
+                                    class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                                <input id="search" v-model="searchQuery" type="text"
+                                    placeholder="Search by name or ID..."
+                                    class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-sm" />
+                                <button v-if="searchQuery" @click="searchQuery = ''"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-all duration-200">
+                                    <span class="material-icons text-sm">clear</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Position Filter -->
+                        <div class="relative">
+                            <label for="positionFilter" class="block text-sm font-medium text-gray-700 mb-1">Filter by
+                                Position</label>
+                            <div class="relative">
+                                <span
+                                    class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">filter_list</span>
+                                <select id="positionFilter" v-model="filterPosition"
+                                    class="w-full pl-10 pr-9 py-2 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-sm">
+                                    <option value="">All Positions</option>
+                                    <option v-for="position in uniquePositions" :key="position" :value="position">{{
+                                        position }}</option>
+                                </select>
+                                <span
+                                    class="material-icons absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">arrow_drop_down</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <table v-if="employees && employees.length" class="min-w-full border border-gray-300 overflow-y-auto">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th
+                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                ID</th>
+                            <th
+                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Name</th>
+                            <th
+                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Position
+                            </th>
+                            <th
+                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Salary
+                            </th>
+                            <th
+                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Hire Date
+                            </th>
+                            <th
+                                class=" border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Period
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="emp in filteredEmployees" :key="emp.id" class="hover:bg-gray-50 cursor-pointer"
+                            @click="openTaxModal(emp)">
+                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{ emp.id }}</td>
+                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{ emp.name }}</td>
+                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{ emp.position }}</td>
+                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
+                                emp.salary.toLocaleString() }}</td>
+                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{
+                                formatDate(emp.hireDate) }}</td>
+                            <td class="border  border-gray-300 px-4 py-2 text-sm text-gray-900">{{ emp.salaryMonth }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div v-else class="text-center py-8 text-gray-500">
+                    {{ errorMessage || 'Loading employee data...' }}
+                </div>
+
+                <transition name="modal-fade">
+                    <div v-if="showTaxModal" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+                        <div class="bg-white p-5 rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-lg font-bold text-gray-800">
+                                    Tax Contributions - {{ currentEmployee?.name }}
+                                </h2>
+                                <button @click="showTaxModal = false" class="text-gray-500 hover:text-gray-700"
+                                    title="Close Modal">
+                                    <span class="material-icons-outlined">close</span>
+                                </button>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="text-sm font-medium text-gray-700">Filter by Month (optional):</label>
+                                <input v-model="selectedMonth" type="month"
+                                    class="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all w-full mt-1"
+                                    @change="filterTaxContributions" />
+                            </div>
+
+                            <div v-if="filteredTaxContributions.length > 0" class="space-y-4">
+                                <table class="min-w-full border border-gray-300">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                Pay Date</th>
+                                            <th
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                Position</th>
+                                            <th
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                Salary</th>
+                                            <th
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                SSS</th>
+                                            <th
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                PhilHealth</th>
+                                            <th
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                HDMF</th>
+                                            <th
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                Withholding Tax</th>
+                                            <th
+                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                                Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="entry in filteredTaxContributions" :key="entry.payDate"
+                                            class="hover:bg-gray-50">
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{
+                                                formatDate(entry.payDate) }}</td>
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{
+                                                entry.position }}</td>
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
+                                                entry.salary.toLocaleString() }}</td>
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
+                                                entry.sss.toLocaleString() }}</td>
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
+                                                entry.philhealth.toLocaleString() }}</td>
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
+                                                entry.hdmf.toLocaleString() }}</td>
+                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
+                                                entry.withholdingTax.toLocaleString() }}</td>
+                                            <td
+                                                class="border border-gray-300 px-4 py-2 text-sm text-gray-900 font-semibold">
+                                                ₱{{ (entry.sss + entry.philhealth + entry.hdmf +
+                                                    entry.withholdingTax).toLocaleString() }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div v-else class="text-center text-gray-500 py-4">
+                                No tax contributions available{{ selectedMonth ? ` for ${selectedMonth}` : '' }}.
+                            </div>
+
+                            <div class="mt-4 flex justify-end gap-3">
+                                <button @click="generateCSV"
+                                    class="py-1 px-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 flex items-center gap-1">
+                                    <span class="material-icons-outlined text-sm">download</span>
+                                    Generate CSV
+                                </button>
+                                <button @click="showTaxModal = false"
+                                    class="py-1 px-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </transition>
+
+                <div v-if="statusMessage"
+                    :class="statusMessage.includes('successfully') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'"
+                    class="mt-4 p-3 rounded-lg text-center">
+                    {{ statusMessage }}
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
 <script>
 import axios from 'axios';
 import moment from 'moment';
@@ -21,11 +221,38 @@ export default {
             showUpdateModal: false,
             selectedEmployeeForUpdate: '',
             newPosition: '',
-            newSalary: ''
+            newSalary: '',
+            searchQuery: '',
+            filterPosition: ''
         };
     },
     mounted() {
         this.fetchEmployeeData();
+    },
+    computed: {
+        uniquePositions() {
+            const positions = new Set(this.employees.map(emp => emp.position));
+            return ['All Positions', ...Array.from(positions).sort()];
+        },
+        filteredEmployees() {
+            let filtered = [...this.employees];
+
+            // Apply search filter
+            if (this.searchQuery) {
+                const query = this.searchQuery.toLowerCase();
+                filtered = filtered.filter(emp =>
+                    (emp.name && emp.name.toLowerCase().includes(query)) ||
+                    (emp.id && String(emp.id).toLowerCase().includes(query))
+                );
+            }
+
+            // Apply position filter
+            if (this.filterPosition && this.filterPosition !== 'All Positions') {
+                filtered = filtered.filter(emp => emp.position === this.filterPosition);
+            }
+
+            return filtered;
+        }
     },
     methods: {
         async fetchEmployeeData() {
@@ -391,166 +618,6 @@ export default {
     }
 };
 </script>
-
-<template>
-    <div class="min-h-screen p-1">
-        <div class="max-w-8xl mx-auto">
-            <div class="bg-white p-6 rounded-xl shadow-md overflow-y-auto">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-semibold text-gray-900">My Employee Records</h2>
-                </div>
-
-                <table v-if="employees && employees.length" class="min-w-full border border-gray-300 overflow-y-auto">
-                    <thead class="bg-gray-200">
-                        <tr>
-                            <th
-                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                ID</th>
-                            <th
-                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                Name</th>
-                            <th
-                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                Position
-                            </th>
-                            <th
-                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                Salary
-                            </th>
-                            <th
-                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                Hire Date
-                            </th>
-                            <th
-                                class=" border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                Period
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="emp in employees" :key="emp.id" class="hover:bg-gray-50 cursor-pointer"
-                            @click="openTaxModal(emp)">
-                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{ emp.id }}</td>
-                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{ emp.name }}</td>
-                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{ emp.position }}</td>
-                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
-                                emp.salary.toLocaleString() }}</td>
-                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{
-                                formatDate(emp.hireDate) }}</td>
-                            <td class="border  border-gray-300 px-4 py-2 text-sm text-gray-900">{{ emp.salaryMonth }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div v-else class="text-center py-8 text-gray-500">
-                    {{ errorMessage || 'Loading employee data...' }}
-                </div>
-
-                <transition name="modal-fade">
-                    <div v-if="showTaxModal" class="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-                        <div class="bg-white p-5 rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-y-auto">
-                            <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-lg font-bold text-gray-800">
-                                    Tax Contributions - {{ currentEmployee?.name }}
-                                </h2>
-                                <button @click="showTaxModal = false" class="text-gray-500 hover:text-gray-700"
-                                    title="Close Modal">
-                                    <span class="material-icons-outlined">close</span>
-                                </button>
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="text-sm font-medium text-gray-700">Filter by Month (optional):</label>
-                                <input v-model="selectedMonth" type="month"
-                                    class="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all w-full mt-1"
-                                    @change="filterTaxContributions" />
-                            </div>
-
-                            <div v-if="filteredTaxContributions.length > 0" class="space-y-4">
-                                <table class="min-w-full border border-gray-300">
-                                    <thead class="bg-gray-100">
-                                        <tr>
-                                            <th
-                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                Pay Date</th>
-                                            <th
-                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                Position</th>
-                                            <th
-                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                Salary</th>
-                                            <th
-                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                SSS</th>
-                                            <th
-                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                PhilHealth</th>
-                                            <th
-                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                HDMF</th>
-                                            <th
-                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                Withholding Tax</th>
-                                            <th
-                                                class="border border-gray-300 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                                Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="entry in filteredTaxContributions" :key="entry.payDate"
-                                            class="hover:bg-gray-50">
-                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{
-                                                formatDate(entry.payDate) }}</td>
-                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">{{
-                                                entry.position }}</td>
-                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
-                                                entry.salary.toLocaleString() }}</td>
-                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
-                                                entry.sss.toLocaleString() }}</td>
-                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
-                                                entry.philhealth.toLocaleString() }}</td>
-                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
-                                                entry.hdmf.toLocaleString() }}</td>
-                                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-900">₱{{
-                                                entry.withholdingTax.toLocaleString() }}</td>
-                                            <td
-                                                class="border border-gray-300 px-4 py-2 text-sm text-gray-900 font-semibold">
-                                                ₱{{ (entry.sss + entry.philhealth + entry.hdmf +
-                                                entry.withholdingTax).toLocaleString() }}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div v-else class="text-center text-gray-500 py-4">
-                                No tax contributions available{{ selectedMonth ? ` for ${selectedMonth}` : '' }}.
-                            </div>
-
-                            <div class="mt-4 flex justify-end gap-3">
-                                <button @click="generateCSV"
-                                    class="py-1 px-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 flex items-center gap-1">
-                                    <span class="material-icons-outlined text-sm">download</span>
-                                    Generate CSV
-                                </button>
-                                <button @click="showTaxModal = false"
-                                    class="py-1 px-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200">
-                                    Close
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </transition>
-
-                <div v-if="statusMessage"
-                    :class="statusMessage.includes('successfully') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'"
-                    class="mt-4 p-3 rounded-lg text-center">
-                    {{ statusMessage }}
-                </div>
-            </div>
-        </div>
-    </div>
-</template>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined');

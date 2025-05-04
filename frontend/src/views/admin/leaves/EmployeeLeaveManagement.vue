@@ -172,7 +172,7 @@
                     <div class="text-sm text-gray-700">
                         Showing <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span> to
                         <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, filteredLeaveRequests.length)
-                            }}</span> of
+                        }}</span> of
                         <span class="font-medium">{{ filteredLeaveRequests.length }}</span> requests
                     </div>
                     <div class="flex items-center gap-2">
@@ -248,29 +248,9 @@
                 </div>
             </transition>
 
-            <!-- Toast Notifications -->
-            <div class="fixed bottom-4 right-4 z-50 space-y-4">
-                <transition enter-active-class="transform ease-out duration-300 transition"
-                    enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-                    enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
-                    leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100"
-                    leave-to-class="opacity-0">
-                    <div v-if="toastMessage"
-                        class="max-w-sm w-full bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 overflow-hidden">
-                        <div class="p-4 flex items-center gap-3">
-                            <span class="material-icons"
-                                :class="toastType === 'success' ? 'text-green-500' : 'text-red-500'">
-                                {{ toastType === 'success' ? 'check_circle' : 'error' }}
-                            </span>
-                            <p class="text-sm font-medium text-gray-900">{{ toastMessage }}</p>
-                            <button @click="clearToast" class="ml-auto flex-shrink-0 rounded-md text-gray-400 hover:text-gray-500 
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 p-1">
-                                <span class="material-icons text-sm">close</span>
-                            </button>
-                        </div>
-                    </div>
-                </transition>
-            </div>
+            <!-- Toast Component -->
+            <Toast v-if="toast.isVisible" :message="toast.message" :type="toast.type" :duration="3000"
+                @close="handleToastClose" />
         </div>
     </div>
 </template>
@@ -279,9 +259,13 @@
 import axios from 'axios';
 import moment from 'moment';
 import { BASE_API_URL } from '@/utils/constants.js';
+import Toast from '@/components/Toast.vue';
 
 export default {
-    name: 'AdminLeaveManagement',
+    name: 'EmployeeLeaveManagement',
+    components: {
+        Toast,
+    },
     data() {
         return {
             leaveRequests: [],
@@ -295,8 +279,11 @@ export default {
             currentPage: 1,
             itemsPerPage: 10,
             isLoading: false,
-            toastMessage: '',
-            toastType: 'success'
+            toast: {
+                message: '',
+                type: 'info',
+                isVisible: false,
+            },
         };
     },
     mounted() {
@@ -451,14 +438,15 @@ export default {
             if (this.currentPage < this.totalPages) this.currentPage++;
         },
         showToast(message, type = 'success') {
-            this.toastMessage = message;
-            this.toastType = type;
-            setTimeout(() => this.clearToast(), 3000);
+            this.toast = {
+                message,
+                type,
+                isVisible: true,
+            };
         },
-        clearToast() {
-            this.toastMessage = '';
-            this.toastType = 'success';
-        }
+        handleToastClose() {
+            this.toast.isVisible = false;
+        },
     }
 };
 </script>
