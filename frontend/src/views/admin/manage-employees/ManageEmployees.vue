@@ -20,6 +20,8 @@ import EditPositionModal from './partials/EditPositionModal.vue';
 import DeletePositionModal from './partials/DeletePositionModal.vue';
 import DeleteEmployeeModal from './partials/DeleteEmployeeModal.vue';
 import Modal from '@/components/Modal.vue';
+import Dropdown from '@/components/Dropdown.vue';
+import DropdownLink from '@/components/DropdownLink.vue';
 
 export default {
     data() {
@@ -87,6 +89,8 @@ export default {
         DeletePositionModal,
         DeleteEmployeeModal,
         Modal,
+        Dropdown,
+        DropdownLink,
     },
     setup() {
         const authStore = useAuthStore();
@@ -419,7 +423,7 @@ export default {
         <main class="flex-1 py-2">
             <div class="mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <!-- Employee List -->
-                <section class="lg:col-span-2 bg-white rounded-lg shadow-sm overflow-hidden">
+                <section class="lg:col-span-2 bg-white rounded-lg shadow-sm">
                     <div
                         class="p-4 flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-300 gap-3 md:gap-0">
                         <h2 class="text-lg font-semibold text-gray-800">Employee List</h2>
@@ -448,7 +452,8 @@ export default {
                         Loading...
                     </div>
 
-                    <div v-else class="overflow-x-auto">
+                    <!-- Modified Table Container -->
+                    <div class="relative">
                         <table class="w-full text-left text-sm">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -471,26 +476,42 @@ export default {
                                         ₱{{ (employee.hourlyRate && !isNaN(employee.hourlyRate) ? employee.hourlyRate :
                                             0).toLocaleString('en-US', {
                                                 minimumFractionDigits: 2, maximumFractionDigits: 2
-                                            }) }}
+                                        }) }}
                                     </td>
                                     <td class="px-4 py-2">
                                         ₱{{ (getNetSalary(employee) || 0).toLocaleString('en-US', {
                                             minimumFractionDigits: 2, maximumFractionDigits: 2
                                         }) }}
                                     </td>
-                                    <td class="px-4 py-2 text-right flex justify-end gap-1">
-                                        <button @click="viewEmployeeDetails(employee)"
-                                            class="text-indigo-600 hover:text-indigo-800 p-1 rounded-full hover:bg-indigo-100">
-                                            <span class="material-icons text-lg">visibility</span>
-                                        </button>
-                                        <button @click="openEditModal(employee)"
-                                            class="text-yellow-600 hover:text-yellow-800 p-1 rounded-full hover:bg-yellow-100">
-                                            <span class="material-icons text-lg">edit</span>
-                                        </button>
-                                        <button @click="confirmMoveToArchive(employee)"
-                                            class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100">
-                                            <span class="material-icons text-lg">archive</span>
-                                        </button>
+                                    <td class="px-4 py-2 text-right">
+                                        <Dropdown align="right" width="48">
+                                            <template #trigger>
+                                                <button
+                                                    class="text-gray-600 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100 transition"
+                                                    title="More actions">
+                                                    <span class="material-icons text-lg">more_vert</span>
+                                                </button>
+                                            </template>
+                                            <template #content>
+                                                <div class="py-1">
+                                                    <button @click="viewEmployeeDetails(employee)"
+                                                        class="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                        <span class="material-icons text-base">visibility</span>
+                                                        View Details
+                                                    </button>
+                                                    <button @click="openEditModal(employee)"
+                                                        class="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                        <span class="material-icons text-base">edit</span>
+                                                        Edit
+                                                    </button>
+                                                    <button @click="confirmMoveToArchive(employee)"
+                                                        class="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                                        <span class="material-icons text-base">archive</span>
+                                                        Move to Archive
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </Dropdown>
                                     </td>
                                 </tr>
                                 <tr v-if="paginatedEmployees.length === 0">
