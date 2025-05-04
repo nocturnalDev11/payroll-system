@@ -20,6 +20,16 @@ export default {
             employees: [],
             selectedEmployee: null,
             showDetailsModal: false,
+            showSettingsModal: false,
+            attendanceSettings: {
+                officeStart: '08:00',
+                lateCutoff: '08:15',
+                breakStart: '11:30',
+                breakEnd: '12:59',
+                officeEnd: '17:00',
+                gracePeriod: 15,
+                deductionRate: 37.5,
+            },
             showAddModal: false,
             showFilterPanel: false,
             isLoading: false,
@@ -111,6 +121,7 @@ export default {
         this.checkAndResetDaily();
         this.applyStatusFilterFromQuery();
         this.fetchEmployeesAndAttendance();
+        this.fetchAttendanceSettings()
         this.debouncedSearch = debounce(this.handleSearch, 300);
     },
     methods: {
@@ -164,6 +175,37 @@ export default {
                 _id: undefined,
             }));
             this.showSuccessMessage('Attendance reset for new day');
+        },
+
+        async fetchAttendanceSettings() {
+            try {
+                const token = this.authStore.accessToken;
+                const response = await axios.get(`${BASE_API_URL}/api/attendance-settings`, {
+                    headers: { Authorization: `Bearer ${token}`, 'user-role': 'admin' },
+                });
+                this.attendanceSettings = response.data;
+            } catch (error) {
+                console.error('Error fetching attendance settings:', error);
+                this.showErrorMessage('Failed to load attendance settings');
+            }
+        },
+        async updateAttendanceSettings() {
+            try {
+                const token = this.authStore.accessToken;
+                const response = await axios.put(
+                    `${BASE_API_URL}/api/attendance-settings`,
+                    this.attendanceSettings,
+                    {
+                        headers: { Authorization: `Bearer ${token}`, 'user-role': 'admin' },
+                    }
+                );
+                this.attendanceSettings = response.data;
+                this.showSuccessMessage('Attendance settings updated successfully');
+                this.showSettingsModal = false;
+            } catch (error) {
+                console.error('Error updating attendance settings:', error);
+                this.showErrorMessage('Failed to update attendance settings');
+            }
         },
         async fetchEmployeesAndAttendance() {
             this.isLoading = true;
@@ -336,61 +378,63 @@ export default {
             }
         },
         calculateStatusAndDeductions({ morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut }) {
-            const OFFICE_START = "08:00";
-            const LUNCH_START = "11:30";
-            const LUNCH_END = "12:59";
-            const OFFICE_END = "17:00";
+            const { officeStart, breakStart, breakEnd, officeEnd, gracePeriod, deductionRate } = this.attendanceSettings;
+            const lateThreshold = moment(officeStart, 'HH:mm')
+                .add(gracePeriod, 'minutes')
+                .format('HH:mm');
 
-            let status = "Absent";
+            let status = 'Absent';
             let lateHours = 0;
             let lateDeduction = 0;
 
             if (!morningTimeIn && !afternoonTimeIn) {
-                status = "Absent";
+                status = 'Absent';
                 lateHours = 8;
-                lateDeduction = 8 * 37.5;
-            } else if (morningTimeIn && afternoonTimeOut && afternoonTimeOut >= OFFICE_END) {
-                status = "Present";
-                if (morningTimeIn > OFFICE_START) {
-                    status = "Late";
+                lateDeduction = lateHours * deductionRate;
+            } else if (morningTimeIn && afternoonTimeOut && afternoonTimeOut >= officeEnd) {
+                status = 'Present';
+                if (morningTimeIn > lateThreshold) {
+                    status = 'Late';
                     const [hours, minutes] = morningTimeIn.split(':').map(Number);
-                    const [startHours, startMinutes] = OFFICE_START.split(':').map(Number);
+                    const [startHours, startMinutes] = officeStart.split(':').map(Number);
                     const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
                     lateHours = Math.ceil(lateMinutes / 60);
-                    lateDeduction = lateHours * 37.5;
+                    lateDeduction = lateHours * deductionRate;
                 }
             } else if ((morningTimeIn && !afternoonTimeIn) || (!morningTimeIn && afternoonTimeIn)) {
-                status = "Half Day";
+                status = 'Half Day';
                 lateHours = 4;
-                lateDeduction = 4 * 37.5;
-                if (morningTimeIn && morningTimeIn > OFFICE_START) {
-                    status = "Late";
+                lateDeduction = lateHours * deductionRate;
+                if (morningTimeIn && morningTimeIn > lateThreshold) {
+                    status = 'Late';
                     const [hours, minutes] = morningTimeIn.split(':').map(Number);
-                    const [startHours, startMinutes] = OFFICE_START.split(':').map(Number);
+                    const [startHours, startMinutes] = officeStart.split(':').map(Number);
                     const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
                     lateHours = Math.max(4, Math.ceil(lateMinutes / 60));
-                    lateDeduction = lateHours * 37.5;
-                } else if (afternoonTimeIn && afternoonTimeIn > LUNCH_END) {
-                    status = "Late";
+                    lateDeduction = lateHours * deductionRate;
+                } else if (afternoonTimeIn && afternoonTimeIn > breakEnd) {
+                    status = 'Late';
                     lateHours = 4;
-                    lateDeduction = 4 * 37.5;
+                    lateDeduction = lateHours * deductionRate;
                 }
-            } else if (morningTimeIn && morningTimeIn > OFFICE_START) {
-                status = "Late";
+            } else if (morningTimeIn && morningTimeIn > lateThreshold) {
+                status = 'Late';
                 const [hours, minutes] = morningTimeIn.split(':').map(Number);
-                const [startHours, startMinutes] = OFFICE_START.split(':').map(Number);
+                const [startHours, startMinutes] = officeStart.split(':').map(Number);
                 const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
                 lateHours = Math.ceil(lateMinutes / 60);
-                lateDeduction = lateHours * 37.5;
-            } else if (afternoonTimeIn && afternoonTimeIn > LUNCH_END) {
-                status = "Late";
+                lateDeduction = lateHours * deductionRate;
+            } else if (afternoonTimeIn && afternoonTimeIn > breakEnd) {
+                status = 'Late';
                 lateHours = 4;
-                lateDeduction = 4 * 37.5;
-            } else if ((morningTimeOut && morningTimeOut < LUNCH_START) ||
-                (afternoonTimeOut && afternoonTimeOut < OFFICE_END)) {
-                status = "Early Departure";
-            } else if (morningTimeIn && morningTimeIn <= OFFICE_START) {
-                status = "On Time";
+                lateDeduction = lateHours * deductionRate;
+            } else if (
+                (morningTimeOut && morningTimeOut < breakStart) ||
+                (afternoonTimeOut && afternoonTimeOut < officeEnd)
+            ) {
+                status = 'Early Departure';
+            } else if (morningTimeIn && morningTimeIn <= lateThreshold) {
+                status = 'On Time';
             }
 
             return { status, lateHours, lateDeduction };
@@ -614,6 +658,11 @@ export default {
                             class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-all flex items-center gap-2 cursor-pointer">
                             <span class="material-icons text-base">download</span>
                             Export CSV
+                        </button>
+                        <button @click="showSettingsModal = true"
+                            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2 cursor-pointer">
+                            <span class="material-icons text-base">settings</span>
+                            Settings
                         </button>
                         <button @click="showFilterPanel = !showFilterPanel"
                             class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all sm:hidden cursor-pointer">
@@ -953,6 +1002,74 @@ export default {
                                     Cancel
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+
+            <transition name="modal">
+                <div v-if="showSettingsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div class="bg-white rounded-lg shadow w-full max-w-md p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-medium text-gray-800">Attendance Settings</h2>
+                            <button @click="showSettingsModal = false" class="text-gray-500 hover:text-gray-700">
+                                <span class="material-icons text-lg">close</span>
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="officeStart" class="block text-sm font-medium text-gray-700">Official Time
+                                    In</label>
+                                <input id="officeStart" v-model="attendanceSettings.officeStart" type="time"
+                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                            </div>
+                            <div>
+                                <label for="lateCutoff" class="block text-sm font-medium text-gray-700">Late
+                                    Cutoff</label>
+                                <input id="lateCutoff" v-model="attendanceSettings.lateCutoff" type="time"
+                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                            </div>
+                            <div>
+                                <label for="breakStart" class="block text-sm font-medium text-gray-700">Break
+                                    Start</label>
+                                <input id="breakStart" v-model="attendanceSettings.breakStart" type="time"
+                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                            </div>
+                            <div>
+                                <label for="breakEnd" class="block text-sm font-medium text-gray-700">Break End</label>
+                                <input id="breakEnd" v-model="attendanceSettings.breakEnd" type="time"
+                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                            </div>
+                            <div>
+                                <label for="officeEnd" class="block text-sm font-medium text-gray-700">Official Time
+                                    Out</label>
+                                <input id="officeEnd" v-model="attendanceSettings.officeEnd" type="time"
+                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                            </div>
+                            <div>
+                                <label for="gracePeriod" class="block text-sm font-medium text-gray-700">Grace Period
+                                    (minutes)</label>
+                                <input id="gracePeriod" v-model.number="attendanceSettings.gracePeriod" type="number"
+                                    min="0"
+                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                            </div>
+                            <div>
+                                <label for="deductionRate" class="block text-sm font-medium text-gray-700">Deduction
+                                    Rate (per hour)</label>
+                                <input id="deductionRate" v-model.number="attendanceSettings.deductionRate"
+                                    type="number" step="0.01" min="0"
+                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mt-6">
+                            <button @click="updateAttendanceSettings"
+                                class="flex-1 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600">
+                                Save Settings
+                            </button>
+                            <button @click="showSettingsModal = false"
+                                class="flex-1 py-2 bg-gray-500 text-white text-sm rounded hover:bg-gray-600">
+                                Cancel
+                            </button>
                         </div>
                     </div>
                 </div>

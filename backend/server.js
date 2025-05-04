@@ -15,6 +15,7 @@ const contributionRoutes = require('./routes/contribution.routes.js');
 const employeeRecordRoutes = require('./routes/employeeRecords.routes.js');
 const pendingRequestRoutes = require('./routes/pendingRequests.routes.js');
 const positionHistoryRoutes = require('./routes/position.routes.js');
+const attendanceSettingsRoutes = require('./routes/attendanceSettings.routes.js');
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use('/api/positions', positionRoutes);
 app.use('/api/pending-requests', pendingRequestRoutes);
 app.use('/api/positionHistory', positionHistoryRoutes);
 app.use('/api/employee-contributions', contributionRoutes);
+app.use('/api/attendance-settings', attendanceSettingsRoutes);
 
 // Health Check Route (useful for monitoring in both environments)
 app.get('/api/health', (req, res) => {
