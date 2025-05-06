@@ -82,11 +82,11 @@ onMounted(() => {
         <header
             class="sticky top-0 z-[1000] backdrop-blur-sm bg-gradient-to-r from-teal-600/95 to-lime-600/95 text-white shadow-lg">
             <div class="mx-auto px-2 sm:px-14 py-2 sm:py-3 flex justify-between items-center">
-                <div class="flex items-center">
+                <router-link to="/employee/dashboard" class="flex items-center">
                     <div class="bg-white rounded-lg p-1 sm:p-2">
                         <img src="@/assets/pic1.png" alt="right-jobs-logo" class="h-10 sm:h-12 w-auto object-contain" />
                     </div>
-                </div>
+                </router-link>
 
                 <div class="flex items-center space-x-2 sm:space-x-4">
                     <router-link to="/employee/dashboard"
@@ -110,7 +110,7 @@ onMounted(() => {
                     </router-link>
 
                     <router-link :to="settingsRoute" title="Settings"
-                        class="flex items-center p-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 whitespace-nowrap hover:bg-white/10">
+                        class="hidden sm:flex sm:items-center p-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 whitespace-nowrap hover:bg-white/10">
                         <span class="material-icons text-sm">settings</span>
                     </router-link>
 
@@ -124,7 +124,7 @@ onMounted(() => {
         </header>
 
         <div class="flex flex-1 overflow-hidden">
-            <aside :class="[
+            <aside class="hidden sm:block" :class="[
                 'fixed top-0 left-0 h-full bg-white shadow-sm border-r border-gray-100 overflow-y-auto transition-all duration-300 z-20',
                 isSidebarMinimized ? 'w-16' : 'w-72'
             ]">
@@ -152,7 +152,7 @@ onMounted(() => {
             </aside>
 
             <main class="flex-1 overflow-auto bg-slate-50 px-6 py-4" :class="[
-                isSidebarMinimized ? 'ml-16' : 'ml-72'
+                isSidebarMinimized ? 'sm:ml-16 ml-0' : 'sm:ml-72 ml-0'
             ]">
                 <router-view v-slot="{ Component }">
                     <transition name="fade" mode="out-in">
@@ -160,6 +160,50 @@ onMounted(() => {
                     </transition>
                 </router-view>
             </main>
+
+            <!-- Bottom navbar (visible in small viewports) -->
+            <div
+                class="fixed sm:hidden block z-50 w-full h-16 max-w-md -translate-x-1/2 backdrop-blur-lg bg-gray-100/50 border border-gray-200 rounded-full bottom-4 left-1/2">
+                <div class="grid h-full max-w-lg grid-cols-5 mx-auto">
+                    <router-link to="/employee/salary-slips"
+                        class="inline-flex flex-col items-center justify-center px-5 rounded-s-full hover:bg-gray-50 group cursor-pointer">
+                        <span class="material-icons mb-1 text-gray-500 dark:text-gray-400 group-hover:text-blue-600">
+                            receipt
+                        </span>
+                        <span class="sr-only">salary-slips</span>
+                    </router-link>
+
+                    <router-link to="/employee/employee-leave-request"
+                        class="inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 group cursor-pointer">
+                        <span class="material-icons mb-1 text-gray-500 dark:text-gray-400 group-hover:text-blue-600">
+                            event_available
+                        </span>
+                        <span class="sr-only">employee-leave-request</span>
+                    </router-link>
+
+                    <router-link to="/employee/dashboard"
+                        class="inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 group cursor-pointer">
+                        <span
+                            class="material-icons mb-1 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 cursor-pointer">dashboard</span>
+                        <span class="sr-only">employee-dashboard</span>
+                    </router-link>
+
+                    <router-link :to="settingsRoute"
+                        class="inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 group cursor-pointer">
+                        <span
+                            class="material-icons mb-1 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 cursor-pointer">settings</span>
+                        <span class="sr-only">Settings</span>
+                    </router-link>
+
+                    <router-link to="/employee/holidays"
+                        class="inline-flex flex-col items-center justify-center px-5 rounded-e-full hover:bg-gray-50 group cursor-pointer">
+                        <span class="material-icons mb-1 text-gray-500 dark:text-gray-400 group-hover:text-blue-600">
+                            schedule
+                        </span>
+                        <span class="sr-only">Holiday</span>
+                    </router-link>
+                </div>
+            </div>
         </div>
     </div>
     <div v-else class="min-h-screen flex items-center justify-center">
