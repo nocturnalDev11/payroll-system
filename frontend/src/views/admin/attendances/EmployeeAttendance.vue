@@ -643,63 +643,67 @@ export default {
     <div class="min-h-screen bg-gray-50 p-4">
         <div class="mx-auto">
             <!-- Header -->
-            <header class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col gap-3 sm:gap-4">
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        <span class="material-icons text-indigo-600 text-xl sm:text-2xl">schedule</span>
+            <header class="bg-white rounded-xl shadow-lg p-4 sm:p-6 md:p-5 flex flex-col gap-3 sm:gap-4 md:gap-3">
+                <div class="flex flex-col lg:flex-row xl:flex-row items-center justify-between gap-3 sm:gap-4 md:gap-3">
+
+                    <h1 class="text-xl sm:text-2xl md:text-xl font-bold text-gray-900 flex items-center gap-2">
+                        <span class="material-icons text-indigo-600 text-xl sm:text-2xl md:text-xl">schedule</span>
                         Attendance Dashboard
                     </h1>
-                    <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                        <div class="flex flex-wrap justify-center gap-2 w-full sm:w-auto">
+
+                    <div class="flex items-center gap-2 sm:gap-3 md:gap-2 w-full xl:w-auto lg:w-auto">
+                        <div
+                            class="flex flex-col lg:flex-row xl:flex-row justify-center gap-2 sm:gap-3 md:gap-3 w-full">
                             <button @click="showAddAttendanceModal"
-                                class="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-green-700 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer">
-                                <span class="material-icons text-sm sm:text-base">add</span>
-                                Add Attendance
+                                class="flex-1 sm:flex-none px-3 sm:px-4 md:px-3 py-1.5 sm:py-2 md:py-1.5 bg-green-600 text-white text-xs sm:text-sm md:text-xs font-medium rounded-lg hover:bg-green-700 transition-all flex items-center gap-1.5 sm:gap-2 md:gap-1 cursor-pointer">
+                                <span class="material-icons text-sm sm:text-base md:text-sm">add</span>
+                                Add
                             </button>
                             <button @click="generateReport"
-                                class="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-indigo-700 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer">
-                                <span class="material-icons text-sm sm:text-base">download</span>
-                                Export CSV
+                                class="flex-1 sm:flex-none px-3 sm:px-4 md:px-3 py-1.5 sm:py-2 md:py-1.5 bg-indigo-600 text-white text-xs sm:text-sm md:text-xs font-medium rounded-lg hover:bg-indigo-700 transition-all flex items-center gap-1.5 sm:gap-2 md:gap-1 cursor-pointer">
+                                <span class="material-icons text-sm sm:text-base md:text-sm">download</span>
+                                Export
                             </button>
                             <button @click="showSettingsModal = true"
-                                class="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer">
-                                <span class="material-icons text-sm sm:text-base">settings</span>
+                                class="flex-1 sm:flex-none px-3 sm:px-4 md:px-3 py-1.5 sm:py-2 md:py-1.5 bg-blue-600 text-white text-xs sm:text-sm md:text-xs font-medium rounded-lg hover:bg-blue-700 transition-all flex items-center gap-1.5 sm:gap-2 md:gap-1 cursor-pointer">
+                                <span class="material-icons text-sm sm:text-base md:text-sm">settings</span>
                                 Settings
                             </button>
+                            <button @click="showFilterPanel = !showFilterPanel"
+                                class="p-1.5 sm:p-2 md:p-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all flex items-center gap-1.5 sm:gap-2 md:gap-1 cursor-pointer w-full sm:w-auto">
+                                <span class="material-icons text-sm sm:text-base md:text-sm">filter_list</span>
+                                <span class="text-xs sm:text-sm md:text-xs font-medium">Filters</span>
+                            </button>
                         </div>
-                        <button @click="showFilterPanel = !showFilterPanel"
-                            class="p-1.5 sm:p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer w-full sm:w-auto">
-                            <span class="material-icons text-sm sm:text-base">filter_list</span>
-                            <span class="text-xs sm:text-sm font-medium">Filters</span>
-                        </button>
                     </div>
                 </div>
 
                 <!-- Search and Filter Controls -->
-                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-3">
                     <div class="relative flex-1 flex">
                         <span
-                            class="material-icons absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-gray-500 text-base sm:text-lg">search</span>
+                            class="material-icons absolute left-2 sm:left-3 md:left-2 top-1/2 -translate-y-1/2 text-gray-500 text-base sm:text-lg md:text-base">search</span>
                         <input v-model="searchQuery" type="text" placeholder="Search by name or employee number..."
-                            class="w-full pl-8 sm:pl-10 pr-8 sm:pr-10 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                            class="w-full pl-8 sm:pl-10 md:pl-8 pr-8 sm:pr-10 md:pr-8 py-1.5 sm:py-2 md:py-1.5 text-xs sm:text-sm md:text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
                             aria-label="Search employees" @keyup.enter="handleSearch" />
                         <button v-if="searchQuery" @click="searchQuery = ''"
-                            class="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-all cursor-pointer"
+                            class="absolute right-2 sm:right-3 md:right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-all cursor-pointer"
                             aria-label="Clear search">
-                            <span class="material-icons text-sm sm:text-base">close</span>
+                            <span class="material-icons text-sm sm:text-base md:text-sm">close</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Filter Panel -->
                 <transition name="filter-slide">
-                    <div v-if="showFilterPanel" class="bg-gray-50 p-3 sm:p-4 rounded-lg shadow-inner mt-2">
-                        <div class="flex flex-col gap-3 sm:gap-4">
+                    <div v-if="showFilterPanel" class="bg-gray-50 p-3 sm:p-4 md:p-3 rounded-lg shadow-inner mt-2">
+                        <div class="flex flex-col gap-3 sm:gap-4 md:gap-3">
                             <div class="flex-1">
-                                <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <label
+                                    class="block text-xs sm:text-sm md:text-xs font-medium text-gray-700 mb-1">Status</label>
                                 <div class="relative">
                                     <select v-model="statusFilter" multiple
-                                        class="w-full p-1.5 sm:p-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none min-h-[80px] sm:min-h-[100px]"
+                                        class="w-full p-1.5 sm:p-2 md:p-1.5 text-xs sm:text-sm md:text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none min-h-[80px] sm:min-h-[100px] md:min-h-[80px]"
                                         aria-label="Filter by attendance status">
                                         <option v-for="status in statusOptions" :key="status" :value="status">
                                             {{ status }}
@@ -708,26 +712,27 @@ export default {
                                 </div>
                             </div>
                             <div class="flex-1">
-                                <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Date
+                                <label class="block text-xs sm:text-sm md:text-xs font-medium text-gray-700 mb-1">Date
                                     Range</label>
-                                <div class="flex flex-col sm:flex-row gap-2">
+                                <div class="flex flex-col sm:flex-row gap-2 md:gap-2">
                                     <input type="date" v-model="dateRange.start" @change="fetchEmployeesAndAttendance"
-                                        class="flex-1 p-1.5 sm:p-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                        class="flex-1 p-1.5 sm:p-2 md:p-1.5 text-xs sm:text-sm md:text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
                                         aria-label="Start date" />
-                                    <span class="self-center text-gray-500 text-xs sm:text-sm hidden sm:block">to</span>
+                                    <span
+                                        class="self-center text-gray-500 text-xs sm:text-sm md:text-xs hidden sm:block">to</span>
                                     <input type="date" v-model="dateRange.end" @change="fetchEmployeesAndAttendance"
-                                        class="flex-1 p-1.5 sm:p-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                        class="flex-1 p-1.5 sm:p-2 md:p-1.5 text-xs sm:text-sm md:text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
                                         aria-label="End date" />
                                 </div>
                             </div>
                         </div>
-                        <div class="flex flex-col sm:flex-row justify-end gap-2 mt-3 sm:mt-4">
+                        <div class="flex flex-col sm:flex-row justify-end gap-2 mt-3 sm:mt-4 md:mt-3">
                             <button @click="resetFilters"
-                                class="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-200 text-gray-700 text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-300 transition-all cursor-pointer">
+                                class="px-3 sm:px-4 md:px-3 py-1.5 sm:py-2 md:py-1.5 bg-gray-200 text-gray-700 text-xs sm:text-sm md:text-xs font-medium rounded-lg hover:bg-gray-300 transition-all cursor-pointer">
                                 Reset Filters
                             </button>
                             <button @click="showFilterPanel = false"
-                                class="px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-indigo-700 transition-all cursor-pointer">
+                                class="px-3 sm:px-4 md:px-3 py-1.5 sm:py-2 md:py-1.5 bg-indigo-600 text-white text-xs sm:text-sm md:text-xs font-medium rounded-lg hover:bg-indigo-700 transition-all cursor-pointer">
                                 Apply Filters
                             </button>
                         </div>
@@ -1110,48 +1115,10 @@ button:hover:not(:disabled) {
     }
 }
 
-/* Responsive Styles */
-@media (max-width: 640px) {
-    header {
-        padding: 1rem;
-    }
-
-    .flex-col.sm\:flex-row {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    input[type="date"],
-    input[type="time"],
-    input[type="text"],
-    select {
-        font-size: 0.875rem;
-    }
-
-    .text-2xl {
-        font-size: 1.5rem;
-    }
-
-    img.h-6.w-6 {
-        height: 1.25rem;
-        width: 1.25rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .sm\:hidden {
-        display: block;
-    }
-
-    .hidden.sm\:flex {
-        display: none;
-    }
-}
-
-/* Custom Styles */
+/* Tailwind-Driven Styles */
 select[multiple] {
     height: auto;
-    min-height: 100px;
+    min-height: 80px;
 }
 
 input,
