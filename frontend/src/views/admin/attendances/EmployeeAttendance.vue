@@ -641,7 +641,7 @@ export default {
 
 <template>
     <div class="min-h-screen bg-gray-50 p-4">
-        <div class="mx-auto max-w-7xl">
+        <div class="mx-auto">
             <!-- Header -->
             <header class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col gap-3 sm:gap-4">
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
@@ -858,7 +858,7 @@ export default {
                             <div>
                                 <p class="font-medium text-gray-800">{{ selectedEmployee?.firstName }} {{
                                     selectedEmployee?.lastName }}</p>
-                                <p class="text-xs text-gray-500">ID: {{ selectedEmployee?.id }}</p>
+                                <p class="text-xs text-gray-500">ID: {{ selectedEmployee?.empNo }}</p>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
@@ -871,7 +871,7 @@ export default {
                             </div>
                             <div>
                                 <label for="morningTimeOut" class="block text-xs font-medium text-gray-700">Morning
-                                    OutForse</label>
+                                    Out</label>
                                 <input id="morningTimeOut" v-model="selectedEmployee.morningTimeOut" type="time"
                                     class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
                                     @change="updateAttendance(selectedEmployee, 'morningTimeOut')" />
