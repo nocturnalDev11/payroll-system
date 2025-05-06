@@ -196,14 +196,14 @@ onUnmounted(() => {
                         <div class="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button v-if="notification.status === 'Unread'" @click="markAsRead(notification._id)"
                                 title="Mark as read"
-                                class="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-100 transition-colors"
+                                class="flex items-center text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-100 transition-colors cursor-pointer"
                                 :disabled="isLoadingAction" aria-label="Mark notification as read">
                                 <span v-if="isLoadingAction"
                                     class="inline-block h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
                                 <span v-else class="material-icons text-sm">done</span>
                             </button>
                             <button @click="deleteNotification(notification._id)" title="Delete notification"
-                                class="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 transition-colors"
+                                class="flex items-center text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 transition-colors cursor-pointer"
                                 :disabled="isLoadingAction" aria-label="Delete notification">
                                 <span v-if="isLoadingAction"
                                     class="inline-block h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></span>
