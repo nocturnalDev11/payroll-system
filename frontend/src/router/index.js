@@ -75,6 +75,14 @@ const routes = [
                 }
             },
             { 
+                path: 'notifications',
+                name: 'AdminNotifications', 
+                component: () => import('../views/admin/notifications/AdminNotification.vue'),
+                meta: {
+                    title: 'Admin Notifications',
+                }
+            },
+            { 
                 path: 'manage-positions', 
                 name: 'ManagePositions',
                 component: () => import('../views/admin/ManagePositions.vue'),
@@ -185,6 +193,14 @@ const routes = [
                 name: 'EmployeeDashboard',
                 meta: {
                     title: 'Employee Dashboard',
+                }
+            },
+            { 
+                path: 'notifications',
+                name: 'EmployeeNotifications', 
+                component: () => import('../views/employees/notifications/EmployeeNotification.vue'),
+                meta: {
+                    title: 'Employee Notifications',
                 }
             },
             { 
