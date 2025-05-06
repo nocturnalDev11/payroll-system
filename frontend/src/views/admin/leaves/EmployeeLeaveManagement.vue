@@ -143,20 +143,20 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
                                     <button @click="showDetailsModal(leave)"
                                         class="inline-flex items-center gap-1.5 bg-blue-50 text-blue-600 py-1.5 px-2.5 rounded-md text-sm font-medium 
-                                 hover:bg-blue-100 transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
+                                        hover:bg-blue-100 transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 cursor-pointer">
                                         <span class="material-icons text-xs">visibility</span>
                                         View
                                     </button>
                                     <button @click="approveLeave(leave._id)" :disabled="leave.status === 'Approved'"
                                         class="inline-flex items-center gap-1.5 bg-green-50 text-green-600 py-1.5 px-2.5 rounded-md text-sm font-medium 
-                                 hover:bg-green-100 transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 disabled:opacity-50">
+                                        hover:bg-green-100 transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 disabled:opacity-50 cursor-pointer">
                                         <span class="material-icons text-xs">check</span>
                                         Approve
                                     </button>
                                     <button @click="disapproveLeave(leave._id)"
                                         :disabled="leave.status === 'Disapproved'"
                                         class="inline-flex items-center gap-1.5 bg-red-50 text-red-600 py-1.5 px-2.5 rounded-md text-sm font-medium 
-                                            hover:bg-red-100 transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 disabled:opacity-50">
+                                            hover:bg-red-100 transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 disabled:opacity-50 cursor-pointer">
                                         <span class="material-icons text-xs">close</span>
                                         Disapprove
                                     </button>
@@ -172,7 +172,7 @@
                     <div class="text-sm text-gray-700">
                         Showing <span class="font-medium">{{ ((currentPage - 1) * itemsPerPage) + 1 }}</span> to
                         <span class="font-medium">{{ Math.min(currentPage * itemsPerPage, filteredLeaveRequests.length)
-                        }}</span> of
+                            }}</span> of
                         <span class="font-medium">{{ filteredLeaveRequests.length }}</span> requests
                     </div>
                     <div class="flex items-center gap-2">
@@ -190,63 +190,52 @@
             </div>
 
             <!-- Email-Style Details Modal -->
-            <transition name="modal-slide">
-                <div v-if="showDetailsModalVisible"
-                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div
-                        class="bg-white p-6 rounded-xl shadow-lg max-w-2xl w-full transform transition-all duration-300 scale-100">
-                        <div class="border-b border-gray-200 pb-4 mb-4">
-                            <div class="flex justify-between items-center">
-                                <h2 class="text-lg font-semibold text-gray-800">Leave Request Notification</h2>
-                                <button @click="closeDetailsModal"
-                                    class="text-gray-600 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100 transition-all duration-200">
-                                    <span class="material-icons text-lg">close</span>
-                                </button>
-                            </div>
-                            <div class="text-sm text-gray-500 mt-2">From: HR System <span class="text-gray-400">|</span>
-                                To: Admin</div>
-                        </div>
-
-                        <div class="mb-4">
-                            <h3 class="text-base font-medium text-gray-900">Subject: Leave Request for {{
-                                selectedLeave.employeeName }}</h3>
-                            <p class="text-sm text-gray-600 mt-1">Date: {{ formatDate(selectedLeave.startDate) }} – {{
-                                formatDate(selectedLeave.endDate) }}</p>
-                        </div>
-
-                        <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
-                            <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ selectedLeave.reason }}</p>
-                        </div>
-
-                        <div class="space-y-3 text-sm">
-                            <p class="text-gray-700"><span class="font-medium text-gray-800">Employee:</span> {{
-                                selectedLeave.employeeName }}</p>
-                            <p class="text-gray-700"><span class="font-medium text-gray-800">Employee ID:</span> {{
-                                selectedLeave.empNo }}</p>
-                            <p class="text-gray-700"><span class="font-medium text-gray-800">Status:</span>
-                                <span :class="getStatusClass(selectedLeave.status)">{{ selectedLeave.status }}</span>
-                            </p>
-                        </div>
-
-                        <div class="mt-6 flex justify-end gap-3">
-                            <button @click="approveLeave(selectedLeave._id)"
-                                :disabled="selectedLeave.status === 'Approved'"
-                                class="px-4 py-2 bg-green-500 text-white rounded-md text-sm font-medium hover:bg-green-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50">
-                                Approve
-                            </button>
-                            <button @click="disapproveLeave(selectedLeave._id)"
-                                :disabled="selectedLeave.status === 'Disapproved'"
-                                class="px-4 py-2 bg-red-500 text-white rounded-md text-sm font-medium hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50">
-                                Disapprove
-                            </button>
+            <Modal :show="showDetailsModalVisible" max-width="2xl" closeable @close="closeDetailsModal">
+                <div class="p-6">
+                    <div class="border-b border-gray-200 pb-4 mb-4">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-lg font-semibold text-gray-800">Leave Request Notification</h2>
                             <button @click="closeDetailsModal"
-                                class="px-4 py-2 bg-gray-500 text-white rounded-md text-sm font-medium hover:bg-gray-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-                                Close
+                                class="flex items-center text-gray-600 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100 transition-all duration-200 cursor-pointer">
+                                <span class="material-icons text-lg">close</span>
                             </button>
                         </div>
+                        <div class="text-sm text-gray-500 mt-2">From: HR System <span class="text-gray-400">|</span> To:
+                            Admin</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h3 class="text-base font-medium text-gray-900">Subject: Leave Request for {{
+                            selectedLeave.employeeName }}</h3>
+                        <p class="text-sm text-gray-600 mt-1">Date: {{ formatDate(selectedLeave.startDate) }} – {{
+                            formatDate(selectedLeave.endDate) }}</p>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
+                        <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ selectedLeave.reason }}</p>
+                    </div>
+
+                    <div class="space-y-3 text-sm">
+                        <p class="text-gray-700"><span class="font-medium text-gray-800">Employee: </span> {{
+                            selectedLeave.employeeName }}</p>
+                        <p class="text-gray-700"><span class="font-medium text-gray-800">Status: </span>
+                            <span :class="getStatusClass(selectedLeave.status)">{{ selectedLeave.status }}</span>
+                        </p>
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button @click="approveLeave(selectedLeave._id)" :disabled="selectedLeave.status === 'Approved'"
+                            class="px-4 py-2 bg-green-500 text-white rounded-md text-sm font-medium hover:bg-green-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50">
+                            Approve
+                        </button>
+                        <button @click="disapproveLeave(selectedLeave._id)"
+                            :disabled="selectedLeave.status === 'Disapproved'"
+                            class="px-4 py-2 bg-red-500 text-white rounded-md text-sm font-medium hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50">
+                            Disapprove
+                        </button>
                     </div>
                 </div>
-            </transition>
+            </Modal>
 
             <!-- Toast Component -->
             <Toast v-if="toast.isVisible" :message="toast.message" :type="toast.type" :duration="3000"
@@ -261,11 +250,13 @@ import moment from 'moment';
 import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
 import Toast from '@/components/Toast.vue';
+import Modal from '@/components/Modal.vue';
 
 export default {
     name: 'EmployeeLeaveManagement',
     components: {
         Toast,
+        Modal,
     },
     data() {
         return {
@@ -303,7 +294,7 @@ export default {
                 const query = this.searchQuery.toLowerCase();
                 filtered = filtered.filter(leave => {
                     if (!leave.empNo && !leave.employeeName) {
-                        console.warn('Invalid leave data:', leave); // Log problematic entries
+                        console.warn('Invalid leave data:', leave);
                     }
                     return (leave.employeeName ? leave.employeeName.toLowerCase().includes(query) : false) ||
                         (leave.empNo ? String(leave.empNo).toLowerCase().includes(query) : false);
@@ -341,7 +332,7 @@ export default {
         },
         totalPages() {
             return Math.ceil(this.filteredLeaveRequests.length / this.itemsPerPage);
-        }
+        },
     },
     methods: {
         async fetchLeaveRequests() {
@@ -352,7 +343,7 @@ export default {
                     ...leave,
                     _id: leave._id,
                     startDate: moment(leave.startDate).format('YYYY-MM-DD'),
-                    endDate: moment(leave.endDate).format('YYYY-MM-DD')
+                    endDate: moment(leave.endDate).format('YYYY-MM-DD'),
                 })) || [];
             } catch (error) {
                 console.error('Failed to fetch leave requests:', error);
@@ -373,7 +364,6 @@ export default {
             this.showDetailsModalVisible = false;
             this.selectedLeave = {};
         },
-        
         async approveLeave(_id) {
             if (!_id) {
                 this.showToast('Invalid leave ID', 'error');
@@ -400,13 +390,23 @@ export default {
                 }
             } catch (error) {
                 console.error('Failed to approve leave:', error);
-                const message = error.response?.data?.message || 'Failed to approve leave. Please try again.';
-                this.showToast(message, 'error');
+                if (error.response?.status === 401) {
+                    this.showToast('Session expired. Please log in again.', 'error');
+                    authStore.logout();
+                    this.$router.push('/admin/login');
+                } else {
+                    const message = error.response?.data?.message || 'Failed to approve leave. Please try again.';
+                    this.showToast(message, 'error');
+                }
             }
         },
-
         async disapproveLeave(_id) {
             const authStore = useAuthStore();
+            console.log('Disapprove headers:', {
+                Authorization: `Bearer ${authStore.accessToken}`,
+                'user-role': authStore.userRole,
+                'user-id': authStore.admin?._id || authStore.employee?._id,
+            });
             try {
                 const response = await axios.put(`${BASE_API_URL}/api/leaves/${_id}/disapprove`, {}, {
                     headers: {
@@ -427,26 +427,14 @@ export default {
                 }
             } catch (error) {
                 console.error('Failed to disapprove leave:', error);
-                const message = error.response?.data?.message || 'Failed to disapprove leave. Please try again.';
-                this.showToast(message, 'error');
-            }
-        },
-
-        async disapproveLeave(_id) {
-            try {
-                const response = await axios.put(`${BASE_API_URL}/api/leaves/${_id}/disapprove`);
-                if (response.status === 200) {
-                    this.leaveRequests = this.leaveRequests.map(leave =>
-                        leave._id === _id ? { ...leave, status: 'Disapproved' } : leave
-                    );
-                    if (this.showDetailsModalVisible) {
-                        this.selectedLeave.status = 'Disapproved';
-                    }
-                    this.showToast('Leave disapproved successfully!', 'success');
+                if (error.response?.status === 401) {
+                    this.showToast('Session expired. Please log in again.', 'error');
+                    authStore.logout();
+                    this.$router.push('/admin/login');
+                } else {
+                    const message = error.response?.data?.message || 'Failed to disapprove leave. Please try again.';
+                    this.showToast(message, 'error');
                 }
-            } catch (error) {
-                console.error('Failed to disapprove leave:', error);
-                this.showToast('Failed to disapprove leave. Please try again.', 'error');
             }
         },
         getStatusClass(status) {
@@ -473,7 +461,7 @@ export default {
             }
         },
         applyDateFilter() {
-            this.currentPage = 1; // Reset to first page when filtering
+            this.currentPage = 1;
         },
         prevPage() {
             if (this.currentPage > 1) this.currentPage--;
@@ -491,7 +479,7 @@ export default {
         handleToastClose() {
             this.toast.isVisible = false;
         },
-    }
+    },
 };
 </script>
 
