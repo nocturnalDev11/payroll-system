@@ -33,11 +33,11 @@ const attendanceSettings = ref({
     breakStart: '11:30',
     breakEnd: '12:59',
     officeEnd: '17:00',
-    gracePeriod: 15,
+    gracePeriod: 10, // Updated to 10 minutes
     deductionRate: 37.5,
     earlyTimeInThreshold: '06:00',
     earlyTimeOutThreshold: '11:30',
-    halfDayThreshold: '13:00', // New setting for half-day recognition
+    halfDayThreshold: '13:00',
 });
 
 const currentPayPeriod = computed(() => {
@@ -112,7 +112,7 @@ async function fetchAttendanceSettings() {
         attendanceSettings.value = await response.json();
     } catch (error) {
         console.error('Error fetching attendance settings:', error);
-        errorMessage.value = 'Failed to load attendance settings. Using default values.';
+        showToast('error', 'Failed to load attendance settings. Using default values.');
     }
 }
 
@@ -184,15 +184,15 @@ async function timeIn() {
     const { earlyTimeInThreshold, breakStart, breakEnd, halfDayThreshold } = attendanceSettings.value;
 
     if (!canTimeIn()) {
-        let errorMsg = '';
+        let message = '';
         if (currentTime < earlyTimeInThreshold) {
-            errorMsg = `Morning Time In is only allowed after ${formatTime(earlyTimeInThreshold)}.`;
+            message = `Time In is not allowed before ${formatTime(earlyTimeInThreshold)}.`;
         } else if (currentTime >= breakStart && currentTime <= breakEnd) {
-            errorMsg = `Time In is not allowed during lunch break (${formatTime(breakStart)} - ${formatTime(breakEnd)}).`;
+            message = `Time In is not allowed during lunch break (${formatTime(breakStart)} - ${formatTime(breakEnd)}).`;
         } else {
-            errorMsg = 'You are already Timed In or have completed today\'s sessions.';
+            message = 'You are already Timed In or have completed today\'s sessions.';
         }
-        errorMessage.value = errorMsg;
+        showToast('error', message);
         return;
     }
 
@@ -223,9 +223,9 @@ async function timeIn() {
         }
         await checkTimedInStatus();
         if (authStore.userRole === 'admin') await fetchTodayAttendance();
-        errorMessage.value = '';
+        showToast('success', 'Successfully Timed In.');
     } catch (error) {
-        errorMessage.value = error.message || 'Failed to time in';
+        showToast('error', error.message || 'Failed to time in.');
     } finally {
         isLoading.value = false;
     }
@@ -237,7 +237,7 @@ async function timeOut() {
     const { earlyTimeOutThreshold } = attendanceSettings.value;
 
     if (!canTimeOut()) {
-        errorMessage.value = `Time Out is only allowed after ${formatTime(earlyTimeOutThreshold)}.`;
+        showToast('error', `Time Out is only allowed after ${formatTime(earlyTimeOutThreshold)}.`);
         return;
     }
 
@@ -261,9 +261,9 @@ async function timeOut() {
         if (index !== -1) attendanceRecords.value[index] = data;
         await checkTimedInStatus();
         if (authStore.userRole === 'admin') await fetchTodayAttendance();
-        errorMessage.value = '';
+        showToast('success', 'Successfully Timed Out.');
     } catch (error) {
-        errorMessage.value = error.message || 'Failed to time out';
+        showToast('error', error.message || 'Failed to time out.');
     } finally {
         isLoading.value = false;
     }
@@ -289,7 +289,7 @@ function canTimeIn() {
         return currentTime >= earlyTimeInThreshold;
     }
 
-    // Allow afternoon time-in after breakEnd or halfDayThreshold if morning session is complete
+    // Allow afternoon time-in after breakEnd if morning session is complete
     if (
         (latestRecord?.morningTimeIn && latestRecord?.morningTimeOut) ||
         (!latestRecord?.morningTimeIn && currentTime >= breakEnd)
@@ -325,12 +325,17 @@ function getAttendanceStatus(record) {
     lateThreshold.setMinutes(lateThreshold.getMinutes() + gracePeriod);
     const lateThresholdTime = lateThreshold.toISOString().slice(11, 19);
 
-    // Check for half-day status if time-in is after halfDayThreshold
+    // Check for half-day status
     if (!record.morningTimeIn && afternoonIn >= halfDayThreshold) {
         return 'Half Day';
     }
     if (record.morningTimeIn && !record.afternoonTimeIn && record.morningTimeOut) {
         return 'Half Day';
+    }
+
+    // Check if within grace period for morning session
+    if (morningIn <= lateThresholdTime) {
+        return 'Present';
     }
 
     // Check if employee was late for morning session
@@ -364,7 +369,6 @@ const formatNumber = (value) => {
     });
 };
 
-// Payroll Computations (unchanged)
 const payrollData = computed(() => {
     if (!employee.value) return null;
     const basicSalary = Number(employee.value.salary || 0);
@@ -468,7 +472,6 @@ function getStatusClass(status) {
 <template>
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div class="p-4">
-            <!-- Toast Notification -->
             <Toast v-if="toast.isVisible" :message="toast.message" :type="toast.type" />
 
             <div v-if="employee" class="mb-6 bg-white rounded-xl border-l-4 border-l-green-600 shadow-sm p-6">
@@ -487,7 +490,6 @@ function getStatusClass(status) {
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <div class="lg:col-span-3 space-y-6">
                     <div class="bg-white rounded-xl shadow-sm p-6">
-
                         <div
                             class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 sm:space-x-4">
                             <div class="text-sm text-gray-500">Current Pay Period: {{ currentPayPeriod }}</div>
@@ -508,7 +510,6 @@ function getStatusClass(status) {
                         </div>
                     </div>
 
-                    <!-- Admin Today's Attendance Table (unchanged) -->
                     <div v-if="authStore.userRole === 'admin'" class="bg-white rounded-xl shadow-sm overflow-hidden">
                         <div class="p-6 border-b border-gray-100">
                             <h2 class="text-lg font-semibold text-gray-800">Today's Attendance</h2>
@@ -562,7 +563,6 @@ function getStatusClass(status) {
                         </div>
                     </div>
 
-                    <!-- My Attendance Records Table -->
                     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                         <div class="p-6 border-b border-gray-100">
                             <h2 class="text-lg font-semibold text-gray-800">My Attendance Records</h2>

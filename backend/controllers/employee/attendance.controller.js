@@ -12,18 +12,15 @@ exports.timeIn = asyncHandler(async (req, res) => {
     const currentDate = new Date();
     const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
 
-    const MORNING_EARLY_THRESHOLD = "06:00";
-    const AFTERNOON_THRESHOLD = "11:30";
-    const OFFICE_START = "08:00";
-    const LUNCH_START = "11:30";
-    const LUNCH_END = "12:59";
+    // Fetch attendance settings
+    const settings = await AttendanceSettings.findOne() || new AttendanceSettings({});
 
     // Validate time-in based on morning or afternoon
-    if (currentTime < MORNING_EARLY_THRESHOLD) {
-        return res.status(400).json({ message: 'Morning Time In is not allowed before 6:00 AM' });
+    if (currentTime < settings.earlyTimeInThreshold) {
+        return res.status(400).json({ message: `Time In is not allowed before ${settings.earlyTimeInThreshold}` });
     }
-    if (currentTime >= AFTERNOON_THRESHOLD && currentTime <= LUNCH_END) {
-        return res.status(400).json({ message: 'Afternoon Time In is not allowed during lunch break (11:30 AM - 12:59 PM)' });
+    if (currentTime >= settings.breakStart && currentTime <= settings.breakEnd) {
+        return res.status(400).json({ message: `Time In is not allowed during lunch break (${settings.breakStart} - ${settings.breakEnd})` });
     }
 
     const todayStart = new Date(currentDate.setHours(0, 0, 0, 0));
@@ -35,43 +32,49 @@ exports.timeIn = asyncHandler(async (req, res) => {
 
     // Check if already timed in for the session
     if (existingRecord) {
-        if (currentTime <= LUNCH_END && existingRecord.morningTimeIn && !existingRecord.morningTimeOut) {
+        if (currentTime <= settings.breakEnd && existingRecord.morningTimeIn && !existingRecord.morningTimeOut) {
             return res.status(400).json({ message: 'You are already Timed In for the morning session. Please Time Out first.' });
         }
-        if (currentTime > LUNCH_END && existingRecord.afternoonTimeIn && !existingRecord.afternoonTimeOut) {
+        if (currentTime > settings.breakEnd && existingRecord.afternoonTimeIn && !existingRecord.afternoonTimeOut) {
             return res.status(400).json({ message: 'You are already Timed In for the afternoon session. Please Time Out first.' });
         }
     }
 
-    let status = "On Time";
+    let status = "Present";
     let lateHours = 0;
     let lateDeduction = 0;
 
+    // Calculate late threshold based on grace period
+    const lateThreshold = new Date(`1970-01-01T${settings.officeStart}Z`);
+    lateThreshold.setMinutes(lateThreshold.getMinutes() + settings.gracePeriod);
+    const lateThresholdTime = lateThreshold.toISOString().slice(11, 19).substring(0, 5);
+
     // Calculate status and deductions
-    if (currentTime <= LUNCH_START) {
+    if (currentTime <= settings.breakStart) {
         // Morning time-in
-        if (currentTime > OFFICE_START) {
+        if (currentTime > lateThresholdTime) {
             status = "Late";
             const [hours, minutes] = currentTime.split(':').map(Number);
-            const [startHours, startMinutes] = OFFICE_START.split(':').map(Number);
+            const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
             const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
             lateHours = Math.ceil(lateMinutes / 60);
-            lateDeduction = lateHours * 37.5;
+            lateDeduction = lateHours * settings.deductionRate;
         }
-    } else if (currentTime > LUNCH_END) {
+    } else if (currentTime > settings.breakEnd) {
         // Afternoon time-in
-        status = "Half Day";
-        lateHours = 4;
-        lateDeduction = lateHours * 37.5;
-        if (existingRecord?.morningTimeIn) {
-            status = "Late";
+        if (currentTime >= settings.halfDayThreshold) {
+            status = "Half Day";
+            lateHours = 4;
+            lateDeduction = lateHours * settings.deductionRate;
+        } else if (existingRecord?.morningTimeIn) {
+            status = "Present";
         }
     }
 
     let attendance;
     if (existingRecord) {
         // Update existing record for afternoon time-in
-        existingRecord.afternoonTimeIn = currentTime > LUNCH_END ? currentTime : existingRecord.afternoonTimeIn;
+        existingRecord.afternoonTimeIn = currentTime > settings.breakEnd ? currentTime : existingRecord.afternoonTimeIn;
         existingRecord.status = status;
         existingRecord.lateHours = lateHours;
         existingRecord.lateDeduction = lateDeduction;
@@ -81,8 +84,8 @@ exports.timeIn = asyncHandler(async (req, res) => {
         attendance = new Attendance({
             employeeId,
             date: currentDate,
-            morningTimeIn: currentTime <= LUNCH_START ? currentTime : null,
-            afternoonTimeIn: currentTime > LUNCH_END ? currentTime : null,
+            morningTimeIn: currentTime <= settings.breakStart ? currentTime : null,
+            afternoonTimeIn: currentTime > settings.breakEnd ? currentTime : null,
             status,
             lateHours,
             lateDeduction,
@@ -102,9 +105,8 @@ exports.timeOut = asyncHandler(async (req, res) => {
     const currentDate = new Date();
     const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
 
-    const OFFICE_END = "17:00";
-    const LUNCH_END = "12:59";
-    const MORNING_CUTOFF = "11:30";
+    // Fetch attendance settings
+    const settings = await AttendanceSettings.findOne() || new AttendanceSettings({});
 
     const todayStart = new Date(currentDate.setHours(0, 0, 0, 0));
     const todayEnd = new Date(currentDate.setHours(23, 59, 59, 999));
@@ -121,30 +123,41 @@ exports.timeOut = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: 'No open Time In session found. Please Time In first.' });
     }
 
-    if (currentTime < MORNING_CUTOFF) {
-        return res.status(400).json({ message: 'Time Out is not allowed before 11:30 AM' });
+    if (currentTime < settings.earlyTimeOutThreshold) {
+        return res.status(400).json({ message: `Time Out is not allowed before ${settings.earlyTimeOutThreshold}` });
     }
 
-    if (attendance.morningTimeIn && !attendance.morningTimeOut && currentTime <= LUNCH_END) {
+    if (attendance.morningTimeIn && !attendance.morningTimeOut && currentTime <= settings.breakEnd) {
         attendance.morningTimeOut = currentTime;
     } else if (attendance.afternoonTimeIn && !attendance.afternoonTimeOut) {
         attendance.afternoonTimeOut = currentTime;
-    } else if (attendance.morningTimeIn && !attendance.afternoonTimeIn && currentTime > LUNCH_END) {
+    } else if (attendance.morningTimeIn && !attendance.afternoonTimeIn && currentTime > settings.breakEnd) {
         attendance.afternoonTimeIn = currentTime;
         attendance.afternoonTimeOut = currentTime;
     }
 
-    if (currentTime < OFFICE_END && attendance.afternoonTimeOut) {
+    // Calculate late threshold based on grace period
+    const lateThreshold = new Date(`1970-01-01T${settings.officeStart}Z`);
+    lateThreshold.setMinutes(lateThreshold.getMinutes() + settings.gracePeriod);
+    const lateThresholdTime = lateThreshold.toISOString().slice(11, 19).substring(0, 5);
+
+    if (currentTime < settings.officeEnd && attendance.afternoonTimeOut) {
         attendance.status = "Early Departure";
-    } else if (attendance.morningTimeIn && attendance.afternoonTimeOut && currentTime >= OFFICE_END) {
+    } else if (attendance.morningTimeIn && attendance.afternoonTimeOut && currentTime >= settings.officeEnd) {
         attendance.status = "Present";
-        if (attendance.morningTimeIn > "08:00") {
+        if (attendance.morningTimeIn > lateThresholdTime) {
             attendance.status = "Late";
             const [hours, minutes] = attendance.morningTimeIn.split(':').map(Number);
-            const [startHours, startMinutes] = "08:00".split(':').map(Number);
+            const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
             const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
             attendance.lateHours = Math.ceil(lateMinutes / 60);
-            attendance.lateDeduction = attendance.lateHours * 37.5;
+            attendance.lateDeduction = attendance.lateHours * settings.deductionRate;
+        }
+    } else if (!attendance.morningTimeIn && attendance.afternoonTimeIn && attendance.afternoonTimeOut) {
+        attendance.status = "Half Day";
+        if (attendance.afternoonTimeIn >= settings.halfDayThreshold) {
+            attendance.lateHours = 4;
+            attendance.lateDeduction = 4 * settings.deductionRate;
         }
     }
 
@@ -160,7 +173,9 @@ exports.checkAbsent = asyncHandler(async (req, res) => {
     const today = new Date();
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
     const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-    const CUTOFF_TIME = "17:00";
+    
+    // Fetch attendance settings
+    const settings = await AttendanceSettings.findOne() || new AttendanceSettings({});
 
     const attendanceRecords = await Attendance.find({ date: { $gte: startOfDay, $lte: endOfDay } });
     const presentEmployeeIds = attendanceRecords
@@ -172,7 +187,7 @@ exports.checkAbsent = asyncHandler(async (req, res) => {
         .filter(emp => !presentEmployeeIds.includes(emp._id.toString()))
         .map(emp => emp._id);
 
-    if (new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }) > CUTOFF_TIME) {
+    if (new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }) > settings.officeEnd) {
         const existingRecords = await Attendance.find({
             employeeId: { $in: absentEmployeeIds },
             date: { $gte: startOfDay, $lte: endOfDay },
@@ -192,7 +207,7 @@ exports.checkAbsent = asyncHandler(async (req, res) => {
                     afternoonTimeIn: null,
                     afternoonTimeOut: null,
                     lateHours: 8,
-                    lateDeduction: 8 * 37.5,
+                    lateDeduction: 8 * settings.deductionRate,
                 }))
             );
         }
@@ -226,16 +241,19 @@ exports.updateAttendance = asyncHandler(async (req, res) => {
         });
     }
 
-    const OFFICE_START = "08:00";
-    const LUNCH_START = "11:30";
-    const LUNCH_END = "12:59";
-    const OFFICE_END = "17:00";
+    // Fetch attendance settings
+    const settings = await AttendanceSettings.findOne() || new AttendanceSettings({});
 
     attendance.date = date || attendance.date;
     attendance.morningTimeIn = morningTimeIn !== undefined ? morningTimeIn : attendance.morningTimeIn || null;
     attendance.morningTimeOut = morningTimeOut !== undefined ? morningTimeOut : attendance.morningTimeOut || null;
     attendance.afternoonTimeIn = afternoonTimeIn !== undefined ? afternoonTimeIn : attendance.afternoonTimeIn || null;
     attendance.afternoonTimeOut = afternoonTimeOut !== undefined ? afternoonTimeOut : attendance.afternoonTimeOut || null;
+
+    // Calculate late threshold based on grace period
+    const lateThreshold = new Date(`1970-01-01T${settings.officeStart}Z`);
+    lateThreshold.setMinutes(lateThreshold.getMinutes() + settings.gracePeriod);
+    const lateThresholdTime = lateThreshold.toISOString().slice(11, 19).substring(0, 5);
 
     if (status) {
         attendance.status = status;
@@ -248,49 +266,49 @@ exports.updateAttendance = asyncHandler(async (req, res) => {
         if (!attendance.morningTimeIn && !attendance.afternoonTimeIn) {
             attendance.status = "Absent";
             calculatedLateHours = 8;
-            calculatedLateDeduction = 8 * 37.5;
-        } else if (attendance.morningTimeIn && attendance.afternoonTimeOut && attendance.afternoonTimeOut >= OFFICE_END) {
+            calculatedLateDeduction = 8 * settings.deductionRate;
+        } else if (attendance.morningTimeIn && attendance.afternoonTimeOut && attendance.afternoonTimeOut >= settings.officeEnd) {
             attendance.status = "Present";
-            if (attendance.morningTimeIn > OFFICE_START) {
+            if (attendance.morningTimeIn > lateThresholdTime) {
                 attendance.status = "Late";
                 const [hours, minutes] = attendance.morningTimeIn.split(':').map(Number);
-                const [startHours, startMinutes] = OFFICE_START.split(':').map(Number);
+                const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
                 const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
                 calculatedLateHours = Math.ceil(lateMinutes / 60);
-                calculatedLateDeduction = calculatedLateHours * 37.5;
+                calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
             }
         } else if ((attendance.morningTimeIn && !attendance.afternoonTimeIn) || (!attendance.morningTimeIn && attendance.afternoonTimeIn)) {
             attendance.status = "Half Day";
             calculatedLateHours = 4;
-            calculatedLateDeduction = 4 * 37.5;
-            if (attendance.morningTimeIn && attendance.morningTimeIn > OFFICE_START) {
+            calculatedLateDeduction = 4 * settings.deductionRate;
+            if (attendance.morningTimeIn && attendance.morningTimeIn > lateThresholdTime) {
                 attendance.status = "Late";
                 const [hours, minutes] = attendance.morningTimeIn.split(':').map(Number);
-                const [startHours, startMinutes] = OFFICE_START.split(':').map(Number);
+                const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
                 const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
                 calculatedLateHours = Math.max(4, Math.ceil(lateMinutes / 60));
-                calculatedLateDeduction = calculatedLateHours * 37.5;
-            } else if (attendance.afternoonTimeIn && attendance.afternoonTimeIn > LUNCH_END) {
-                attendance.status = "Late";
+                calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
+            } else if (attendance.afternoonTimeIn && attendance.afternoonTimeIn >= settings.halfDayThreshold) {
+                attendance.status = "Half Day";
                 calculatedLateHours = 4;
-                calculatedLateDeduction = 4 * 37.5;
+                calculatedLateDeduction = 4 * settings.deductionRate;
             }
-        } else if (attendance.morningTimeIn && attendance.morningTimeIn > OFFICE_START) {
+        } else if (attendance.morningTimeIn && attendance.morningTimeIn > lateThresholdTime) {
             attendance.status = "Late";
             const [hours, minutes] = attendance.morningTimeIn.split(':').map(Number);
-            const [startHours, startMinutes] = OFFICE_START.split(':').map(Number);
+            const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
             const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
             calculatedLateHours = Math.ceil(lateMinutes / 60);
-            calculatedLateDeduction = calculatedLateHours * 37.5;
-        } else if (attendance.afternoonTimeIn && attendance.afternoonTimeIn > LUNCH_END) {
-            attendance.status = "Late";
+            calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
+        } else if (attendance.afternoonTimeIn && attendance.afternoonTimeIn > settings.breakEnd) {
+            attendance.status = "Half Day";
             calculatedLateHours = 4;
-            calculatedLateDeduction = 4 * 37.5;
-        } else if ((attendance.morningTimeOut && attendance.morningTimeOut < LUNCH_START) ||
-                   (attendance.afternoonTimeOut && attendance.afternoonTimeOut < OFFICE_END)) {
+            calculatedLateDeduction = 4 * settings.deductionRate;
+        } else if ((attendance.morningTimeOut && attendance.morningTimeOut < settings.breakStart) ||
+                   (attendance.afternoonTimeOut && attendance.afternoonTimeOut < settings.officeEnd)) {
             attendance.status = "Early Departure";
         } else {
-            attendance.status = "On Time";
+            attendance.status = "Present";
         }
 
         attendance.lateHours = calculatedLateHours;
@@ -328,13 +346,14 @@ exports.createAttendance = asyncHandler(async (req, res) => {
         lateDeduction: lateDeduction || 0,
     });
 
+    // Calculate late threshold based on grace period
+    const lateThreshold = new Date(`1970-01-01T${settings.officeStart}Z`);
+    lateThreshold.setMinutes(lateThreshold.getMinutes() + settings.gracePeriod);
+    const lateThresholdTime = lateThreshold.toISOString().slice(11, 19).substring(0, 5);
+
     if (!status) {
         let calculatedLateHours = 0;
         let calculatedLateDeduction = 0;
-
-        const lateThreshold = moment(settings.officeStart, 'HH:mm')
-        .add(settings.gracePeriod, 'minutes')
-        .format('HH:mm');
 
         if (!morningTimeIn && !afternoonTimeIn) {
             newAttendance.status = 'Absent';
@@ -342,7 +361,7 @@ exports.createAttendance = asyncHandler(async (req, res) => {
             calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
         } else if (morningTimeIn && afternoonTimeOut && afternoonTimeOut >= settings.officeEnd) {
             newAttendance.status = 'Present';
-            if (morningTimeIn > lateThreshold) {
+            if (morningTimeIn > lateThresholdTime) {
                 newAttendance.status = 'Late';
                 const [hours, minutes] = morningTimeIn.split(':').map(Number);
                 const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
@@ -354,19 +373,19 @@ exports.createAttendance = asyncHandler(async (req, res) => {
             newAttendance.status = 'Half Day';
             calculatedLateHours = 4;
             calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
-            if (morningTimeIn && morningTimeIn > lateThreshold) {
+            if (morningTimeIn && morningTimeIn > lateThresholdTime) {
                 newAttendance.status = 'Late';
                 const [hours, minutes] = morningTimeIn.split(':').map(Number);
                 const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
                 const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
                 calculatedLateHours = Math.max(4, Math.ceil(lateMinutes / 60));
                 calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
-            } else if (afternoonTimeIn && afternoonTimeIn > settings.breakEnd) {
-                newAttendance.status = 'Late';
+            } else if (afternoonTimeIn && afternoonTimeIn >= settings.halfDayThreshold) {
+                newAttendance.status = 'Half Day';
                 calculatedLateHours = 4;
                 calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
             }
-        } else if (morningTimeIn && morningTimeIn > lateThreshold) {
+        } else if (morningTimeIn && morningTimeIn > lateThresholdTime) {
             newAttendance.status = 'Late';
             const [hours, minutes] = morningTimeIn.split(':').map(Number);
             const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
@@ -374,7 +393,7 @@ exports.createAttendance = asyncHandler(async (req, res) => {
             calculatedLateHours = Math.ceil(lateMinutes / 60);
             calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
         } else if (afternoonTimeIn && afternoonTimeIn > settings.breakEnd) {
-            newAttendance.status = 'Late';
+            newAttendance.status = 'Half Day';
             calculatedLateHours = 4;
             calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
         } else if (
@@ -383,7 +402,7 @@ exports.createAttendance = asyncHandler(async (req, res) => {
         ) {
             newAttendance.status = 'Early Departure';
         } else {
-            newAttendance.status = 'On Time';
+            newAttendance.status = 'Present';
         }
 
         newAttendance.lateHours = calculatedLateHours;
