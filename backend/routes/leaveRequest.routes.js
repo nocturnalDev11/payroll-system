@@ -18,11 +18,11 @@ const {
 const router = express.Router();
 
 router.get('/all', getAllLeaveRequests);
-router.get('/employee/:id', restrictToEmployee, getLeaveRequestsByEmployee);
-router.post('/', restrictToEmployee, createLeaveRequest);
-router.put('/:id/approve', approveLeaveRequest);
-router.put('/:id/disapprove', disapproveLeaveRequest);
 router.delete('/:id', verifyToken, deleteLeaveRequest);
+router.post('/', restrictToEmployee, createLeaveRequest);
 router.put('/:id', restrictToEmployee, updateLeaveRequest);
+router.get('/employee/:id', restrictToEmployee, getLeaveRequestsByEmployee);
+router.put('/:id/approve', verifyToken, restrictToAdmin, approveLeaveRequest);
+router.put('/:id/disapprove', verifyToken, restrictToAdmin, disapproveLeaveRequest);
 
 module.exports = router;

@@ -2,11 +2,13 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAttendanceStore } from '@/stores/attendance.store.js';
+import { useAuthStore } from '@/stores/auth.store.js';
 import { BASE_API_URL } from '@/utils/constants.js';
 import EmployeeAttendanceDetails from './partials/EmployeeAttendanceDetails.vue';
 
 const router = useRouter();
 const attendanceStore = useAttendanceStore();
+const authStore = useAuthStore();
 const totalEmployees = ref(0);
 const isLoading = ref(false);
 const showModals = ref({});
@@ -15,7 +17,12 @@ const showModals = ref({});
 const fetchTotalEmployees = async () => {
     try {
         const response = await fetch(`${BASE_API_URL}/api/employees/total`, {
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authStore.accessToken}`,
+                'user-role': authStore.userRole,
+                'user-id': authStore.admin?._id?.toString()
+            },
         });
         if (!response.ok) throw new Error('Failed to fetch total employees');
         const data = await response.json();
@@ -48,11 +55,15 @@ const getSignOutTime = (record) => {
 const refreshAttendance = async () => {
     isLoading.value = true;
     try {
-        const todayStart = new Date().setHours(0, 0, 0, 0);
         const response = await fetch(`${BASE_API_URL}/api/attendance/today`, {
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authStore.accessToken}`,
+                'user-role': authStore.userRole,
+                'user-id': authStore.admin?._id?.toString()
+            },
         });
-        if (!response.ok) throw new Error('Failed to fetch today’s attendance');
+        if (!response.ok) throw new Error(`Failed to fetch today’s attendance: ${response.status} - ${await response.text()}`);
         const data = await response.json();
         attendanceStore.attendanceRecords = data;
     } catch (error) {
@@ -100,7 +111,12 @@ const deleteAttendance = async (id) => {
         try {
             const response = await fetch(`${BASE_API_URL}/api/attendance/${id}`, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authStore.accessToken}`,
+                    'user-role': authStore.userRole,
+                    'user-id': authStore.admin?._id?.toString()
+                },
             });
             if (!response.ok) throw new Error('Failed to delete attendance');
             await refreshAttendance();
@@ -131,7 +147,7 @@ const presentCount = computed(() => {
 });
 
 const lateCount = computed(() => {
-    return attendanceStore.attendanceRecords.filter(r => 
+    return attendanceStore.attendanceRecords.filter(r =>
         r.status === 'Late'
     ).length;
 });
@@ -145,7 +161,7 @@ const absentCount = computed(() => {
         return totalEmployees.value - presentIds.size;
     }
     // Before cutoff, only show absent if explicitly marked
-    return 0; 
+    return 0;
 });
 
 const halfdayCount = computed(() => {
@@ -221,6 +237,8 @@ onMounted(() => {
                 <router-link :to="{ path: '/admin/employee-attendance', query: { status: 'absent' } }"
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="p-6">
+
+
                         <div class="flex items-center">
                             <div class="rounded-full bg-red-100 p-3 flex items-center justify-center">
                                 <span class="material-icons text-red-600">cancel</span>

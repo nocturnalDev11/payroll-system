@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Employee = require('../../models/employee.model.js');
 const Payslip = require('../../models/paySlip.model.js');
 const Attendance = require('../../models/attendance.model.js');
+const Notification = require('../../models/notification.model.js');
 
 const getPayslips = async (req, res) => {
     try {
@@ -91,7 +92,6 @@ const generatePayslip = async (req, res) => {
             });
         }
 
-        // Fetch attendance records for the salary month
         const startOfMonth = new Date(`${salaryMonth}-01T00:00:00.000Z`);
         const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
         const attendanceRecords = await Attendance.find({
@@ -101,17 +101,32 @@ const generatePayslip = async (req, res) => {
 
         const totalLateDeduction = attendanceRecords.reduce((sum, record) => sum + (record.lateDeduction || 0), 0);
 
-        // Update payslip data with late deductions
         payslipData.lateDeductions = totalLateDeduction;
 
         const existingPayslip = await Payslip.findOne({ employeeId, salaryMonth, paydayType });
 
+        let payslip;
         if (existingPayslip) {
             existingPayslip.payslipData = payslipData;
             existingPayslip.position = position;
             existingPayslip.salary = salary;
             existingPayslip.payDate = payslipDate;
-            await existingPayslip.save();
+            payslip = await existingPayslip.save();
+            
+            // Notify employee about payslip update
+            const adminId = req.adminId || userId;
+            const notification = new Notification({
+                recipientId: employeeId,
+                recipientModel: 'Employee',
+                senderId: adminId,
+                senderModel: userRole === 'admin' ? 'Admin' : 'Employee',
+                type: 'PayslipGenerated',
+                message: `Your payslip for ${salaryMonth} (${paydayType}) has been updated.`,
+                relatedId: payslip._id,
+                relatedModel: 'Payslip',
+            });
+            await notification.save();
+
             return res.status(200).json({
                 success: true,
                 message: `Payslip updated for ${salaryMonth}, ${paydayType}`,
@@ -119,12 +134,26 @@ const generatePayslip = async (req, res) => {
             });
         }
 
-        const payslip = new Payslip({ employeeId, empNo, payslipData, salaryMonth, paydayType, position, salary, payDate });
+        payslip = new Payslip({ employeeId, empNo, payslipData, salaryMonth, paydayType, position, salary, payDate });
         await payslip.save();
 
         // Update employee with total late deductions
         employee.lateDeductions = (employee.lateDeductions || 0) + totalLateDeduction;
         await employee.save();
+
+        // Notify employee about new payslip
+        const adminId = req.adminId || userId;
+        const notification = new Notification({
+            recipientId: employeeId,
+            recipientModel: 'Employee',
+            senderId: adminId,
+            senderModel: userRole === 'admin' ? 'Admin' : 'Employee',
+            type: 'PayslipGenerated',
+            message: `Your payslip for ${salaryMonth} (${paydayType}) has been generated.`,
+            relatedId: payslip._id,
+            relatedModel: 'Payslip',
+        });
+        await notification.save();
 
         res.status(201).json({
             success: true,
@@ -154,6 +183,20 @@ const deletePayslip = async (req, res) => {
         if (!payslip) {
             return res.status(404).json({ error: 'Payslip not found' });
         }
+
+        // Notify employee about payslip deletion
+        const adminId = req.adminId;
+        const notification = new Notification({
+            recipientId: employeeId,
+            recipientModel: 'Employee',
+            senderId: adminId,
+            senderModel: 'Admin',
+            type: 'General',
+            message: `Your payslip for ${salaryMonth} (${paydayType}) has been deleted.`,
+            relatedId: null,
+            relatedModel: null,
+        });
+        await notification.save();
 
         res.status(200).json({ success: true, message: `Payslip for ${salaryMonth}, ${paydayType} deleted` });
     } catch (error) {

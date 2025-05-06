@@ -259,6 +259,7 @@
 import axios from 'axios';
 import moment from 'moment';
 import { BASE_API_URL } from '@/utils/constants.js';
+import { useAuthStore } from '@/stores/auth.store.js';
 import Toast from '@/components/Toast.vue';
 
 export default {
@@ -287,6 +288,11 @@ export default {
         };
     },
     mounted() {
+        const authStore = useAuthStore();
+        if (!authStore.isAdmin) {
+            this.showToast('You must be an admin to manage leave requests.', 'error');
+            this.$router.push('/admin/dashboard');
+        }
         this.fetchLeaveRequests();
     },
     computed: {
@@ -367,13 +373,22 @@ export default {
             this.showDetailsModalVisible = false;
             this.selectedLeave = {};
         },
+        
         async approveLeave(_id) {
             if (!_id) {
                 this.showToast('Invalid leave ID', 'error');
                 return;
             }
+            const authStore = useAuthStore();
             try {
-                const response = await axios.put(`${BASE_API_URL}/api/leaves/${_id}/approve`);
+                const response = await axios.put(`${BASE_API_URL}/api/leaves/${_id}/approve`, {}, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authStore.accessToken}`,
+                        'user-role': authStore.userRole,
+                        'user-id': authStore.admin?._id || authStore.employee?._id,
+                    },
+                });
                 if (response.status === 200) {
                     this.leaveRequests = this.leaveRequests.map(leave =>
                         leave._id === _id ? { ...leave, status: 'Approved' } : leave
@@ -385,9 +400,38 @@ export default {
                 }
             } catch (error) {
                 console.error('Failed to approve leave:', error);
-                this.showToast('Failed to approve leave. Please try again.', 'error');
+                const message = error.response?.data?.message || 'Failed to approve leave. Please try again.';
+                this.showToast(message, 'error');
             }
         },
+
+        async disapproveLeave(_id) {
+            const authStore = useAuthStore();
+            try {
+                const response = await axios.put(`${BASE_API_URL}/api/leaves/${_id}/disapprove`, {}, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authStore.accessToken}`,
+                        'user-role': authStore.userRole,
+                        'user-id': authStore.admin?._id || authStore.employee?._id,
+                    },
+                });
+                if (response.status === 200) {
+                    this.leaveRequests = this.leaveRequests.map(leave =>
+                        leave._id === _id ? { ...leave, status: 'Disapproved' } : leave
+                    );
+                    if (this.showDetailsModalVisible) {
+                        this.selectedLeave.status = 'Disapproved';
+                    }
+                    this.showToast('Leave disapproved successfully!', 'success');
+                }
+            } catch (error) {
+                console.error('Failed to disapprove leave:', error);
+                const message = error.response?.data?.message || 'Failed to disapprove leave. Please try again.';
+                this.showToast(message, 'error');
+            }
+        },
+
         async disapproveLeave(_id) {
             try {
                 const response = await axios.put(`${BASE_API_URL}/api/leaves/${_id}/disapprove`);

@@ -5,16 +5,17 @@ const express = require('express');
 const connectDB = require('./config/database');
 const corsOptions = require('./config/cors');
 const adminRoutes = require('./routes/admin.routes.js');
-const payslipRoutes = require('./routes/paySlip.routes.js');
 const payheadRoutes = require('./routes/payHead.routes');
+const payslipRoutes = require('./routes/paySlip.routes.js');
 const positionRoutes = require('./routes/position.routes.js');
 const employeeRoutes = require('./routes/employee.routes.js');
 const attendanceRoutes = require('./routes/attendance.routes.js');
+const positionHistoryRoutes = require('./routes/position.routes.js');
+const notificationRoutes = require('./routes/notification.routes.js');
 const leaveRequestRoutes = require('./routes/leaveRequest.routes.js');
 const contributionRoutes = require('./routes/contribution.routes.js');
 const employeeRecordRoutes = require('./routes/employeeRecords.routes.js');
 const pendingRequestRoutes = require('./routes/pendingRequests.routes.js');
-const positionHistoryRoutes = require('./routes/position.routes.js');
 const attendanceSettingsRoutes = require('./routes/attendanceSettings.routes.js');
 
 const app = express();
@@ -58,12 +59,13 @@ console.log('MONGO_URI:', process.env.MONGO_URI ? 'Set' : 'Not set');
 
 // Routes (used in both local and production)
 app.use('/api/admin', adminRoutes);
-app.use('/api/employees', employeeRoutes);
-app.use('/api/leaves', leaveRequestRoutes);
 app.use('/api/payslips', payslipRoutes);
-app.use('/api/attendance', attendanceRoutes);
 app.use('/api/payheads', payheadRoutes);
+app.use('/api/employees', employeeRoutes);
 app.use('/api/positions', positionRoutes);
+app.use('/api/leaves', leaveRequestRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/pending-requests', pendingRequestRoutes);
 app.use('/api/positionHistory', positionHistoryRoutes);
 app.use('/api/employee-contributions', contributionRoutes);

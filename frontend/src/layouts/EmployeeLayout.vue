@@ -1,7 +1,8 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store.js';
+import { BASE_API_URL } from '@/utils/constants.js';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -60,18 +61,120 @@ const isSidebarMinimized = ref(() => {
     if (savedState !== null) {
         return savedState === 'true';
     }
-
     return window.innerWidth < 640;
 });
 
+const notifications = ref([]);
+const unreadCount = computed(() => notifications.value.filter(n => n.status === 'Unread').length);
+const isNotificationsOpen = ref(false);
+
+const fetchNotifications = async () => {
+    try {
+        const response = await fetch(`${BASE_API_URL}/api/notifications`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json',
+                'user-role': authStore.userRole,
+                'user-id': authStore.employee?._id || '',
+            },
+        });
+        if (!response.ok) throw new Error(await response.text());
+        notifications.value = await response.json();
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+    }
+};
+
+const markAsRead = async (notificationId) => {
+    try {
+        const response = await fetch(`${BASE_API_URL}/api/notifications/${notificationId}/read`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json',
+                'user-role': authStore.userRole,
+                'user-id': authStore.employee?._id || '',
+            },
+        });
+        if (!response.ok) throw new Error(await response.text());
+        const updatedNotification = await response.json();
+        const index = notifications.value.findIndex(n => n._id === notificationId);
+        if (index !== -1) {
+            notifications.value[index] = updatedNotification;
+        }
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+    }
+};
+
+const markAllAsRead = async () => {
+    try {
+        const response = await fetch(`${BASE_API_URL}/api/notifications/read-all`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json',
+                'user-role': authStore.userRole,
+                'user-id': authStore.employee?._id || '',
+            },
+        });
+        if (!response.ok) throw new Error(await response.text());
+        notifications.value = notifications.value.map(n => ({ ...n, status: 'Read' }));
+    } catch (error) {
+        console.error('Error marking all notifications as read:', error);
+    }
+};
+
+const deleteNotification = async (notificationId) => {
+    try {
+        const response = await fetch(`${BASE_API_URL}/api/notifications/${notificationId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json',
+                'user-role': authStore.userRole,
+                'user-id': authStore.employee?._id || '',
+            },
+        });
+        if (!response.ok) throw new Error(await response.text());
+        notifications.value = notifications.value.filter(n => n._id !== notificationId);
+    } catch (error) {
+        console.error('Error deleting notification:', error);
+    }
+};
+
+const formatDate = (date) => {
+    return new Date(date).toLocaleString('en-US', {
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};
+
+const toggleNotifications = () => {
+    isNotificationsOpen.value = !isNotificationsOpen.value;
+    if (isNotificationsOpen.value) {
+        fetchNotifications();
+    }
+};
+
+let pollingInterval = null;
 onMounted(() => {
+    fetchNotifications();
+    pollingInterval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
     const savedState = localStorage.getItem('sidebarMinimized');
     if (savedState !== null) {
         isSidebarMinimized.value = savedState === 'true';
     } else {
-
         isSidebarMinimized.value = window.innerWidth < 640;
         localStorage.setItem('sidebarMinimized', isSidebarMinimized.value);
+    }
+});
+
+onUnmounted(() => {
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
     }
 });
 </script>
@@ -108,11 +211,54 @@ onMounted(() => {
                         </div>
                     </router-link>
 
+                    <div class="relative">
+                        <button @click="toggleNotifications" title="Notifications"
+                            class="flex items-center p-2 rounded-lg hover:bg-white/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 cursor-pointer">
+                            <span class="material-icons text-sm">notifications</span>
+                            <span v-if="unreadCount"
+                                class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">{{
+                                    unreadCount }}</span>
+                        </button>
+                        <div v-if="isNotificationsOpen"
+                            class="absolute right-0 mt-2 w-[25.5rem] bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                                <h3 class="text-sm font-semibold text-gray-800">Notifications</h3>
+                                <button @click="markAllAsRead" class="text-xs text-blue-600 hover:underline"
+                                    :disabled="unreadCount === 0">Mark all as read</button>
+                            </div>
+                            <div v-if="notifications.length === 0" class="p-4 text-center text-gray-500 text-sm">
+                                No notifications
+                            </div>
+                            <div v-else>
+                                <div v-for="notification in notifications" :key="notification._id"
+                                    class="p-4 border-b border-gray-100 hover:bg-gray-50 flex justify-between items-start">
+                                    <div>
+                                        <p
+                                            :class="['text-sm', notification.status === 'Unread' ? 'font-semibold text-gray-800' : 'text-gray-600']">
+                                            {{ notification.message }}
+                                        </p>
+                                        <p class="text-xs text-gray-500">{{ formatDate(notification.createdAt) }}</p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button v-if="notification.status === 'Unread'"
+                                            @click="markAsRead(notification._id)" title="Mark as read"
+                                            class="text-blue-600 hover:text-blue-800 cursor-pointer">
+                                            <span class="material-icons text-sm">done</span>
+                                        </button>
+                                        <button @click="deleteNotification(notification._id)" title="Delete"
+                                            class="text-red-600 hover:text-red-800 cursor-pointer">
+                                            <span class="material-icons text-sm">delete</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <router-link :to="settingsRoute" title="Settings"
                         class="hidden sm:flex sm:items-center p-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 whitespace-nowrap hover:bg-white/10">
                         <span class="material-icons text-sm">settings</span>
                     </router-link>
-
                     <button @click="logout" title="Logout"
                         class="flex items-center px-2 py-1 sm:px-4 sm:py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 whitespace-nowrap cursor-pointer">
                         <span class="material-icons text-sm">logout</span>
@@ -160,7 +306,6 @@ onMounted(() => {
                 </router-view>
             </main>
 
-            <!-- Bottom navbar (visible in small viewports) -->
             <div
                 class="fixed sm:hidden block z-50 w-full h-16 max-w-md -translate-x-1/2 backdrop-blur-lg bg-gray-100/50 border border-gray-200 rounded-full bottom-4 left-1/2">
                 <div class="grid h-full max-w-lg grid-cols-5 mx-auto">
@@ -171,7 +316,6 @@ onMounted(() => {
                         </span>
                         <span class="sr-only">salary-slips</span>
                     </router-link>
-
                     <router-link to="/employee/employee-leave-request"
                         class="inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 group cursor-pointer">
                         <span class="material-icons mb-1 text-gray-500 dark:text-gray-400 group-hover:text-blue-600">
@@ -179,21 +323,18 @@ onMounted(() => {
                         </span>
                         <span class="sr-only">employee-leave-request</span>
                     </router-link>
-
                     <router-link to="/employee/dashboard"
                         class="inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 group cursor-pointer">
                         <span
                             class="material-icons mb-1 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 cursor-pointer">dashboard</span>
                         <span class="sr-only">employee-dashboard</span>
                     </router-link>
-
                     <router-link :to="settingsRoute"
                         class="inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 group cursor-pointer">
                         <span
                             class="material-icons mb-1 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 cursor-pointer">settings</span>
                         <span class="sr-only">Settings</span>
                     </router-link>
-
                     <router-link to="/employee/holidays"
                         class="inline-flex flex-col items-center justify-center px-5 rounded-e-full hover:bg-gray-50 group cursor-pointer">
                         <span class="material-icons mb-1 text-gray-500 dark:text-gray-400 group-hover:text-blue-600">
