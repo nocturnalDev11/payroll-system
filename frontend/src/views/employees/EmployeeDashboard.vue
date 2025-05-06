@@ -24,7 +24,20 @@ const attendanceRecords = ref([]);
 const todayAttendance = ref([]);
 const isTimedIn = ref(false);
 const isLoading = ref(false);
-const errorMessage = ref(''); // New ref to store error messages
+const toast = ref({ message: '', type: 'info', isVisible: false });
+
+// Attendance settings fetched from backend
+const attendanceSettings = ref({
+    officeStart: '08:00',
+    lateCutoff: '08:15',
+    breakStart: '11:30',
+    breakEnd: '12:59',
+    officeEnd: '17:00',
+    gracePeriod: 15,
+    deductionRate: 37.5,
+    earlyTimeInThreshold: '06:00',
+    halfDayThreshold: '13:00', // New setting for half-day recognition
+});
 
 const currentPayPeriod = computed(() => {
     const today = new Date();
@@ -37,13 +50,6 @@ const currentPayPeriod = computed(() => {
         : `${monthNames[month]} 16 - ${monthNames[month]} ${new Date(year, month + 1, 0).getDate()}, ${year}`;
 });
 
-const OFFICE_START = '08:00:00';
-const OFFICE_END = '17:00:00';
-const EARLY_TIME_IN_THRESHOLD = '06:00:00';
-const EARLY_TIME_OUT_THRESHOLD = '11:30:00';
-const LUNCH_START = '11:30:00';
-const AFTERNOON_TIME_IN_THRESHOLD = '11:30:00';
-
 const config = {
     minimumWage: 610,
     deMinimisLimit: 10000,
@@ -54,7 +60,10 @@ onMounted(async () => {
         router.push('/employee/login');
         return;
     }
-    await getEmployeeProfile();
+    await Promise.all([
+        getEmployeeProfile(),
+        fetchAttendanceSettings(),
+    ]);
     if (authStore.employee?._id) {
         await Promise.all([
             fetchAttendanceRecords(),
@@ -76,7 +85,6 @@ async function getEmployeeProfile() {
         });
         if (!response.ok) throw new Error(await response.text());
         const employeeData = await response.json();
-        // Ensure position and salary are included or provide defaults
         employee.value = {
             ...employeeData,
             position: employeeData.position || 'N/A',
@@ -85,7 +93,31 @@ async function getEmployeeProfile() {
         authStore.setEmployee(employeeData);
     } catch (error) {
         console.error('Error fetching profile:', error);
-        errorMessage.value = 'Failed to load employee profile. Please try again later.';
+        showToast('error', 'Failed to load employee profile. Please try again later.');
+    }
+}
+
+async function fetchAttendanceSettings() {
+    try {
+        const response = await fetch(`${BASE_API_URL}/api/attendance-settings`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'user-role': authStore.userRole,
+                'user-id': authStore.employee?._id || '',
+            },
+        });
+        if (!response.ok) throw new Error(await response.text());
+        const settings = await response.json();
+        attendanceSettings.value = {
+            ...attendanceSettings.value,
+            ...settings,
+            earlyTimeInThreshold: settings.earlyTimeInThreshold || '06:00',
+            halfDayThreshold: settings.halfDayThreshold || '13:00',
+        };
+    } catch (error) {
+        console.error('Error fetching attendance settings:', error);
+        showToast('error', 'Failed to load attendance settings. Using defaults.');
     }
 }
 
@@ -110,7 +142,7 @@ async function fetchAttendanceRecords() {
         }
     } catch (error) {
         console.error('Error fetching attendance:', error);
-        errorMessage.value = 'Failed to load attendance records.';
+        showToast('error', 'Failed to load attendance records.');
     }
 }
 
@@ -133,7 +165,7 @@ async function fetchTodayAttendance() {
         }
     } catch (error) {
         console.error('Error fetching today\'s attendance:', error);
-        errorMessage.value = 'Failed to load today\'s attendance.';
+        showToast('error', 'Failed to load today\'s attendance.');
     }
 }
 
@@ -153,17 +185,22 @@ async function checkTimedInStatus() {
 
 async function timeIn() {
     const now = new Date();
-    const currentTime = now.toLocaleTimeString('en-US', { hour12: false });
+    const currentTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    const { earlyTimeInThreshold, breakStart, breakEnd } = attendanceSettings.value;
+
     if (!canTimeIn()) {
-        const errorMessage =
-            currentTime < EARLY_TIME_IN_THRESHOLD
-                ? 'Morning Time In is only allowed after 6:00 AM.'
-                : currentTime < AFTERNOON_TIME_IN_THRESHOLD
-                    ? 'Afternoon Time In is only allowed after 11:30 AM.'
-                    : 'You are already Timed In or have completed today\'s sessions.';
-        alert(errorMessage);
+        let message = 'Unable to time in.';
+        if (currentTime < earlyTimeInThreshold) {
+            message = `Morning Time In is only allowed after ${formatTime(earlyTimeInThreshold)}.`;
+        } else if (currentTime >= breakStart && currentTime <= breakEnd) {
+            message = `Time In is not allowed during lunch break (${formatTime(breakStart)} - ${formatTime(breakEnd)}).`;
+        } else {
+            message = 'You are already Timed In or have completed today\'s sessions.';
+        }
+        showToast('error', message);
         return;
     }
+
     isLoading.value = true;
     try {
         const employeeId = authStore.employee?._id;
@@ -191,18 +228,24 @@ async function timeIn() {
         }
         await checkTimedInStatus();
         if (authStore.userRole === 'admin') await fetchTodayAttendance();
+        showToast('success', 'Successfully timed in.');
     } catch (error) {
-        alert(error.message || 'Failed to time in');
+        showToast('error', error.message || 'Failed to time in.');
     } finally {
         isLoading.value = false;
     }
 }
 
 async function timeOut() {
+    const now = new Date();
+    const currentTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    const { breakStart } = attendanceSettings.value;
+
     if (!canTimeOut()) {
-        alert('Time Out is only allowed after 11:30 AM.');
+        showToast('error', `Time Out is only allowed after ${formatTime(breakStart)}.`);
         return;
     }
+
     isLoading.value = true;
     try {
         const employeeId = authStore.employee?._id;
@@ -223,8 +266,9 @@ async function timeOut() {
         if (index !== -1) attendanceRecords.value[index] = data;
         await checkTimedInStatus();
         if (authStore.userRole === 'admin') await fetchTodayAttendance();
+        showToast('success', 'Successfully timed out.');
     } catch (error) {
-        alert(error.message || 'Failed to time out');
+        showToast('error', error.message || 'Failed to time out.');
     } finally {
         isLoading.value = false;
     }
@@ -232,52 +276,92 @@ async function timeOut() {
 
 function canTimeIn() {
     const now = new Date();
-    const currentTime = now.toLocaleTimeString('en-US', { hour12: false });
+    const currentTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
     const today = now.toISOString().split('T')[0];
+    const { earlyTimeInThreshold, breakStart, breakEnd } = attendanceSettings.value;
+
     const todayRecords = attendanceRecords.value.filter(
         (record) => new Date(record.date).toISOString().split('T')[0] === today
     );
     const latestRecord = todayRecords[todayRecords.length - 1];
 
-    // Allow morning time-in after 6:00 AM if no morning time-in exists
-    if (!latestRecord || (!latestRecord.morningTimeIn && !latestRecord.morningTimeOut)) {
-        return currentTime >= EARLY_TIME_IN_THRESHOLD;
+    // Prevent time-in during lunch break
+    if (currentTime >= breakStart && currentTime <= breakEnd) {
+        return false;
     }
-    // Allow afternoon time-in after LUNCH_START if morning session is complete
+
+    // Allow morning time-in after earlyTimeInThreshold if no morning time-in exists
+    if (!latestRecord || (!latestRecord.morningTimeIn && !latestRecord.morningTimeOut)) {
+        return currentTime >= earlyTimeInThreshold;
+    }
+
+    // Allow afternoon time-in after breakStart if morning session is complete or skipped
     if (
         (latestRecord?.morningTimeIn && latestRecord?.morningTimeOut) ||
-        (!latestRecord?.morningTimeIn && currentTime >= LUNCH_START)
+        (!latestRecord?.morningTimeIn && currentTime >= breakStart)
     ) {
-        return currentTime >= LUNCH_START && !latestRecord?.afternoonTimeIn;
+        return currentTime >= breakStart && !latestRecord?.afternoonTimeIn;
     }
+
     return false;
 }
 
 function canTimeOut() {
     const now = new Date();
-    const currentTime = now.toLocaleTimeString('en-US', { hour12: false });
-    return currentTime >= EARLY_TIME_OUT_THRESHOLD;
+    const currentTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    const { breakStart } = attendanceSettings.value;
+    return currentTime >= breakStart && isTimedIn.value;
 }
 
 function getAttendanceStatus(record) {
-    if (!record.morningTimeIn && !record.afternoonTimeIn) return 'Absent';
+    if (!record) return 'Absent';
 
-    const morningIn = record.morningTimeIn || '00:00:00';
-    const afternoonOut = record.afternoonTimeOut || record.morningTimeOut || '00:00:00';
+    const { officeStart, officeEnd, breakStart, breakEnd, gracePeriod, halfDayThreshold } = attendanceSettings.value;
+    const morningIn = record.morningTimeIn || null;
+    const afternoonIn = record.afternoonTimeIn || null;
+    const morningOut = record.morningTimeOut || null;
+    const afternoonOut = record.afternoonTimeOut || null;
 
-    // Check if employee was late for morning session
-    if (morningIn > OFFICE_START) {
-        return 'Late';
-    }
-    // Check if employee left early
-    if (afternoonOut < OFFICE_END && afternoonOut !== '00:00:00') {
-        return 'Early Departure';
-    }
-    // Check if only half-day was completed
-    if (!record.afternoonTimeIn && record.morningTimeOut) {
+    if (!morningIn && !afternoonIn) return 'Absent';
+
+    // Calculate grace period threshold
+    const lateThreshold = new Date(`1970-01-01T${officeStart}:00`);
+    lateThreshold.setMinutes(lateThreshold.getMinutes() + gracePeriod);
+    const lateThresholdTime = lateThreshold.toTimeString().slice(0, 5);
+
+    // Check for half-day (time-in after halfDayThreshold)
+    if ((morningIn && morningIn >= halfDayThreshold) || (afternoonIn && afternoonIn >= halfDayThreshold)) {
         return 'Half Day';
     }
-    return 'On Time';
+
+    // Check if employee was late for morning session
+    if (morningIn && morningIn > lateThresholdTime) {
+        return 'Late';
+    }
+
+    // Check if employee left early
+    if ((afternoonOut && afternoonOut < officeEnd) || (morningOut && morningOut < breakStart && !afternoonIn)) {
+        return 'Early Departure';
+    }
+
+    // Check if only half-day was completed
+    if ((morningIn && morningOut && !afternoonIn) || (!morningIn && afternoonIn)) {
+        return 'Half Day';
+    }
+
+    // Within grace period or on time
+    return morningIn && morningIn <= lateThresholdTime ? 'Present' : 'On Time';
+}
+
+function showToast(type, message) {
+    toast.value = {
+        message,
+        type,
+        isVisible: true,
+    };
+    setTimeout(() => {
+        toast.value.isVisible = false;
+    }, 3000);
 }
 
 const formatNumber = (value) => {
@@ -287,7 +371,7 @@ const formatNumber = (value) => {
     });
 };
 
-// Revised Payroll Computations
+// Payroll Computations (unchanged)
 const payrollData = computed(() => {
     if (!employee.value) return null;
     const basicSalary = Number(employee.value.salary || 0);
@@ -305,7 +389,6 @@ const payrollData = computed(() => {
     const overtimePay = calculateOvertimePay(employee.value);
     const supplementary = calculateSupplementaryIncome(employee.value);
 
-    // Use the current pay period
     const today = new Date();
     const currentYearMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     const payPeriodType = today.getDate() <= 15 ? 'mid-month' : 'end-month';
@@ -379,11 +462,12 @@ function formatTime(time) {
 
 function getStatusClass(status) {
     return {
-        'On Time': 'text-green-600',
-        'Late': 'text-yellow-600',
-        'Absent': 'text-red-600',
-        'Early Departure': 'text-orange-600',
-        'Half Day': 'text-blue-600',
+        'On Time': 'text-green-600 bg-green-100 px-2 py-1 rounded-full',
+        'Present': 'text-green-600 bg-green-100 px-2 py-1 rounded-full',
+        'Late': 'text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full',
+        'Absent': 'text-red-600 bg-red-100 px-2 py-1 rounded-full',
+        'Early Departure': 'text-orange-600 bg-orange-100 px-2 py-1 rounded-full',
+        'Half Day': 'text-blue-600 bg-blue-100 px-2 py-1 rounded-full',
     }[status] || 'text-gray-600';
 }
 </script>
@@ -391,9 +475,15 @@ function getStatusClass(status) {
 <template>
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div class="p-4">
-            <!-- Display error message if any -->
-            <div v-if="errorMessage" class="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded">
-                {{ errorMessage }}
+            <!-- Toast Notification -->
+            <div v-if="toast.isVisible" :class="{
+                'bg-green-100 border-l-4 border-green-500 text-green-700': toast.type === 'success',
+                'bg-red-100 border-l-4 border-red-500 text-red-700': toast.type === 'error',
+            }" class="mb-6 p-4 rounded flex justify-between items-center">
+                <span>{{ toast.message }}</span>
+                <button @click="toast.isVisible = false" class="text-gray-500 hover:text-gray-700">
+                    <span class="material-icons text-lg">close</span>
+                </button>
             </div>
 
             <div v-if="employee" class="mb-6 bg-white rounded-xl border-l-4 border-l-green-600 shadow-sm p-6">
@@ -416,11 +506,15 @@ function getStatusClass(status) {
                             <div class="text-sm text-gray-500">Current Pay Period: {{ currentPayPeriod }}</div>
                             <div class="flex space-x-3">
                                 <button @click="timeIn" :disabled="isTimedIn || isLoading || !canTimeIn()"
-                                    class="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                                    class="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
+                                    <span v-if="isLoading && !isTimedIn"
+                                        class="animate-spin material-icons">autorenew</span>
                                     {{ isLoading && !isTimedIn ? 'Processing...' : 'Time In' }}
                                 </button>
                                 <button @click="timeOut" :disabled="!isTimedIn || isLoading || !canTimeOut()"
-                                    class="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                                    class="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
+                                    <span v-if="isLoading && isTimedIn"
+                                        class="animate-spin material-icons">autorenew</span>
                                     {{ isLoading && isTimedIn ? 'Processing...' : 'Time Out' }}
                                 </button>
                             </div>
@@ -591,10 +685,22 @@ function getStatusClass(status) {
                         </div>
                     </div>
                     <div v-else class="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">
-                        {{ errorMessage || 'Payroll data unavailable. Please contact HR.' }}
+                        {{ toast.message || 'Payroll data unavailable. Please contact HR.' }}
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+</style>

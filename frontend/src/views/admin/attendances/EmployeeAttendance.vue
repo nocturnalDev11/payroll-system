@@ -5,11 +5,13 @@ import { BASE_API_URL } from '@/utils/constants.js';
 import { useAuthStore } from '@/stores/auth.store.js';
 import { debounce } from 'lodash';
 import Toast from '@/components/Toast.vue';
+import Modal from '@/components/Modal.vue';
 
 export default {
     name: 'EmployeeAttendance',
     components: {
         Toast,
+        Modal,
     },
     setup() {
         const authStore = useAuthStore();
@@ -121,7 +123,7 @@ export default {
         this.checkAndResetDaily();
         this.applyStatusFilterFromQuery();
         this.fetchEmployeesAndAttendance();
-        this.fetchAttendanceSettings()
+        this.fetchAttendanceSettings();
         this.debouncedSearch = debounce(this.handleSearch, 300);
     },
     methods: {
@@ -137,7 +139,7 @@ export default {
                 };
                 this.statusFilter = statusMap[status.toLowerCase()] || [];
                 if (this.statusFilter.length) {
-                    this.showFilterPanel = true; // Open filter panel to show applied filters
+                    this.showFilterPanel = true;
                 }
             }
         },
@@ -176,7 +178,6 @@ export default {
             }));
             this.showSuccessMessage('Attendance reset for new day');
         },
-
         async fetchAttendanceSettings() {
             try {
                 const token = this.authStore.accessToken;
@@ -271,12 +272,12 @@ export default {
                         lastName: employee.lastName,
                         morningTimeIn: attendance.morningTimeIn || null,
                         morningTimeOut: attendance.morningTimeOut || null,
-                        afternoonTimeIn: attendance.afternoonTimeIn || null,
+                        afternoonTimeIn: attendance.morningTimeIn || null,
                         afternoonTimeOut: attendance.afternoonTimeOut || null,
                         status: attendance.status || employee.status,
                         lateHours: attendance.lateHours || 0,
                         lateDeduction: attendance.lateDeduction || 0,
-                        date: this.date, // Ensure date is set for filtering
+                        date: this.date,
                     };
                 });
 
@@ -619,7 +620,7 @@ export default {
                 end: new Date().toISOString().split('T')[0],
             };
             this.searchQuery = '';
-            this.$router.replace({ query: {} }); // Clear query params
+            this.$router.replace({ query: {} });
             this.fetchEmployeesAndAttendance();
         },
     },
@@ -642,65 +643,63 @@ export default {
     <div class="min-h-screen bg-gray-50 p-4">
         <div class="mx-auto max-w-7xl">
             <!-- Header -->
-            <header class="bg-white rounded-xl shadow-lg p-6 flex flex-col gap-4">
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        <span class="material-icons text-indigo-600 text-2xl">schedule</span>
+            <header class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col gap-3 sm:gap-4">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <span class="material-icons text-indigo-600 text-xl sm:text-2xl">schedule</span>
                         Attendance Dashboard
                     </h1>
-                    <div class="flex items-center gap-3">
-                        <button @click="showAddAttendanceModal"
-                            class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-all flex items-center gap-2 cursor-pointer">
-                            <span class="material-icons text-base">add</span>
-                            Add Attendance
-                        </button>
-                        <button @click="generateReport"
-                            class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-all flex items-center gap-2 cursor-pointer">
-                            <span class="material-icons text-base">download</span>
-                            Export CSV
-                        </button>
-                        <button @click="showSettingsModal = true"
-                            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2 cursor-pointer">
-                            <span class="material-icons text-base">settings</span>
-                            Settings
-                        </button>
+                    <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                        <div class="flex flex-wrap justify-center gap-2 w-full sm:w-auto">
+                            <button @click="showAddAttendanceModal"
+                                class="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-green-700 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer">
+                                <span class="material-icons text-sm sm:text-base">add</span>
+                                Add Attendance
+                            </button>
+                            <button @click="generateReport"
+                                class="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-indigo-700 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer">
+                                <span class="material-icons text-sm sm:text-base">download</span>
+                                Export CSV
+                            </button>
+                            <button @click="showSettingsModal = true"
+                                class="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer">
+                                <span class="material-icons text-sm sm:text-base">settings</span>
+                                Settings
+                            </button>
+                        </div>
                         <button @click="showFilterPanel = !showFilterPanel"
-                            class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all sm:hidden cursor-pointer">
-                            <span class="material-icons text-base">filter_list</span>
+                            class="p-1.5 sm:p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer w-full sm:w-auto">
+                            <span class="material-icons text-sm sm:text-base">filter_list</span>
+                            <span class="text-xs sm:text-sm font-medium">Filters</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Search and Filter Controls -->
-                <div class="flex flex-col sm:flex-row gap-4">
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
                     <div class="relative flex-1 flex">
                         <span
-                            class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg">search</span>
+                            class="material-icons absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-gray-500 text-base sm:text-lg">search</span>
                         <input v-model="searchQuery" type="text" placeholder="Search by name or employee number..."
-                            class="w-full pl-10 pr-10 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                            class="w-full pl-8 sm:pl-10 pr-8 sm:pr-10 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
                             aria-label="Search employees" @keyup.enter="handleSearch" />
                         <button v-if="searchQuery" @click="searchQuery = ''"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-all cursor-pointer"
+                            class="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-all cursor-pointer"
                             aria-label="Clear search">
-                            <span class="material-icons text-base">close</span>
+                            <span class="material-icons text-sm sm:text-base">close</span>
                         </button>
                     </div>
-                    <button @click="showFilterPanel = !showFilterPanel"
-                        class="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200 transition-all hidden sm:flex items-center gap-2 cursor-pointer">
-                        <span class="material-icons text-base">filter_list</span>
-                        Filters
-                    </button>
                 </div>
 
                 <!-- Filter Panel -->
                 <transition name="filter-slide">
-                    <div v-if="showFilterPanel" class="bg-gray-50 p-4 rounded-lg shadow-inner mt-2">
-                        <div class="flex flex-col sm:flex-row gap-4">
+                    <div v-if="showFilterPanel" class="bg-gray-50 p-3 sm:p-4 rounded-lg shadow-inner mt-2">
+                        <div class="flex flex-col gap-3 sm:gap-4">
                             <div class="flex-1">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Status</label>
                                 <div class="relative">
                                     <select v-model="statusFilter" multiple
-                                        class="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                        class="w-full p-1.5 sm:p-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none min-h-[80px] sm:min-h-[100px]"
                                         aria-label="Filter by attendance status">
                                         <option v-for="status in statusOptions" :key="status" :value="status">
                                             {{ status }}
@@ -709,25 +708,26 @@ export default {
                                 </div>
                             </div>
                             <div class="flex-1">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
-                                <div class="flex gap-2">
+                                <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Date
+                                    Range</label>
+                                <div class="flex flex-col sm:flex-row gap-2">
                                     <input type="date" v-model="dateRange.start" @change="fetchEmployeesAndAttendance"
-                                        class="flex-1 p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                        class="flex-1 p-1.5 sm:p-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
                                         aria-label="Start date" />
-                                    <span class="self-center text-gray-500">to</span>
+                                    <span class="self-center text-gray-500 text-xs sm:text-sm hidden sm:block">to</span>
                                     <input type="date" v-model="dateRange.end" @change="fetchEmployeesAndAttendance"
-                                        class="flex-1 p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                                        class="flex-1 p-1.5 sm:p-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
                                         aria-label="End date" />
                                 </div>
                             </div>
                         </div>
-                        <div class="flex justify-end gap-2 mt-4">
+                        <div class="flex flex-col sm:flex-row justify-end gap-2 mt-3 sm:mt-4">
                             <button @click="resetFilters"
-                                class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-all cursor-pointer">
+                                class="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-200 text-gray-700 text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-300 transition-all cursor-pointer">
                                 Reset Filters
                             </button>
                             <button @click="showFilterPanel = false"
-                                class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-all cursor-pointer">
+                                class="px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-indigo-700 transition-all cursor-pointer">
                                 Apply Filters
                             </button>
                         </div>
@@ -735,7 +735,7 @@ export default {
                 </transition>
             </header>
 
-            <!-- Table (unchanged) -->
+            <!-- Table -->
             <div class="bg-white rounded-xl shadow-lg mt-6 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full divide-y divide-gray-100">
@@ -843,237 +843,230 @@ export default {
             </div>
 
             <!-- Edit Modal -->
-            <transition name="modal">
-                <div v-if="showDetailsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div class="bg-white rounded-lg shadow w-full max-w-sm p-4">
-                        <div class="flex justify-between items-center mb-3">
-                            <h2 class="text-lg font-medium text-gray-800">Edit Attendance</h2>
-                            <button @click="showDetailsModal = false" class="text-gray-500 hover:text-gray-700">
-                                <span class="material-icons text-lg">close</span>
-                            </button>
-                        </div>
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-2">
-                                <img :src="`https://ui-avatars.com/api/?name=${selectedEmployee?.firstName}+${selectedEmployee?.lastName}&background=4f46e5&color=fff`"
-                                    class="h-8 w-8 rounded-full" />
-                                <div>
-                                    <p class="font-medium text-gray-800">{{ selectedEmployee?.firstName }} {{
-                                        selectedEmployee?.lastName }}</p>
-                                    <p class="text-xs text-gray-500">ID: {{ selectedEmployee?.id }}</p>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label for="morningTimeIn" class="block text-xs font-medium text-gray-700">Morning
-                                        In</label>
-                                    <input id="morningTimeIn" v-model="selectedEmployee.morningTimeIn" type="time"
-                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
-                                        @change="updateAttendance(selectedEmployee, 'morningTimeIn')" />
-                                </div>
-                                <div>
-                                    <label for="morningTimeOut" class="block text-xs font-medium text-gray-700">Morning
-                                        Out</label>
-                                    <input id="morningTimeOut" v-model="selectedEmployee.morningTimeOut" type="time"
-                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
-                                        @change="updateAttendance(selectedEmployee, 'morningTimeOut')" />
-                                </div>
-                                <div>
-                                    <label for="afternoonTimeIn"
-                                        class="block text-xs font-medium text-gray-700">Afternoon In</label>
-                                    <input id="afternoonTimeIn" v-model="selectedEmployee.afternoonTimeIn" type="time"
-                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
-                                        @change="updateAttendance(selectedEmployee, 'afternoonTimeIn')" />
-                                </div>
-                                <div>
-                                    <label for="afternoonTimeOut"
-                                        class="block text-xs font-medium text-gray-700">Afternoon Out</label>
-                                    <input id="afternoonTimeOut" v-model="selectedEmployee.afternoonTimeOut" type="time"
-                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
-                                        @change="updateAttendance(selectedEmployee, 'afternoonTimeOut')" />
-                                </div>
-                                <div class="col-span-2">
-                                    <label for="status" class="block text-xs font-medium text-gray-700">Status</label>
-                                    <select id="status" v-model="selectedEmployee.status"
-                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
-                                        @change="updateAttendance(selectedEmployee, 'status')">
-                                        <option value="Present">Present</option>
-                                        <option value="Half Day">Half Day</option>
-                                        <option value="Absent">Absent</option>
-                                        <option value="Late">Late</option>
-                                        <option value="On Time">On Time</option>
-                                        <option value="Early Departure">Early Departure</option>
-                                        <option value="Leave">Leave</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="flex gap-2 mt-4">
-                                <button @click="markTime('morningIn')"
-                                    class="flex-1 py-1 bg-indigo-500 text-white text-xs rounded hover:bg-indigo-600">
-                                    Morning In Now
-                                </button>
-                                <button @click="markTime('morningOut')"
-                                    class="flex-1 py-1 bg-indigo-500 text-white text-xs rounded hover:bg-indigo-600">
-                                    Morning Out Now
-                                </button>
-                                <button @click="markTime('afternoonIn')"
-                                    class="flex-1 py-1 bg-indigo-500 text-white text-xs rounded hover:bg-indigo-600">
-                                    Afternoon In Now
-                                </button>
-                                <button @click="markTime('afternoonOut')"
-                                    class="flex-1 py-1 bg-indigo-500 text-white text-xs rounded hover:bg-indigo-600">
-                                    Afternoon Out Now
-                                </button>
-                            </div>
-                        </div>
+            <Modal :show="showDetailsModal" maxWidth="sm" maxHeight="80vh" closeable @close="showDetailsModal = false">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-lg font-medium text-gray-800">Edit Attendance</h2>
+                        <button @click="showDetailsModal = false" class="text-gray-500 hover:text-gray-700">
+                            <span class="material-icons text-lg">close</span>
+                        </button>
                     </div>
-                </div>
-            </transition>
-
-            <!-- Add Attendance Modal -->
-            <transition name="modal">
-                <div v-if="showAddModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div class="bg-white rounded-lg shadow w-full max-w-sm p-4">
-                        <div class="flex justify-between items-center mb-3">
-                            <h2 class="text-lg font-medium text-gray-800">Add Attendance Record</h2>
-                            <button @click="showAddModal = false" class="text-gray-500 hover:text-gray-700">
-                                <span class="material-icons text-lg">close</span>
-                            </button>
-                        </div>
-                        <div class="space-y-3">
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2">
+                            <img :src="`https://ui-avatars.com/api/?name=${selectedEmployee?.firstName}+${selectedEmployee?.lastName}&background=4f46e5&color=fff`"
+                                class="h-8 w-8 rounded-full" />
                             <div>
-                                <label for="employeeSelect"
-                                    class="block text-xs font-medium text-gray-700">Employee</label>
-                                <select id="employeeSelect" v-model="newAttendance.employeeId"
-                                    class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white">
-                                    <option value="" disabled>Select an employee</option>
-                                    <option v-for="employee in employees" :key="employee.id"
-                                        :value="employee.employeeId">
-                                        {{ employee.firstName }} {{ employee.lastName }} ({{ employee.empNo }})
-                                    </option>
+                                <p class="font-medium text-gray-800">{{ selectedEmployee?.firstName }} {{
+                                    selectedEmployee?.lastName }}</p>
+                                <p class="text-xs text-gray-500">ID: {{ selectedEmployee?.id }}</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label for="morningTimeIn" class="block text-xs font-medium text-gray-700">Morning
+                                    In</label>
+                                <input id="morningTimeIn" v-model="selectedEmployee.morningTimeIn" type="time"
+                                    class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
+                                    @change="updateAttendance(selectedEmployee, 'morningTimeIn')" />
+                            </div>
+                            <div>
+                                <label for="morningTimeOut" class="block text-xs font-medium text-gray-700">Morning
+                                    OutForse</label>
+                                <input id="morningTimeOut" v-model="selectedEmployee.morningTimeOut" type="time"
+                                    class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
+                                    @change="updateAttendance(selectedEmployee, 'morningTimeOut')" />
+                            </div>
+                            <div>
+                                <label for="afternoonTimeIn" class="block text-xs font-medium text-gray-700">Afternoon
+                                    In</label>
+                                <input id="afternoonTimeIn" v-model="selectedEmployee.afternoonTimeIn" type="time"
+                                    class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
+                                    @change="updateAttendance(selectedEmployee, 'afternoonTimeIn')" />
+                            </div>
+                            <div>
+                                <label for="afternoonTimeOut" class="block text-xs font-medium text-gray-700">Afternoon
+                                    Out</label>
+                                <input id="afternoonTimeOut" v-model="selectedEmployee.afternoonTimeOut" type="time"
+                                    class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
+                                    @change="updateAttendance(selectedEmployee, 'afternoonTimeOut')" />
+                            </div>
+                            <div class="col-span-2">
+                                <label for="status" class="block text-xs font-medium text-gray-700">Status</label>
+                                <select id="status" v-model="selectedEmployee.status"
+                                    class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
+                                    @change="updateAttendance(selectedEmployee, 'status')">
+                                    <option value="Present">Present</option>
+                                    <option value="Half Day">Half Day</option>
+                                    <option value="Absent">Absent</option>
+                                    <option value="Late">Late</option>
+                                    <option value="On Time">On Time</option>
+                                    <option value="Early Departure">Early Departure</option>
+                                    <option value="Leave">Leave</option>
                                 </select>
                             </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label for="newMorningTimeIn"
-                                        class="block text-xs font-medium text-gray-700">Morning In</label>
-                                    <input id="newMorningTimeIn" v-model="newAttendance.morningTimeIn" type="time"
-                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
-                                </div>
-                                <div>
-                                    <label for="newMorningTimeOut"
-                                        class="block text-xs font-medium text-gray-700">Morning Out</label>
-                                    <input id="newMorningTimeOut" v-model="newAttendance.morningTimeOut" type="time"
-                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
-                                </div>
-                                <div>
-                                    <label for="newAfternoonTimeIn"
-                                        class="block text-xs font-medium text-gray-700">Afternoon In</label>
-                                    <input id="newAfternoonTimeIn" v-model="newAttendance.afternoonTimeIn" type="time"
-                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
-                                </div>
-                                <div>
-                                    <label for="newAfternoonTimeOut"
-                                        class="block text-xs font-medium text-gray-700">Afternoon Out</label>
-                                    <input id="newAfternoonTimeOut" v-model="newAttendance.afternoonTimeOut" type="time"
-                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
-                                </div>
-                                <div class="col-span-2">
-                                    <label for="newStatus"
-                                        class="block text-xs font-medium text-gray-700">Status</label>
-                                    <select id="newStatus" v-model="newAttendance.status"
-                                        class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white">
-                                        <option value="Present">Present</option>
-                                        <option value="Half Day">Half Day</option>
-                                        <option value="Absent">Absent</option>
-                                        <option value="Late">Late</option>
-                                        <option value="On Time">On Time</option>
-                                        <option value="Early Departure">Early Departure</option>
-                                        <option value="Leave">Leave</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="flex gap-2 mt-4">
-                                <button @click="addAttendance"
-                                    class="flex-1 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
-                                    Add Record
-                                </button>
-                                <button @click="showAddModal = false"
-                                    class="flex-1 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600">
-                                    Cancel
-                                </button>
-                            </div>
+                        </div>
+                        <div class="flex gap-2 mt-4">
+                            <button @click="markTime('morningIn')"
+                                class="flex-1 py-1 bg-indigo-500 text-white text-xs rounded hover:bg-indigo-600">
+                                Morning In Now
+                            </button>
+                            <button @click="markTime('morningOut')"
+                                class="flex-1 py-1 bg-indigo-500 text-white text-xs rounded hover:bg-indigo-600">
+                                Morning Out Now
+                            </button>
+                            <button @click="markTime('afternoonIn')"
+                                class="flex-1 py-1 bg-indigo-500 text-white text-xs rounded hover:bg-indigo-600">
+                                Afternoon In Now
+                            </button>
+                            <button @click="markTime('afternoonOut')"
+                                class="flex-1 py-1 bg-indigo-500 text-white text-xs rounded hover:bg-indigo-600">
+                                Afternoon Out Now
+                            </button>
                         </div>
                     </div>
                 </div>
-            </transition>
+            </Modal>
 
-            <transition name="modal">
-                <div v-if="showSettingsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div class="bg-white rounded-lg shadow w-full max-w-md p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-lg font-medium text-gray-800">Attendance Settings</h2>
-                            <button @click="showSettingsModal = false" class="text-gray-500 hover:text-gray-700">
-                                <span class="material-icons text-lg">close</span>
-                            </button>
+            <!-- Add Attendance Modal -->
+            <Modal :show="showAddModal" maxWidth="sm" maxHeight="80vh" closeable @close="showAddModal = false">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-lg font-medium text-gray-800">Add Attendance Record</h2>
+                        <button @click="showAddModal = false" class="text-gray-500 hover:text-gray-700">
+                            <span class="material-icons text-lg">close</span>
+                        </button>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="employeeSelect" class="block text-xs font-medium text-gray-700">Employee</label>
+                            <select id="employeeSelect" v-model="newAttendance.employeeId"
+                                class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white">
+                                <option value="" disabled>Select an employee</option>
+                                <option v-for="employee in employees" :key="employee.id" :value="employee.employeeId">
+                                    {{ employee.firstName }} {{ employee.lastName }} ({{ employee.empNo }})
+                                </option>
+                            </select>
                         </div>
-                        <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label for="officeStart" class="block text-sm font-medium text-gray-700">Official Time
+                                <label for="newMorningTimeIn" class="block text-xs font-medium text-gray-700">Morning
                                     In</label>
-                                <input id="officeStart" v-model="attendanceSettings.officeStart" type="time"
-                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                                <input id="newMorningTimeIn" v-model="newAttendance.morningTimeIn" type="time"
+                                    class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
                             </div>
                             <div>
-                                <label for="lateCutoff" class="block text-sm font-medium text-gray-700">Late
-                                    Cutoff</label>
-                                <input id="lateCutoff" v-model="attendanceSettings.lateCutoff" type="time"
-                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
-                            </div>
-                            <div>
-                                <label for="breakStart" class="block text-sm font-medium text-gray-700">Break
-                                    Start</label>
-                                <input id="breakStart" v-model="attendanceSettings.breakStart" type="time"
-                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
-                            </div>
-                            <div>
-                                <label for="breakEnd" class="block text-sm font-medium text-gray-700">Break End</label>
-                                <input id="breakEnd" v-model="attendanceSettings.breakEnd" type="time"
-                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
-                            </div>
-                            <div>
-                                <label for="officeEnd" class="block text-sm font-medium text-gray-700">Official Time
+                                <label for="newMorningTimeOut" class="block text-xs font-medium text-gray-700">Morning
                                     Out</label>
-                                <input id="officeEnd" v-model="attendanceSettings.officeEnd" type="time"
-                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                                <input id="newMorningTimeOut" v-model="newAttendance.morningTimeOut" type="time"
+                                    class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
                             </div>
                             <div>
-                                <label for="gracePeriod" class="block text-sm font-medium text-gray-700">Grace Period
-                                    (minutes)</label>
-                                <input id="gracePeriod" v-model.number="attendanceSettings.gracePeriod" type="number"
-                                    min="0"
-                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                                <label for="newAfternoonTimeIn"
+                                    class="block text-xs font-medium text-gray-700">Afternoon In</label>
+                                <input id="newAfternoonTimeIn" v-model="newAttendance.afternoonTimeIn" type="time"
+                                    class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
                             </div>
                             <div>
-                                <label for="deductionRate" class="block text-sm font-medium text-gray-700">Deduction
-                                    Rate (per hour)</label>
-                                <input id="deductionRate" v-model.number="attendanceSettings.deductionRate"
-                                    type="number" step="0.01" min="0"
-                                    class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                                <label for="newAfternoonTimeOut"
+                                    class="block text-xs font-medium text-gray-700">Afternoon Out</label>
+                                <input id="newAfternoonTimeOut" v-model="newAttendance.afternoonTimeOut" type="time"
+                                    class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                            </div>
+                            <div class="col-span-2">
+                                <label for="newStatus" class="block text-xs font-medium text-gray-700">Status</label>
+                                <select id="newStatus" v-model="newAttendance.status"
+                                    class="mt-1 p-1 w-full text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white">
+                                    <option value="Present">Present</option>
+                                    <option value="Half Day">Half Day</option>
+                                    <option value="Absent">Absent</option>
+                                    <option value="Late">Late</option>
+                                    <option value="On Time">On Time</option>
+                                    <option value="Early Departure">Early Departure</option>
+                                    <option value="Leave">Leave</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="flex gap-2 mt-6">
-                            <button @click="updateAttendanceSettings"
-                                class="flex-1 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600">
-                                Save Settings
+                        <div class="flex gap-2 mt-4">
+                            <button @click="addAttendance"
+                                class="flex-1 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
+                                Add Record
                             </button>
-                            <button @click="showSettingsModal = false"
-                                class="flex-1 py-2 bg-gray-500 text-white text-sm rounded hover:bg-gray-600">
+                            <button @click="showAddModal = false"
+                                class="flex-1 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600">
                                 Cancel
                             </button>
                         </div>
                     </div>
                 </div>
-            </transition>
+            </Modal>
+
+            <!-- Settings Modal -->
+            <Modal :show="showSettingsModal" maxWidth="md" maxHeight="80vh" closeable
+                @close="showSettingsModal = false">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-medium text-gray-800">Attendance Settings</h2>
+                        <button @click="showSettingsModal = false" class="text-gray-500 hover:text-gray-700">
+                            <span class="material-icons text-lg">close</span>
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="officeStart" class="block text-sm font-medium text-gray-700">Official Time
+                                In</label>
+                            <input id="officeStart" v-model="attendanceSettings.officeStart" type="time"
+                                class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                        </div>
+                        <div>
+                            <label for="lateCutoff" class="block text-sm font-medium text-gray-700">Late
+                                Cutoff</label>
+                            <input id="lateCutoff" v-model="attendanceSettings.lateCutoff" type="time"
+                                class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                        </div>
+                        <div>
+                            <label for="breakStart" class="block text-sm font-medium text-gray-700">Break
+                                Start</label>
+                            <input id="breakStart" v-model="attendanceSettings.breakStart" type="time"
+                                class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                        </div>
+                        <div>
+                            <label for="breakEnd" class="block text-sm font-medium text-gray-700">Break End</label>
+                            <input id="breakEnd" v-model="attendanceSettings.breakEnd" type="time"
+                                class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                        </div>
+                        <div>
+                            <label for="officeEnd" class="block text-sm font-medium text-gray-700">Official Time
+                                Out</label>
+                            <input id="officeEnd" v-model="attendanceSettings.officeEnd" type="time"
+                                class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                        </div>
+                        <div>
+                            <label for="gracePeriod" class="block text-sm font-medium text-gray-700">Grace Period
+                                (minutes)</label>
+                            <input id="gracePeriod" v-model.number="attendanceSettings.gracePeriod" type="number"
+                                min="0"
+                                class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                        </div>
+                        <div>
+                            <label for="deductionRate" class="block text-sm font-medium text-gray-700">Deduction
+                                Rate (per hour)</label>
+                            <input id="deductionRate" v-model.number="attendanceSettings.deductionRate" type="number"
+                                step="0.01" min="0"
+                                class="mt-1 p-2 w-full text-sm border border-gray-200 rounded focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 bg-white" />
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-6">
+                        <button @click="updateAttendanceSettings"
+                            class="flex-1 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600">
+                            Save Settings
+                        </button>
+                        <button @click="showSettingsModal = false"
+                            class="flex-1 py-2 bg-gray-500 text-white text-sm rounded hover:bg-gray-600">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </Modal>
 
             <!-- Status Message -->
             <Toast v-if="toast.isVisible" :message="toast.message" :type="toast.type" :duration="2000"
@@ -1084,17 +1077,6 @@ export default {
 
 <style scoped>
 /* Transitions */
-.modal-enter-active,
-.modal-leave-active {
-    transition: all 0.3s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-    opacity: 0;
-    transform: scale(0.95);
-}
-
 .filter-slide-enter-active,
 .filter-slide-leave-active {
     transition: all 0.3s ease;
