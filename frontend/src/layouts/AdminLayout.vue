@@ -79,28 +79,24 @@ onMounted(() => {
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 sm:space-x-4">
-                    <Dropdown align="right" width="56">
-                        <template #trigger>
-                            <div
-                                class="flex items-center bg-white/5 rounded-lg p-1 sm:p-2 hover:bg-white/10 transition-all cursor-pointer">
-                                <div
-                                    class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center shadow-inner">
-                                    <span class="text-base sm:text-lg font-semibold">{{ adminInitial }}</span>
-                                </div>
-                                <div class="ml-2 sm:ml-3 hidden sm:block">
-                                    <p class="text-xs sm:text-sm font-medium">{{ username }}</p>
-                                    <p class="text-xs text-blue-100">Administrator</p>
-                                </div>
-                            </div>
-                        </template>
-                        <template #content>
-                            <DropdownLink :href="'/admin/settings'" as="router-link">Settings</DropdownLink>
-                            <DropdownLink :href="'/admin-login'" @click.prevent="logout" as="button">Logout
-                            </DropdownLink>
-                        </template>
-                    </Dropdown>
-                    <button @click="logout"
-                        class="flex items-center px-2 py-1 sm:px-4 sm:py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 whitespace-nowrap">
+                    <router-link to="/admin/dashboard"
+                        class="flex items-center rounded-lg p-1 sm:p-2 transition-all cursor-pointer">
+                        <div
+                            class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br from-blue-400 to-indigo-400 flex items-center justify-center shadow-inner">
+                            <span class="text-base sm:text-lg font-semibold">{{ adminInitial }}</span>
+                        </div>
+                        <div class="ml-2 sm:ml-3 hidden sm:block">
+                            <p class="text-xs sm:text-sm font-medium">{{ username }}</p>
+                            <p class="text-xs text-blue-100">Administrator</p>
+                        </div>
+                    </router-link>
+                    <router-link to="/admin/settings" title="Settings"
+                        class="flex items-center p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 whitespace-nowrap">
+                        <span class="material-icons text-sm">settings</span>
+                    </router-link>
+
+                    <button @click="logout" title="Logout"
+                        class="flex items-center px-2 py-1 sm:px-4 sm:py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 whitespace-nowrap cursor-pointer">
                         <span class="material-icons text-sm">logout</span>
                         <span class="ml-1 sm:ml-2 text-xs sm:text-sm font-medium hidden sm:inline">Logout</span>
                     </button>
@@ -114,7 +110,8 @@ onMounted(() => {
                 isSidebarMinimized ? 'w-16' : 'w-72'
             ]">
                 <nav class="pt-24 pb-4 px-2">
-                    <button @click="toggleSidebar" class="w-full flex justify-end px-2 mb-4 cursor-pointer" title="Toggle Sidebar">
+                    <button @click="toggleSidebar" class="w-full flex justify-end px-2 mb-4 cursor-pointer"
+                        title="Toggle Sidebar">
                         <span class="material-icons text-gray-600 hover:text-blue-700">
                             {{ isSidebarMinimized ? 'chevron_right' : 'chevron_left' }}
                         </span>
