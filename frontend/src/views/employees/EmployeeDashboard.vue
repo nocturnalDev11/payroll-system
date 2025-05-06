@@ -487,17 +487,19 @@ function getStatusClass(status) {
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <div class="lg:col-span-3 space-y-6">
                     <div class="bg-white rounded-xl shadow-sm p-6">
-                        <div class="flex justify-between items-center">
+
+                        <div
+                            class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 sm:space-x-4">
                             <div class="text-sm text-gray-500">Current Pay Period: {{ currentPayPeriod }}</div>
-                            <div class="flex space-x-3">
+                            <div class="flex flex-row space-x-3 w-full sm:w-auto">
                                 <button @click="timeIn" :disabled="isTimedIn || isLoading || !canTimeIn()"
-                                    class="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
+                                    class="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 flex-1 sm:flex-none">
                                     <span v-if="isLoading && !isTimedIn"
                                         class="animate-spin material-icons">autorenew</span>
                                     {{ isLoading && !isTimedIn ? 'Processing...' : 'Time In' }}
                                 </button>
                                 <button @click="timeOut" :disabled="!isTimedIn || isLoading || !canTimeOut()"
-                                    class="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
+                                    class="bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 flex-1 sm:flex-none">
                                     <span v-if="isLoading && isTimedIn"
                                         class="animate-spin material-icons">autorenew</span>
                                     {{ isLoading && isTimedIn ? 'Processing...' : 'Time Out' }}

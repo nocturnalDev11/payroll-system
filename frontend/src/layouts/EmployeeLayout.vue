@@ -3,9 +3,6 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store.js';
-import { BASE_API_URL } from '@/utils/constants.js';
-import Dropdown from '@/components/Dropdown.vue';
-import DropdownLink from '@/components/DropdownLink.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -47,7 +44,7 @@ const handleImageError = async () => {
     console.error('Failed to load profile picture:', employee.value?.profilePicture);
     imageLoadFailed.value = true;
     try {
-        await authStore.fetchEmployeeDetails(employee.value._id); // Use _id
+        await authStore.fetchEmployeeDetails(employee.value._id);
         imageLoadFailed.value = !employee.value?.profilePicture;
     } catch (err) {
         console.error('Failed to refetch employee data:', err);
@@ -92,41 +89,33 @@ onMounted(() => {
                 </div>
 
                 <div class="flex items-center space-x-2 sm:space-x-4">
-                    <Dropdown align="right" width="56">
-                        <template #trigger>
-                            <div
-                                class="flex items-center bg-white/5 rounded-lg p-1 sm:p-2 hover:bg-white/10 transition-all cursor-pointer">
-                                <div class="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center overflow-hidden">
-                                    <img v-if="employee && employee.profilePicture && !imageLoadFailed"
-                                        :src="employee.profilePicture" :alt="employee.firstName"
-                                        class="h-full w-full object-cover rounded-full" @error="handleImageError">
-                                    <div v-else
-                                        class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-teal-600 flex items-center justify-center">
-                                        <span class="text-white font-semibold text-lg">
-                                            {{ employee?.username?.[0]?.toUpperCase() || '?' }}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="ml-2 sm:ml-3 hidden sm:block">
-                                    <p class="text-xs sm:text-sm font-medium">{{ employee?.username }}</p>
-                                    <p class="text-xs text-blue-100">{{ employee?.firstName }} {{ employee?.lastName }}
-                                    </p>
-                                </div>
+                    <router-link to="/employee/dashboard"
+                        class="flex items-center rounded-lg p-1 sm:p-2 hover:bg-white/10 transition-all cursor-pointer">
+                        <div class="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center overflow-hidden">
+                            <img v-if="employee && employee.profilePicture && !imageLoadFailed"
+                                :src="employee.profilePicture" :alt="employee.firstName"
+                                class="h-full w-full object-cover rounded-full" @error="handleImageError">
+                            <div v-else
+                                class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-teal-600 flex items-center justify-center">
+                                <span class="text-white font-semibold text-lg">
+                                    {{ employee?.username?.[0]?.toUpperCase() || '?' }}
+                                </span>
                             </div>
-                        </template>
+                        </div>
+                        <div class="ml-2 sm:ml-3 hidden sm:block">
+                            <p class="text-xs sm:text-sm font-medium">{{ employee?.username }}</p>
+                            <p class="text-xs text-blue-100">{{ employee?.firstName }} {{ employee?.lastName }}
+                            </p>
+                        </div>
+                    </router-link>
 
-                        <template #content>
-                            <DropdownLink :href="settingsRoute">
-                                Settings
-                            </DropdownLink>
-                            <DropdownLink :href="'/employee/login'" @click.prevent="logout" as="button">
-                                Logout
-                            </DropdownLink>
-                        </template>
-                    </Dropdown>
+                    <router-link :to="settingsRoute" title="Settings"
+                        class="flex items-center p-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 whitespace-nowrap hover:bg-white/10">
+                        <span class="material-icons text-sm">settings</span>
+                    </router-link>
 
-                    <button @click="logout"
-                        class="flex items-center px-2 py-1 sm:px-4 sm:py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 whitespace-nowrap">
+                    <button @click="logout" title="Logout"
+                        class="flex items-center px-2 py-1 sm:px-4 sm:py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 active:scale-95 whitespace-nowrap cursor-pointer">
                         <span class="material-icons text-sm">logout</span>
                         <span class="ml-1 sm:ml-2 text-xs sm:text-sm font-medium hidden sm:inline">Logout</span>
                     </button>
