@@ -6,21 +6,21 @@ const AttendanceSettings = require('../../models/attendanceSettings.model');
  * @route GET /api/attendance-settings
  */
 exports.getAttendanceSettings = asyncHandler(async (req, res) => {
-  try {
-    console.log('Fetching attendance settings...');
-    let settings = await AttendanceSettings.findOne();
-    console.log('Settings found:', settings);
-    if (!settings) {
-      console.log('No settings found, creating new...');
-      settings = new AttendanceSettings({});
-      await settings.save();
-      console.log('New settings saved:', settings);
+    try {
+        console.log('Fetching attendance settings...');
+        let settings = await AttendanceSettings.findOne();
+        console.log('Settings found:', settings);
+        if (!settings) {
+            console.log('No settings found, creating new...');
+            settings = new AttendanceSettings({});
+            await settings.save();
+            console.log('New settings saved:', settings);
+        }
+        res.status(200).json(settings);
+    } catch (error) {
+        console.error('Error in getAttendanceSettings:', error.message, error.stack);
+        throw error;
     }
-    res.status(200).json(settings);
-  } catch (error) {
-    console.error('Error in getAttendanceSettings:', error.message, error.stack);
-    throw error; // Let asyncHandler handle the response
-  }
 });
 
 /**
