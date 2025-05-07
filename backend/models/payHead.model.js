@@ -4,7 +4,11 @@ const payHeadSchema = new mongoose.Schema({
     id: { type: Number, required: true, unique: true },
     name: { type: String, required: true },
     amount: { type: Number, required: true, min: 0 },
-    type: { type: String, enum: ['Earnings', 'Deductions'], required: true },
+    type: { 
+        type: String, 
+        enum: ['Earnings', 'Deductions'], 
+        required: true 
+    },
     isRecurring: { type: Boolean, default: false },
     isAttendanceAffected: { type: Boolean, default: false },
 });

@@ -83,6 +83,52 @@ export function useEmployeeData() {
         }
     };
 
+    const fetchEmployeeById = async () => {
+        state.value.isLoading = true;
+        const token = authStore.accessToken || localStorage.getItem('token') || '';
+        try {
+            if (!token) throw new Error('No authentication token found');
+            
+            const response = await fetch(`${BASE_API_URL}/api/employees/profile`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'user-role': authStore.userRole,
+                    'user-id': authStore.employee?._id || '',
+                },
+            });
+            state.value.employees = response.data
+            .filter((employee) => employee.status !== 'pending' && employee.status !== 'archived')
+            .map((employee) => {
+                const latestPosition = getLatestPosition(employee);
+                return {
+                    ...employee,
+                    id: employee._id,
+                    name: `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Unnamed Employee',
+                    position: latestPosition.position,
+                    salary: latestPosition.salary,
+                    positionHistory: Array.isArray(employee.positionHistory) && employee.positionHistory.length > 0
+                        ? employee.positionHistory
+                        : [
+                            {
+                                position: employee.position || 'N/A',
+                                salary: employee.salary || 0,
+                                startDate: employee.hireDate || state.value.currentDate,
+                                endDate: null,
+                            },
+                        ],
+                    payheads: Array.isArray(employee.payheads) ? employee.payheads : [],
+                    createdAt: employee.createdAt || employee.hireDate,
+                    updatedAt: employee.updatedAt,
+                };
+            });
+            showSuccessMessage('Employees loaded successfully!');
+        } catch (error) {
+            showErrorMessage(`Failed to load employees: ${error.message}`);
+        } finally {
+            state.value.isLoading = false;
+        }
+    }
     const fetchAttendanceAffectedDeductions = async (retries = 3, delay = 1000) => {
         for (let i = 0; i < retries; i++) {
             state.value.isLoading = true;
@@ -157,5 +203,6 @@ export function useEmployeeData() {
         getLatestPosition,
         showSuccessMessage,
         showErrorMessage,
+        fetchEmployeeById
     };
 }
