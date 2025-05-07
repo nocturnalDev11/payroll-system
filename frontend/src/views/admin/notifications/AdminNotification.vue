@@ -141,7 +141,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50 p-6">
+    <div class="min-h-screen bg-slate-50">
         <div class="w-full mx-auto">
             <header class="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
                 <div class="flex justify-between items-center">

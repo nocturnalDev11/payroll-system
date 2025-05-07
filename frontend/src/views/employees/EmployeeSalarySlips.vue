@@ -2,7 +2,7 @@
     <div class="min-h-screen p-4">
         <div class="w-full mx-auto space-y-6">
             <header
-                class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-0 justify-between items-start sm:items-center sticky top-6 z-50 backdrop-blur-md bg-opacity-90">
+                class="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col xl:flex-row lg:flex-row gap-4 sm:gap-0 justify-between items-start sm:items-center sticky top-6 z-50 backdrop-blur-md bg-opacity-90">
                 <h1 class="text-xl sm:text-2xl font-bold text-gray-900 animate-fade-in">
                     My Payslip History
                 </h1>
