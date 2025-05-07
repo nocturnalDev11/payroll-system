@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const Admin = require('../../models/admin.model.js');
 
 exports.getAdminSettings = asyncHandler(async (req, res) => {
-    const adminId = req.adminId; // Updated from req.admin.id
+    const adminId = req.adminId;
     try {
         const admin = await Admin.findById(adminId).select('-password');
         if (!admin) {
