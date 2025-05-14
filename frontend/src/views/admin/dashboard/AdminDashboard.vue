@@ -451,7 +451,7 @@ onMounted(() => {
                                                 :employee="record" @open="openModal(record._id)"
                                                 @close="closeModal(record._id)" />
                                             <button @click.stop="deleteAttendance(record._id)"
-                                                class="text-red-600 hover:text-red-800 transition cursor-pointer"
+                                                class="flex items-center text-red-600 hover:text-red-800 transition cursor-pointer"
                                                 title="Delete Record">
                                                 <span class="material-icons">delete</span>
                                             </button>

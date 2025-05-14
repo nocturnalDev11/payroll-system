@@ -545,7 +545,7 @@ export default {
                     <div class="p-4 border-b border-gray-300 flex justify-between items-center">
                         <h2 class="text-lg font-semibold text-gray-800">Pending Approvals</h2>
                         <button @click="refreshPendingRequests"
-                            class="text-indigo-600 hover:text-indigo-800 p-1 rounded-full hover:bg-indigo-100">
+                            class="flex items-center text-indigo-600 hover:text-indigo-800 p-1 rounded-full hover:bg-indigo-100">
                             <span class="material-icons text-lg">refresh</span>
                         </button>
                     </div>
@@ -568,7 +568,7 @@ export default {
                             </div>
                             <div class="flex justify-end gap-1">
                                 <button @click="viewRequestInfo(request)"
-                                    class="text-indigo-600 hover:text-indigo-800 p-1 rounded-full hover:bg-indigo-100"
+                                    class="flex items-center text-indigo-600 hover:text-indigo-800 p-1 rounded-full hover:bg-indigo-100"
                                     title="View">
                                     <span class="material-icons text-lg">visibility</span>
                                 </button>
