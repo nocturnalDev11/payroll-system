@@ -207,7 +207,7 @@ onMounted(() => {
             <!-- Stats Overview -->
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 <!-- Total Employees -->
-                <router-link to="/admin/employee-attendance"
+                <router-link to="/admin/manage-employees"
                     class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="p-6">
                         <div class="flex items-center">
