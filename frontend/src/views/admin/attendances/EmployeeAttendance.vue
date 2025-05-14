@@ -724,8 +724,14 @@ export default {
 
         <!-- Attendance Settings Modal -->
         <Modal :show="showSettingsModal" @close="showSettingsModal = false">
-            <div class="p-6">
-                <h2 class="text-lg font-semibold text-gray-800 mb-4">Attendance Settings</h2>
+            <!-- Header -->
+            <div
+                class="p-4 border-b border-gray-300 flex justify-between items-center sticky top-0 bg-white rounded-t-lg">
+                <h2 class="text-xl font-bold text-gray-800">Attendance Settings</h2>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto max-h-[65vh] p-4 space-y-6 pb-6">
                 <div class="space-y-4">
                     <div>
                         <label class="text-sm text-gray-600">Office Start</label>
@@ -773,16 +779,17 @@ export default {
                             class="w-full border border-gray-300 rounded-lg px-4 py-2" />
                     </div>
                 </div>
-                <div class="flex justify-end space-x-3 mt-6">
-                    <button @click="showSettingsModal = false"
-                        class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
-                        Cancel
-                    </button>
-                    <button @click="updateAttendanceSettings"
-                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-                        Save
-                    </button>
-                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-300 bg-gray-50 flex justify-end gap-2">
+                <button @click="showSettingsModal = false" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
+                    Cancel
+                </button>
+                <button @click="updateAttendanceSettings"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                    Save
+                </button>
             </div>
         </Modal>
     </div>
