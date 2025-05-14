@@ -33,7 +33,7 @@ const attendanceSettings = ref({
     breakStart: '11:30',
     breakEnd: '12:59',
     officeEnd: '17:00',
-    gracePeriod: 10, // Updated to 10 minutes
+    gracePeriod: 10,
     deductionRate: 37.5,
     earlyTimeInThreshold: '06:00',
     earlyTimeOutThreshold: '11:30',
@@ -181,6 +181,7 @@ async function checkTimedInStatus() {
 async function timeIn() {
     const now = new Date();
     const currentTime = now.toLocaleTimeString('en-US', { hour12: false });
+    const today = now.toISOString().split('T')[0]; // Ensure consistent date format
     const { earlyTimeInThreshold, breakStart, breakEnd, halfDayThreshold } = attendanceSettings.value;
 
     if (!canTimeIn()) {
@@ -200,7 +201,6 @@ async function timeIn() {
     try {
         const employeeId = authStore.employee?._id;
         if (!employeeId) throw new Error('No employee ID');
-        const today = new Date().toISOString().split('T')[0];
         const response = await fetch(`${BASE_API_URL}/api/attendance/time-in`, {
             method: 'POST',
             headers: {
@@ -209,7 +209,7 @@ async function timeIn() {
                 'user-role': authStore.userRole,
                 'user-id': employeeId,
             },
-            body: JSON.stringify({ employeeId, date: today }),
+            body: JSON.stringify({ employeeId, date: today, time: currentTime }),
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message);
@@ -253,7 +253,7 @@ async function timeOut() {
                 'user-role': authStore.userRole,
                 'user-id': employeeId,
             },
-            body: JSON.stringify({ employeeId }),
+            body: JSON.stringify({ employeeId, time: currentTime }),
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message);
@@ -279,17 +279,14 @@ function canTimeIn() {
     );
     const latestRecord = todayRecords[todayRecords.length - 1];
 
-    // Prevent time-in during lunch break
     if (currentTime >= breakStart && currentTime <= breakEnd) {
         return false;
     }
 
-    // Allow morning time-in after earlyTimeInThreshold if no morning time-in exists
     if (!latestRecord || (!latestRecord.morningTimeIn && !latestRecord.morningTimeOut)) {
-        return currentTime >= earlyTimeInThreshold;
+        return currentTime >= earlyTimeInThreshold && currentTime <= breakStart;
     }
 
-    // Allow afternoon time-in after breakEnd if morning session is complete
     if (
         (latestRecord?.morningTimeIn && latestRecord?.morningTimeOut) ||
         (!latestRecord?.morningTimeIn && currentTime >= breakEnd)
@@ -297,7 +294,6 @@ function canTimeIn() {
         return currentTime >= breakEnd && !latestRecord?.afternoonTimeIn;
     }
 
-    // Allow half-day time-in after halfDayThreshold
     if (currentTime >= halfDayThreshold && !latestRecord?.afternoonTimeIn) {
         return true;
     }
@@ -312,42 +308,64 @@ function canTimeOut() {
     return currentTime >= earlyTimeOutThreshold && isTimedIn.value;
 }
 
+function calculateWorkedHours(record) {
+    const { breakStart, breakEnd } = attendanceSettings.value;
+    let totalMinutes = 0;
+
+    const timeToMinutes = (time) => {
+        if (!time || time === '00:00:00') return 0;
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    if (record.morningTimeIn && record.morningTimeOut) {
+        totalMinutes += timeToMinutes(record.morningTimeOut) - timeToMinutes(record.morningTimeIn);
+    } else if (record.morningTimeIn && !record.morningTimeOut) {
+        record.status = 'Incomplete';
+        totalMinutes += timeToMinutes(breakStart) - timeToMinutes(record.morningTimeIn);
+    }
+
+    if (record.afternoonTimeIn && record.afternoonTimeOut) {
+        totalMinutes += timeToMinutes(record.afternoonTimeOut) - timeToMinutes(record.afternoonTimeIn);
+    } else if (record.afternoonTimeIn && !record.afternoonTimeOut) {
+        record.status = 'Incomplete';
+        totalMinutes += timeToMinutes(record.afternoonTimeOut || '17:00:00') - timeToMinutes(record.afternoonTimeIn);
+    }
+
+    if (record.morningTimeIn && record.afternoonTimeOut && !record.morningTimeOut && !record.afternoonTimeIn) {
+        totalMinutes -= timeToMinutes(breakEnd) - timeToMinutes(breakStart);
+    }
+
+    return Math.max(0, totalMinutes / 60).toFixed(2);
+}
+
 function getAttendanceStatus(record) {
-    const { officeStart, officeEnd, gracePeriod, halfDayThreshold } = attendanceSettings.value;
+    const { officeStart, officeEnd, gracePeriod, halfDayThreshold, breakStart, breakEnd } = attendanceSettings.value;
     if (!record.morningTimeIn && !record.afternoonTimeIn) return 'Absent';
 
     const morningIn = record.morningTimeIn || '00:00:00';
     const afternoonIn = record.afternoonTimeIn || '00:00:00';
     const afternoonOut = record.afternoonTimeOut || record.morningTimeOut || '00:00:00';
 
-    // Calculate late threshold based on grace period
     const lateThreshold = new Date(`1970-01-01T${officeStart}Z`);
     lateThreshold.setMinutes(lateThreshold.getMinutes() + gracePeriod);
     const lateThresholdTime = lateThreshold.toISOString().slice(11, 19);
 
-    // Check for half-day status
     if (!record.morningTimeIn && afternoonIn >= halfDayThreshold) {
         return 'Half Day';
     }
     if (record.morningTimeIn && !record.afternoonTimeIn && record.morningTimeOut) {
         return 'Half Day';
     }
-
-    // Check if within grace period for morning session
-    if (morningIn <= lateThresholdTime) {
-        return 'Present';
-    }
-
-    // Check if employee was late for morning session
     if (morningIn > lateThresholdTime) {
         return 'Late';
     }
-
-    // Check if employee left early
     if (afternoonOut < officeEnd && afternoonOut !== '00:00:00') {
         return 'Early Departure';
     }
-
+    if ((record.morningTimeIn && !record.morningTimeOut) || (record.afternoonTimeIn && !record.afternoonTimeOut)) {
+        return 'Incomplete';
+    }
     return 'Present';
 }
 
@@ -465,6 +483,7 @@ function getStatusClass(status) {
         'Absent': 'text-red-600 bg-red-100 px-2 py-1 rounded-full',
         'Early Departure': 'text-orange-600 bg-orange-100 px-2 py-1 rounded-full',
         'Half Day': 'text-blue-600 bg-blue-100 px-2 py-1 rounded-full',
+        'Incomplete': 'text-purple-600 bg-purple-100 px-2 py-1 rounded-full',
     }[status] || 'text-gray-600';
 }
 </script>
@@ -529,6 +548,8 @@ function getStatusClass(status) {
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                                             Afternoon Out</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            Worked Hours</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                                             Status</th>
                                     </tr>
                                 </thead>
@@ -549,13 +570,16 @@ function getStatusClass(status) {
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {{ formatTime(record.afternoonTimeOut) }}
                                         </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ record.workedHours ? record.workedHours.toFixed(2) : '0.00' }} hrs
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                                             <span :class="getStatusClass(getAttendanceStatus(record))">{{
                                                 getAttendanceStatus(record) }}</span>
                                         </td>
                                     </tr>
                                     <tr v-if="!todayAttendance.length">
-                                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">No employees timed
+                                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">No employees timed
                                             in today</td>
                                     </tr>
                                 </tbody>
@@ -582,6 +606,8 @@ function getStatusClass(status) {
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                                             Afternoon Out</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                            Worked Hours</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                                             Status</th>
                                     </tr>
                                 </thead>
@@ -602,13 +628,16 @@ function getStatusClass(status) {
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {{ formatTime(record.afternoonTimeOut) }}
                                         </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ record.workedHours ? record.workedHours.toFixed(2) : '0.00' }} hrs
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                                             <span :class="getStatusClass(getAttendanceStatus(record))">{{
                                                 getAttendanceStatus(record) }}</span>
                                         </td>
                                     </tr>
                                     <tr v-if="!attendanceRecords.length">
-                                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">No records found
+                                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">No records found
                                         </td>
                                     </tr>
                                 </tbody>

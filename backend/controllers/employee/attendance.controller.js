@@ -8,9 +8,13 @@ const Employee = require('../../models/employee.model.js');
  * @route POST /api/attendance/time-in
  */
 exports.timeIn = asyncHandler(async (req, res) => {
-    const { employeeId } = req.body;
-    const currentDate = new Date();
-    const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    const { employeeId, date, time } = req.body;
+    const currentDate = date ? new Date(date) : new Date();
+    const currentTime = time || new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+
+    if (isNaN(currentDate.getTime())) {
+        return res.status(400).json({ message: 'Invalid date format' });
+    }
 
     // Fetch attendance settings
     const settings = await AttendanceSettings.findOne() || new AttendanceSettings({});
@@ -43,20 +47,39 @@ exports.timeIn = asyncHandler(async (req, res) => {
     let status = "Present";
     let lateHours = 0;
     let lateDeduction = 0;
+    let workedHours = 0;
 
     // Calculate late threshold based on grace period
     const lateThreshold = new Date(`1970-01-01T${settings.officeStart}Z`);
     lateThreshold.setMinutes(lateThreshold.getMinutes() + settings.gracePeriod);
     const lateThresholdTime = lateThreshold.toISOString().slice(11, 19).substring(0, 5);
 
+    const timeToMinutes = (time) => {
+        if (!time || time === '00:00:00') return 0;
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    const calculateWorkedHours = (record) => {
+        let totalMinutes = 0;
+        if (record.morningTimeIn && record.morningTimeOut) {
+            totalMinutes += timeToMinutes(record.morningTimeOut) - timeToMinutes(record.morningTimeIn);
+        }
+        if (record.afternoonTimeIn && record.afternoonTimeOut) {
+            totalMinutes += timeToMinutes(record.afternoonTimeOut) - timeToMinutes(record.afternoonTimeIn);
+        }
+        if (record.morningTimeIn && record.afternoonTimeOut && !record.morningTimeOut && !record.afternoonTimeIn) {
+            totalMinutes -= timeToMinutes(settings.breakEnd) - timeToMinutes(settings.breakStart);
+        }
+        return Math.max(0, totalMinutes / 60);
+    };
+
     // Calculate status and deductions
     if (currentTime <= settings.breakStart) {
         // Morning time-in
         if (currentTime > lateThresholdTime) {
             status = "Late";
-            const [hours, minutes] = currentTime.split(':').map(Number);
-            const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
-            const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
+            const lateMinutes = timeToMinutes(currentTime) - timeToMinutes(settings.officeStart);
             lateHours = Math.ceil(lateMinutes / 60);
             lateDeduction = lateHours * settings.deductionRate;
         }
@@ -68,27 +91,34 @@ exports.timeIn = asyncHandler(async (req, res) => {
             lateDeduction = lateHours * settings.deductionRate;
         } else if (existingRecord?.morningTimeIn) {
             status = "Present";
+        } else {
+            status = "Half Day";
+            lateHours = 4;
+            lateDeduction = lateHours * settings.deductionRate;
         }
     }
 
     let attendance;
     if (existingRecord) {
-        // Update existing record for afternoon time-in
+        // Update existing record
         existingRecord.afternoonTimeIn = currentTime > settings.breakEnd ? currentTime : existingRecord.afternoonTimeIn;
+        existingRecord.morningTimeIn = currentTime <= settings.breakStart ? currentTime : existingRecord.morningTimeIn;
         existingRecord.status = status;
         existingRecord.lateHours = lateHours;
         existingRecord.lateDeduction = lateDeduction;
+        existingRecord.workedHours = calculateWorkedHours(existingRecord);
         attendance = await existingRecord.save();
     } else {
         // Create new record
         attendance = new Attendance({
             employeeId,
-            date: currentDate,
+            date: todayStart,
             morningTimeIn: currentTime <= settings.breakStart ? currentTime : null,
             afternoonTimeIn: currentTime > settings.breakEnd ? currentTime : null,
             status,
             lateHours,
             lateDeduction,
+            workedHours,
         });
         await attendance.save();
     }
@@ -101,9 +131,9 @@ exports.timeIn = asyncHandler(async (req, res) => {
  * @route POST /api/attendance/time-out
  */
 exports.timeOut = asyncHandler(async (req, res) => {
-    const { employeeId } = req.body;
+    const { employeeId, time } = req.body;
     const currentDate = new Date();
-    const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    const currentTime = time || new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
 
     // Fetch attendance settings
     const settings = await AttendanceSettings.findOne() || new AttendanceSettings({});
@@ -127,6 +157,26 @@ exports.timeOut = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: `Time Out is not allowed before ${settings.earlyTimeOutThreshold}` });
     }
 
+    const timeToMinutes = (time) => {
+        if (!time || time === '00:00:00') return 0;
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    const calculateWorkedHours = (record) => {
+        let totalMinutes = 0;
+        if (record.morningTimeIn && record.morningTimeOut) {
+            totalMinutes += timeToMinutes(record.morningTimeOut) - timeToMinutes(record.morningTimeIn);
+        }
+        if (record.afternoonTimeIn && record.afternoonTimeOut) {
+            totalMinutes += timeToMinutes(record.afternoonTimeOut) - timeToMinutes(record.afternoonTimeIn);
+        }
+        if (record.morningTimeIn && record.afternoonTimeOut && !record.morningTimeOut && !record.afternoonTimeIn) {
+            totalMinutes -= timeToMinutes(settings.breakEnd) - timeToMinutes(settings.breakStart);
+        }
+        return Math.max(0, totalMinutes / 60);
+    };
+
     if (attendance.morningTimeIn && !attendance.morningTimeOut && currentTime <= settings.breakEnd) {
         attendance.morningTimeOut = currentTime;
     } else if (attendance.afternoonTimeIn && !attendance.afternoonTimeOut) {
@@ -147,9 +197,7 @@ exports.timeOut = asyncHandler(async (req, res) => {
         attendance.status = "Present";
         if (attendance.morningTimeIn > lateThresholdTime) {
             attendance.status = "Late";
-            const [hours, minutes] = attendance.morningTimeIn.split(':').map(Number);
-            const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
-            const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
+            const lateMinutes = timeToMinutes(attendance.morningTimeIn) - timeToMinutes(settings.officeStart);
             attendance.lateHours = Math.ceil(lateMinutes / 60);
             attendance.lateDeduction = attendance.lateHours * settings.deductionRate;
         }
@@ -159,8 +207,11 @@ exports.timeOut = asyncHandler(async (req, res) => {
             attendance.lateHours = 4;
             attendance.lateDeduction = 4 * settings.deductionRate;
         }
+    } else if ((attendance.morningTimeIn && !attendance.morningTimeOut) || (attendance.afternoonTimeIn && !attendance.afternoonTimeOut)) {
+        attendance.status = "Incomplete";
     }
 
+    attendance.workedHours = calculateWorkedHours(attendance);
     await attendance.save();
     res.status(200).json(attendance);
 });
@@ -173,7 +224,7 @@ exports.checkAbsent = asyncHandler(async (req, res) => {
     const today = new Date();
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
     const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-    
+
     // Fetch attendance settings
     const settings = await AttendanceSettings.findOne() || new AttendanceSettings({});
 
@@ -208,6 +259,7 @@ exports.checkAbsent = asyncHandler(async (req, res) => {
                     afternoonTimeOut: null,
                     lateHours: 8,
                     lateDeduction: 8 * settings.deductionRate,
+                    workedHours: 0,
                 }))
             );
         }
@@ -226,7 +278,7 @@ exports.checkAbsent = asyncHandler(async (req, res) => {
  */
 exports.updateAttendance = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { employeeId, date, morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut, status, lateHours, lateDeduction } = req.body;
+    const { employeeId, date, morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut, status, lateHours, lateDeduction, workedHours } = req.body;
 
     const attendance = await Attendance.findById(id);
     if (!attendance) {
@@ -250,6 +302,26 @@ exports.updateAttendance = asyncHandler(async (req, res) => {
     attendance.afternoonTimeIn = afternoonTimeIn !== undefined ? afternoonTimeIn : attendance.afternoonTimeIn || null;
     attendance.afternoonTimeOut = afternoonTimeOut !== undefined ? afternoonTimeOut : attendance.afternoonTimeOut || null;
 
+    const timeToMinutes = (time) => {
+        if (!time || time === '00:00:00') return 0;
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    const calculateWorkedHours = (record) => {
+        let totalMinutes = 0;
+        if (record.morningTimeIn && record.morningTimeOut) {
+            totalMinutes += timeToMinutes(record.morningTimeOut) - timeToMinutes(record.morningTimeIn);
+        }
+        if (record.afternoonTimeIn && record.afternoonTimeOut) {
+            totalMinutes += timeToMinutes(record.afternoonTimeOut) - timeToMinutes(record.afternoonTimeIn);
+        }
+        if (record.morningTimeIn && record.afternoonTimeOut && !record.morningTimeOut && !record.afternoonTimeIn) {
+            totalMinutes -= timeToMinutes(settings.breakEnd) - timeToMinutes(settings.breakStart);
+        }
+        return Math.max(0, totalMinutes / 60);
+    };
+
     // Calculate late threshold based on grace period
     const lateThreshold = new Date(`1970-01-01T${settings.officeStart}Z`);
     lateThreshold.setMinutes(lateThreshold.getMinutes() + settings.gracePeriod);
@@ -259,60 +331,58 @@ exports.updateAttendance = asyncHandler(async (req, res) => {
         attendance.status = status;
         attendance.lateHours = lateHours !== undefined ? lateHours : attendance.lateHours || 0;
         attendance.lateDeduction = lateDeduction !== undefined ? lateDeduction : attendance.lateDeduction || 0;
+        attendance.workedHours = workedHours !== undefined ? workedHours : calculateWorkedHours(attendance);
     } else {
         let calculatedLateHours = 0;
         let calculatedLateDeduction = 0;
+        let calculatedStatus = "Present";
 
         if (!attendance.morningTimeIn && !attendance.afternoonTimeIn) {
-            attendance.status = "Absent";
+            calculatedStatus = "Absent";
             calculatedLateHours = 8;
             calculatedLateDeduction = 8 * settings.deductionRate;
         } else if (attendance.morningTimeIn && attendance.afternoonTimeOut && attendance.afternoonTimeOut >= settings.officeEnd) {
-            attendance.status = "Present";
+            calculatedStatus = "Present";
             if (attendance.morningTimeIn > lateThresholdTime) {
-                attendance.status = "Late";
-                const [hours, minutes] = attendance.morningTimeIn.split(':').map(Number);
-                const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
-                const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
+                calculatedStatus = "Late";
+                const lateMinutes = timeToMinutes(attendance.morningTimeIn) - timeToMinutes(settings.officeStart);
                 calculatedLateHours = Math.ceil(lateMinutes / 60);
                 calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
             }
         } else if ((attendance.morningTimeIn && !attendance.afternoonTimeIn) || (!attendance.morningTimeIn && attendance.afternoonTimeIn)) {
-            attendance.status = "Half Day";
+            calculatedStatus = "Half Day";
             calculatedLateHours = 4;
             calculatedLateDeduction = 4 * settings.deductionRate;
             if (attendance.morningTimeIn && attendance.morningTimeIn > lateThresholdTime) {
-                attendance.status = "Late";
-                const [hours, minutes] = attendance.morningTimeIn.split(':').map(Number);
-                const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
-                const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
+                calculatedStatus = "Late";
+                const lateMinutes = timeToMinutes(attendance.morningTimeIn) - timeToMinutes(settings.officeStart);
                 calculatedLateHours = Math.max(4, Math.ceil(lateMinutes / 60));
                 calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
             } else if (attendance.afternoonTimeIn && attendance.afternoonTimeIn >= settings.halfDayThreshold) {
-                attendance.status = "Half Day";
+                calculatedStatus = "Half Day";
                 calculatedLateHours = 4;
                 calculatedLateDeduction = 4 * settings.deductionRate;
             }
         } else if (attendance.morningTimeIn && attendance.morningTimeIn > lateThresholdTime) {
-            attendance.status = "Late";
-            const [hours, minutes] = attendance.morningTimeIn.split(':').map(Number);
-            const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
-            const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
+            calculatedStatus = "Late";
+            const lateMinutes = timeToMinutes(attendance.morningTimeIn) - timeToMinutes(settings.officeStart);
             calculatedLateHours = Math.ceil(lateMinutes / 60);
             calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
         } else if (attendance.afternoonTimeIn && attendance.afternoonTimeIn > settings.breakEnd) {
-            attendance.status = "Half Day";
+            calculatedStatus = "Half Day";
             calculatedLateHours = 4;
             calculatedLateDeduction = 4 * settings.deductionRate;
         } else if ((attendance.morningTimeOut && attendance.morningTimeOut < settings.breakStart) ||
                    (attendance.afternoonTimeOut && attendance.afternoonTimeOut < settings.officeEnd)) {
-            attendance.status = "Early Departure";
-        } else {
-            attendance.status = "Present";
+            calculatedStatus = "Early Departure";
+        } else if ((attendance.morningTimeIn && !attendance.morningTimeOut) || (attendance.afternoonTimeIn && !attendance.afternoonTimeOut)) {
+            calculatedStatus = "Incomplete";
         }
 
+        attendance.status = calculatedStatus;
         attendance.lateHours = calculatedLateHours;
         attendance.lateDeduction = calculatedLateDeduction;
+        attendance.workedHours = calculateWorkedHours(attendance);
     }
 
     await attendance.save();
@@ -324,7 +394,7 @@ exports.updateAttendance = asyncHandler(async (req, res) => {
  * @route POST /api/attendance
  */
 exports.createAttendance = asyncHandler(async (req, res) => {
-    const { employeeId, date, morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut, status, lateHours, lateDeduction } = req.body;
+    const { employeeId, date, morningTimeIn, morningTimeOut, afternoonTimeIn, afternoonTimeOut, status, lateHours, lateDeduction, workedHours } = req.body;
 
     const employee = await Employee.findById(employeeId);
     if (!employee) {
@@ -344,7 +414,28 @@ exports.createAttendance = asyncHandler(async (req, res) => {
         status: status || 'Absent',
         lateHours: lateHours || 0,
         lateDeduction: lateDeduction || 0,
+        workedHours: workedHours || 0,
     });
+
+    const timeToMinutes = (time) => {
+        if (!time || time === '00:00:00') return 0;
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    const calculateWorkedHours = (record) => {
+        let totalMinutes = 0;
+        if (record.morningTimeIn && record.morningTimeOut) {
+            totalMinutes += timeToMinutes(record.morningTimeOut) - timeToMinutes(record.morningTimeIn);
+        }
+        if (record.afternoonTimeIn && record.afternoonTimeOut) {
+            totalMinutes += timeToMinutes(record.afternoonTimeOut) - timeToMinutes(record.afternoonTimeIn);
+        }
+        if (record.morningTimeIn && record.afternoonTimeOut && !record.morningTimeOut && !record.afternoonTimeIn) {
+            totalMinutes -= timeToMinutes(settings.breakEnd) - timeToMinutes(settings.breakStart);
+        }
+        return Math.max(0, totalMinutes / 60);
+    };
 
     // Calculate late threshold based on grace period
     const lateThreshold = new Date(`1970-01-01T${settings.officeStart}Z`);
@@ -354,59 +445,58 @@ exports.createAttendance = asyncHandler(async (req, res) => {
     if (!status) {
         let calculatedLateHours = 0;
         let calculatedLateDeduction = 0;
+        let calculatedStatus = "Present";
 
         if (!morningTimeIn && !afternoonTimeIn) {
-            newAttendance.status = 'Absent';
+            calculatedStatus = 'Absent';
             calculatedLateHours = 8;
             calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
         } else if (morningTimeIn && afternoonTimeOut && afternoonTimeOut >= settings.officeEnd) {
-            newAttendance.status = 'Present';
+            calculatedStatus = 'Present';
             if (morningTimeIn > lateThresholdTime) {
-                newAttendance.status = 'Late';
-                const [hours, minutes] = morningTimeIn.split(':').map(Number);
-                const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
-                const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
+                calculatedStatus = 'Late';
+                const lateMinutes = timeToMinutes(morningTimeIn) - timeToMinutes(settings.officeStart);
                 calculatedLateHours = Math.ceil(lateMinutes / 60);
                 calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
             }
         } else if ((morningTimeIn && !afternoonTimeIn) || (!morningTimeIn && afternoonTimeIn)) {
-            newAttendance.status = 'Half Day';
+            calculatedStatus = 'Half Day';
             calculatedLateHours = 4;
             calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
             if (morningTimeIn && morningTimeIn > lateThresholdTime) {
-                newAttendance.status = 'Late';
-                const [hours, minutes] = morningTimeIn.split(':').map(Number);
-                const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
-                const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
+                calculatedStatus = 'Late';
+                const lateMinutes = timeToMinutes(morningTimeIn) - timeToMinutes(settings.officeStart);
                 calculatedLateHours = Math.max(4, Math.ceil(lateMinutes / 60));
                 calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
             } else if (afternoonTimeIn && afternoonTimeIn >= settings.halfDayThreshold) {
-                newAttendance.status = 'Half Day';
+                calculatedStatus = 'Half Day';
                 calculatedLateHours = 4;
                 calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
             }
         } else if (morningTimeIn && morningTimeIn > lateThresholdTime) {
-            newAttendance.status = 'Late';
-            const [hours, minutes] = morningTimeIn.split(':').map(Number);
-            const [startHours, startMinutes] = settings.officeStart.split(':').map(Number);
-            const lateMinutes = (hours * 60 + minutes) - (startHours * 60 + startMinutes);
+            calculatedStatus = 'Late';
+            const lateMinutes = timeToMinutes(morningTimeIn) - timeToMinutes(settings.officeStart);
             calculatedLateHours = Math.ceil(lateMinutes / 60);
             calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
         } else if (afternoonTimeIn && afternoonTimeIn > settings.breakEnd) {
-            newAttendance.status = 'Half Day';
+            calculatedStatus = 'Half Day';
             calculatedLateHours = 4;
             calculatedLateDeduction = calculatedLateHours * settings.deductionRate;
         } else if (
             (morningTimeOut && morningTimeOut < settings.breakStart) ||
             (afternoonTimeOut && afternoonTimeOut < settings.officeEnd)
         ) {
-            newAttendance.status = 'Early Departure';
-        } else {
-            newAttendance.status = 'Present';
+            calculatedStatus = 'Early Departure';
+        } else if ((morningTimeIn && !morningTimeOut) || (afternoonTimeIn && !afternoonTimeOut)) {
+            calculatedStatus = 'Incomplete';
         }
 
+        newAttendance.status = calculatedStatus;
         newAttendance.lateHours = calculatedLateHours;
         newAttendance.lateDeduction = calculatedLateDeduction;
+        newAttendance.workedHours = calculateWorkedHours(newAttendance);
+    } else {
+        newAttendance.workedHours = workedHours || calculateWorkedHours(newAttendance);
     }
 
     await newAttendance.save();

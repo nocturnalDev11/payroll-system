@@ -17,7 +17,7 @@ exports.getAdminSettings = asyncHandler(async (req, res) => {
 });
 
 exports.updateAdminSettings = asyncHandler(async (req, res) => {
-    const adminId = req.adminId; // Updated from req.admin.id
+    const adminId = req.adminId;
     const { name, email, password } = req.body;
 
     try {

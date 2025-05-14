@@ -10,12 +10,12 @@ const {
   getTodayAttendance,
   deleteAttendance,
 } = require('../controllers/employee/attendance.controller.js');
-const { restrictToAdmin, verifyToken } = require('../middlewares/authMiddleware.js');
+const { restrictToAdmin, restrictToEmployee, verifyToken } = require('../middlewares/authMiddleware.js');
 
 const router = express.Router();
 
-router.post('/time-in', timeIn);
-router.post('/time-out', timeOut);
+router.post('/time-in', restrictToEmployee, timeIn);
+router.post('/time-out', restrictToEmployee, timeOut);
 router.get('/check-absent', restrictToAdmin, checkAbsent);
 router.put('/:id', restrictToAdmin, updateAttendance);
 router.post('/', restrictToAdmin, createAttendance);

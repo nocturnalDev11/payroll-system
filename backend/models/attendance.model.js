@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
 
 const attendanceSchema = new mongoose.Schema({
-    employeeId: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Employee', 
-        required: true 
+    employeeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Employee',
+        required: true
     },
     date: { type: Date, required: true },
     timeIn: { type: String, default: null },
@@ -13,15 +13,14 @@ const attendanceSchema = new mongoose.Schema({
     morningTimeOut: { type: String, default: null },
     afternoonTimeIn: { type: String, default: null },
     afternoonTimeOut: { type: String, default: null },
-    status: { 
-        type: String, 
-        enum: ['On Time', 'Late', 'Absent', 'Early Departure', 'Present', 'Half Day', 'Leave'], 
-        default: 'Absent' 
+    status: {
+        type: String,
+        enum: ['On Time', 'Late', 'Absent', 'Early Departure', 'Present', 'Half Day', 'Leave', 'Incomplete'],
+        default: 'Absent'
     },
-    // Store hours late
     lateHours: { type: Number, default: 0 },
-    // Store deduction amount (300 pesos per hour)
-    lateDeduction: { type: Number, default: 0 }
+    lateDeduction: { type: Number, default: 0 },
+    workedHours: { type: Number, default: 0 }
 }, {
     indexes: [{ key: { employeeId: 1, date: 1 }, unique: true }]
 });
